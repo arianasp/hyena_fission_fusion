@@ -1,5 +1,5 @@
 #Identify events where two hyenas are together within 200 m
-#Beginning if fusion, end is fission
+#Beginning is fusion, end is fission
 
 #First just use one threshold to identify start and end times (but maybe double threshold later to get rid of 'flicker')
 
