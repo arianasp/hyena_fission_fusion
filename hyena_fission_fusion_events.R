@@ -6,8 +6,8 @@
 #------------- SETUP ----------------
 
 #PARAMETERS
-R.fusion <- 200 # distance threhsold to start an 'interaction'
-R.fission <- 300 #distance threshold to end an 'interaction' (should be > R.fusion)
+R.fusion <- 100 # distance threhsold to start an 'interaction'
+R.fission <- 200 #distance threshold to end an 'interaction' (should be > R.fusion)
 max.break <- 60*30 #maximum length of NA sequence between events to clump them together
 hyena.cols <- c('red','orange','blue','magenta','green')
 grid.res <- 100
@@ -224,7 +224,7 @@ for(i in 1:nrow(together.seqs)){
 #save sequences
 setwd(processeddir)
 if(overwrite){
-  save(list=c('together.seqs','R.fusion','R.fission','max.break'),file='fission_fusion_events.RData')
+  save(list=c('together.seqs','R.fusion','R.fission','max.break', 'dyad.dists'),file='fission_fusion_events.RData')
 }
 
 #plot image sequences of each event to turn into movies (if specified)
