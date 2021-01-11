@@ -40,46 +40,6 @@ den.names <- c('DAVE D','RBEND D','RES M D1','DICK D')
 library(viridis)
 library(dbscan)
 
-#FUNCTIONS
-#' Computes the first passage time out of a circle of radius R based on x and y vectors
-#' Assumes that the initial point from which to compute is (x[1],y[1])
-# @param x numeric vector of the x coordinates of the trajectory
-# @param y numeric vector of the y coordinates of the trajectory
-# @param R numeric value specifying the radius to use
-# @returns the index of the first element in the (x,y) vectors at which R is exceeded
-first.passage.time <- function(x, y, R){
-  
-  #get initial point
-  x0 <- x[1]
-  y0 <- y[1]
-  
-  #if initial point is NA, return NA
-  if(is.na(x0) | is.na(y0)){
-    return(NA)
-  }
-  
-  #throw error if x and y are not the same length
-  if(length(x) != length(y)){
-    stop('x and y not the same length')
-  }
-  
-  #get distance to initial point over time
-  dist <- sqrt((x - x0)^2 + (y - y0)^2)
-  
-  #get the distances that are greater than R from the starting point
-  passed <- which(dist >= R)
-  
-  #if no passages found, return NA, otherwise return the index of the first passage
-  if(length(passed)==0){
-    return(NA)
-  } else{
-   return(min(passed)) 
-  }
-  
-}
-
-#Identify subgroups using chain rule
-
 #cluster using chain rule and radius R
 chain.cluster.groups <- function(x,y,R){
   
