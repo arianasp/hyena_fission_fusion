@@ -13,8 +13,18 @@ hyena.cols <- c('red','orange','blue','magenta','green')
 grid.res <- 100
 
 #DIRECTORIES - MODIFY THIS TO YOUR OWN COMPUTER SETUP
-basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
-codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+name <- readline(prompt = "Enter name:")
+
+if(grepl('a|A', name)){
+  basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
+  codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+}else if(grepl('e|E', name)){
+  basedir <- 'C:/Users/strau/Dropbox/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
+  codedir <- 'C:/Users/strau/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+}else{
+  cat('Name not recognized')
+}
+
 
 #OVERWRITE PERMISSION
 overwrite <- T #set to T if you want to save outputs of script, overwriting previous versions
