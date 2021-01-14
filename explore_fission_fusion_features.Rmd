@@ -1,0 +1,153 @@
+---
+title: "explore_fission_fusion_features"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dichromat)
+
+# name <- readline(prompt = "Enter name:")
+# 
+# if(grepl('a|A', name)){
+#   basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
+#   codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+# }else if(grepl('e|E', name)){
+  basedir <- 'C:/Users/strau/Dropbox/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
+  codedir <- 'C:/Users/strau/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+# }else{
+#   cat('Name not recognized')
+# }
+
+#SUBDIRECTORIES
+datadir <- paste(basedir, 'data/raw', sep = '')
+processeddir <- paste(basedir, 'data/processed', sep = '') #this is where the output will be saved (the fission fusion events RData file)
+
+#FUNCTIONS
+source(paste0(codedir,'/hyena_functions.R'))
+
+#PROCESSED DATA
+load(file = paste0(processeddir,'/fission_fusion_features.RData'))
+load(file = paste0(processeddir,'/fission_fusion_events.RData'))
+load(file = paste0(datadir,'/hyena_xy_level1.RData'))
+
+
+```
+
+## Fission-fusion events
+
+Fission-fusion events are identified as cases where two individuals get within 100m of each other. 
+Once an event is identified, data are collected from the following periods:  
+* Before - When individuals are between 300 and 200m apart  
+* During - When individuals are within 200m of each other  
+* After - When individuals are between 200m and 300m of each other  
+
+Here is some basic exploration of this data
+
+```{r general exploration, echo = FALSE}
+
+good.idxs <- which(events$start.exact & events$end.exact)
+examples <- good.idxs[45:49]
+
+hist((events$duration.together + events$duration.fusion + events$duration.fission)/60, breaks = 500, main = 'Duration of fission-fusion events', xlab = 'Minutes together')
+
+par(mfrow = c(1,1))
+plot_events(indices = examples, together.seqs = events, xs, ys)
+```
+
+Our goal is to characterize fission-fusion events and categorize them into a set
+of biologically meaningful categories. To do this, we decided to start by looking
+at the distance between the pair of individuals over time during each event. 
+
+Fission-fusion events tend to have a canonical structure where there is first a 
+decrease in the dyadic distance (as the two hyenas get closer together; "fusion phase"), then a 
+relatively stable period where the hyenas spend time close together ("together phase"), followed by
+an increase in the dyadic distance as they part ways ("fission" phase). 
+
+Based on this idea, we decided to fit all fission-fusion events to this canonical 
+structure using a 3-part piecewise function (further details on this are available
+but seemed distracting). Although the fit isn't always perfect, this approach does
+do a reasonable job at capturing the structure of the events.
+
+Here are some plots of example events with dyadic distance in black and the fitted 
+phases in red. 
+
+```{r plot a single event, echo = FALSE}
+par(mfrow = c(1,2))
+plot_events(indices = examples[1], events, xs, ys)
+plot_canonical_shape(rows = examples[1], dyad.dists = dyad.dists, events)
+
+plot_events(indices = examples[2], events, xs, ys)
+plot_canonical_shape(rows = examples[2], dyad.dists, events)
+
+plot_events(indices = examples[3], events, xs, ys)
+plot_canonical_shape(rows = examples[3], dyad.dists, events)
+```
+
+Intuitively we can think of events as varying in which individuals are moving and 
+which are stationary in each phase. Here we plot the displacement of one individual vs 
+the other individual in each of the phases separately. 
+
+
+```{r plot distance travelled for each individual, echo = FALSE}
+
+plot(events$disp.fusion.i[good.idxs], events$disp.fusion.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
+     xlab = 'Distance travelled by A', pch = 19, col = scales::alpha('black', 0.3), cex = 0.8, ylab = 'Distance travelled by B', main = 'Fusion phase')
+
+plot(events$disp.together.i[good.idxs], events$disp.together.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
+     xlab = 'Distance travelled by A', pch = 19, col = scales::alpha('black', 0.3), cex = 0.8, ylab = 'Distance travelled by B', main = 'Together phase')
+
+plot(events$disp.fission.i[good.idxs], events$disp.fission.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
+     xlab = 'Distance travelled by A', pch = 19, col = scales::alpha('black', 0.3), cex = 0.8, ylab = 'Distance travelled by B', main = 'Fission phase')
+
+
+
+
+
+```
+
+Especially in the fission and fusion phases, we see two clear clusters where one 
+individual is stationary and the other is moving. We also see a large scattering 
+of points representing cases where both individuals are moving substantially. 
+
+
+
+
+```{r plot angle between trajectories of two individuals, echo = FALSE}
+
+min.move <- 50
+
+both.move.fusion <- which(events$disp.fusion.i >= min.move & events$disp.fusion.j >= min.move)
+both.move.together <- which(events$disp.together.i >= min.move & events$disp.together.j >= min.move)
+both.move.fission <- which(events$disp.fission.i >= min.move & events$disp.fission.j >= min.move)
+
+hist(events$angle.fusion[both.move.fusion], main = 'Angles during fusion', breaks = 50, xlab = 'Angle (radians)')
+hist(events$angle.together[both.move.together], main = 'Angles during together', breaks = 50, xlab = 'Angle (radians)')
+hist(events$angle.fission[both.move.fission], main = 'Angles during fission', breaks = 50, xlab = 'Angle (radians)')
+
+
+
+pal <- colorRampPalette(c('blue', 'black', 'goldenrod1'))
+cols <- pal(320)
+
+# Same plots as before but colored by angle
+plot(events$disp.fusion.i[good.idxs], events$disp.fusion.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
+     xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Fusion phase',
+     col = cols[ceiling(events$angle.fusion[good.idxs] * 100)])
+
+plot(events$disp.together.i[good.idxs], events$disp.together.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
+     xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Together phase',
+     col = cols[ceiling(events$angle.together[good.idxs] * 100)])
+
+plot(events$disp.fission.i[good.idxs], events$disp.fission.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
+     xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Fission phase',
+     col = cols[ceiling(events$angle.fission[good.idxs] * 100)])
+
+```
+
+
+
+
+
+
