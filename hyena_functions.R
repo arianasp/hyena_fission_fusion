@@ -222,22 +222,29 @@ plot_canonical_shape <- function(rows, dyad.dists, together.seqs){
 }
 
 
-plot_events <- function(indices, together.seqs, xs, ys){
+plot_events <- function(indices, events, xs, ys){
   for(r in indices){
-    x.i <- xs[together.seqs$i[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
+    x.i <- xs[events$i[r], events$t.start[r]:events$t.end[r]]
     x.i <- x.i - mean(x.i, na.rm = TRUE)
-    y.i <- ys[together.seqs$i[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
+    y.i <- ys[events$i[r], events$t.start[r]:events$t.end[r]]
     y.i <- y.i - mean(y.i, na.rm = TRUE)
-    x.j <- xs[together.seqs$j[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
+    x.j <- xs[events$j[r], events$t.start[r]:events$t.end[r]]
     x.j <- x.j - mean(x.j, na.rm = TRUE)
-    y.j <- ys[together.seqs$j[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
+    y.j <- ys[events$j[r], events$t.start[r]:events$t.end[r]]
     y.j <- y.j - mean(y.j, na.rm = TRUE)
     
-    
+    b1.idx <- events$b1[r] - events$t.start[r] + 1
+    b2.idx <- events$b2[r] - events$t.start[r] + 1
+    col1 <- rep('darkblue', length(x.i))
+    col1[b1.idx:b2.idx] <- 'blue'
+    col1[b2.idx:length(x.i)] <- 'cyan'
+    col2 <- rep('darkred', length(x.j))
+    col2[b1.idx:b2.idx] <- 'red'
+    col2[b2.idx:length(x.j)] <- 'orange'
     plot(x.i, y.i,asp=1, ylim = c(min(c(y.i, y.j), na.rm =TRUE), max(c(y.i, y.j), na.rm = TRUE)),
-         xlim = c(min(c(x.i, x.j), na.rm =TRUE), max(c(x.i, x.j), na.rm = TRUE)), col = scales::alpha('blue', 0.5),
+         xlim = c(min(c(x.i, x.j), na.rm =TRUE), max(c(x.i, x.j), na.rm = TRUE)), col = scales::alpha(col1, 0.5),
          cex = seq(0.1, 1, length.out = length(x.i)), main = r)
-    points(x.j, y.j, col = scales::alpha('red', 0.5), cex = seq(0.1, 1, length.out = length(x.i)))
+    points(x.j, y.j, col = scales::alpha(col2, 0.5), cex = seq(0.1, 1, length.out = length(x.i)))
     x.lims <- par()$usr[1:2]
     y.lims <- par()$usr[3:4]
   }

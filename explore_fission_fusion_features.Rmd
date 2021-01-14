@@ -7,15 +7,17 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(dichromat)
+library(plotly)
+library(scales)
 
 # name <- readline(prompt = "Enter name:")
 # 
 # if(grepl('a|A', name)){
-#   basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
-#   codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+   basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
+   codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
 # }else if(grepl('e|E', name)){
-  basedir <- 'C:/Users/strau/Dropbox/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
-  codedir <- 'C:/Users/strau/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+#  basedir <- 'C:/Users/strau/Dropbox/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
+#  codedir <- 'C:/Users/strau/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
 # }else{
 #   cat('Name not recognized')
 # }
@@ -53,7 +55,7 @@ examples <- good.idxs[45:49]
 hist((events$duration.together + events$duration.fusion + events$duration.fission)/60, breaks = 500, main = 'Duration of fission-fusion events', xlab = 'Minutes together')
 
 par(mfrow = c(1,1))
-plot_events(indices = examples, together.seqs = events, xs, ys)
+plot_events(indices = examples, events = events, xs, ys)
 ```
 
 Our goal is to characterize fission-fusion events and categorize them into a set
@@ -134,20 +136,92 @@ cols <- pal(320)
 # Same plots as before but colored by angle
 plot(events$disp.fusion.i[good.idxs], events$disp.fusion.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
      xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Fusion phase',
-     col = cols[ceiling(events$angle.fusion[good.idxs] * 100)])
+     col = alpha(cols[ceiling(events$angle.fusion[good.idxs] * 100)], 0.7))
 
-plot(events$disp.together.i[good.idxs], events$disp.together.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
+plot(events$disp.together.i[good.idxs], events$disp.together.j[good.idxs], xlim = c(0,200), ylim = c(0, 200),
      xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Together phase',
-     col = cols[ceiling(events$angle.together[good.idxs] * 100)])
+     col = alpha(cols[ceiling(events$angle.together[good.idxs] * 100)], 0.7))
 
 plot(events$disp.fission.i[good.idxs], events$disp.fission.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
      xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Fission phase',
-     col = cols[ceiling(events$angle.fission[good.idxs] * 100)])
+     col = alpha(cols[ceiling(events$angle.fission[good.idxs] * 100)], 0.7))
+
+```
+Next step is to break the phases into a set of discrete categories for each phase. We will use the displacements for each individual as well as the angle between their headings during the phase for the categorization. For now, we set a threshold of 5 m to capture individuals that aren't moving at all.
+```{r phases to categories, echo = FALSE}
+#thresholds
+move.thresh <- 5
+ang.thresh <- pi/2
+
+#defining clusters - fusion
+fusion.stay.move.idxs <- which(events$disp.fusion.i <= move.thresh)
+fusion.move.stay.idxs <- which(events$disp.fusion.j <= move.thresh)
+fusion.move.move.bigang.idxs <- which(events$disp.fusion.i > move.thresh & events$disp.fusion.j > move.thresh & events$angle.fusion > ang.thresh)
+fusion.move.move.smallang.idxs <- which(events$disp.fusion.i > move.thresh & events$disp.fusion.j > move.thresh & events$angle.fusion <= ang.thresh)
+
+#defining clusters - together
+together.stay.stay.idxs <- which(events$disp.together.i <= move.thresh & events$disp.together.j <= move.thresh)
+together.stay.move.idxs <- which(events$disp.together.i <= move.thresh & events$disp.together.j > move.thresh)
+together.move.stay.idxs <- which(events$disp.together.j <= move.thresh & events$disp.together.i > move.thresh)
+together.move.move.idxs <- which(events$disp.together.i > move.thresh & events$disp.together.j > move.thresh)
+
+#defining clusters - fission
+fission.stay.move.idxs <- which(events$disp.fission.i <= move.thresh)
+fission.move.stay.idxs <- which(events$disp.fission.j <= move.thresh)
+fission.move.move.bigang.idxs <- which(events$disp.fission.i > move.thresh & events$disp.fission.j > move.thresh & events$angle.fission > ang.thresh)
+fission.move.move.smallang.idxs <- which(events$disp.fission.i > move.thresh & events$disp.fission.j > move.thresh & events$angle.fission <= ang.thresh)
+
+#store clusters in events data frame
+events$fusion.type <- events$together.type <- events$fission.type <- NA
+events$fusion.type[fusion.stay.move.idxs] <- 'fusion.stay.move'
+events$fusion.type[fusion.move.stay.idxs] <- 'fusion.move.stay'
+events$fusion.type[fusion.move.move.bigang.idxs] <- 'fusion.move.move.bigang'
+events$fusion.type[fusion.move.move.smallang.idxs] <- 'fusion.move.move.smallang'
+events$together.type[together.stay.stay.idxs] <- 'together.stay.stay'
+events$together.type[together.stay.move.idxs] <- 'together.stay.move'
+events$together.type[together.move.stay.idxs] <- 'together.move.stay'
+events$together.type[together.move.move.idxs] <- 'together.move.move'
+events$fission.type[fission.stay.move.idxs] <- 'fission.stay.move'
+events$fission.type[fission.move.stay.idxs] <- 'fission.move.stay'
+events$fission.type[fission.move.move.bigang.idxs] <- 'fission.move.move.bigang'
+events$fission.type[fission.move.move.smallang.idxs] <- 'fission.move.move.smallang'
+
+#look at what types emerge
+complete.events <- which(!(is.na(events$fusion.type) | is.na(events$together.type) | is.na(events$fission.type)))
+events$event.type <- paste(events$fusion.type, events$together.type, events$fission.type, sep = '__')
+
+#3d plot
+aX <- list(title = "Distance travelled by A (m)", range = c(0,700))
+aY <- list(title = "Distance travelled by B (m)", range = c(0,700))
+aZ <- list(title = 'Angle (degrees)', range = c(0, 210))
+plot_ly(x = events$disp.together.i[good.idxs], y = events$disp.together.j[good.idxs], z = events$angle.together[good.idxs]*180/pi, type = 'scatter3d', mode = 'markers', size = 0.5) %>%
+   layout(scene = list(xaxis = aX, yaxis = aY, zaxis = aZ, dragmode="turntable"))
+
+#2d plot
+cols <- c('red','blue','green','black','gray')
+fusion.event.types <- unique(events$fusion.type)
+plot(events$disp.fusion.i[good.idxs], events$disp.fusion.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
+     xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Fusion phase',
+     col = cols[match(events$fusion.type[good.idxs], fusion.event.types)])
 
 ```
 
+Now that we have a taxonomy of event types, let's have a look at some common ones and hypothesize about what's going on (give them names). 
 
+```{r code to plot examples of an event of a certain rank, echo = FALSE}
 
+event.types.by.freq <- sort(table(events$event.type[complete.events]), decreasing = T)
 
+plot_events_of_rank <- function(event.rank, event.types.by.freq = event.types.by.freq, events = events, xs = xs, ys = ys){
 
+  idxs.event.type <- which(events$event.type == names(event.types.by.freq[event.rank])) #getting examples of that event type
+  plot_events(indices = idxs.event.type[sample(1:length(idxs.event.type),4)], events = events, xs = xs, ys = ys)
+}
 
+```
+The most common event type is `r names(event.types.by.freq[1])`
+```{r plotting, echo = FALSE}
+plot_events_of_rank(1, event.types.by.freq, events, xs, ys)
+```
+
+These are events where two moving hyenas meeting each other at a small angle, then move together for a bit (possibly very short bit) and finally split at a small angle. These would include instances where hyenas meet up, move together, and then diverge, or could also be crossover events occurring at small angles.
