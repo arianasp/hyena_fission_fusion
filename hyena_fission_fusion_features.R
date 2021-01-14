@@ -30,6 +30,7 @@ setwd(datadir)
 load('hyena_xy_level1.RData')
 load('hyena_timestamps.Rdata')
 load('hyena_ids.RData')
+load('hyena_vedba.RData')
 
 #Read in den data
 den.file <- 'hyena_isolate_dens.csv'
@@ -101,101 +102,20 @@ for(i in 1:nrow(together.seqs)){
   print(i)
 }
 
-### Get locations for relevant time points
-x.start.i <- xs[cbind(together.seqs$i, together.seqs$t.start)]
-x.before.i <- xs[cbind(together.seqs$i, together.seqs$t.before.i)]
-x.end.i <- xs[cbind(together.seqs$i, together.seqs$t.end)]
-x.after.i <- xs[cbind(together.seqs$i, together.seqs$t.after.i)]
-x.closest.i <- xs[cbind(together.seqs$i, together.seqs$t.closest)]
-
-y.start.i <- ys[cbind(together.seqs$i, together.seqs$t.start)]
-y.before.i <- ys[cbind(together.seqs$i, together.seqs$t.before.i)]
-y.end.i <- ys[cbind(together.seqs$i, together.seqs$t.end)]
-y.after.i <- ys[cbind(together.seqs$i, together.seqs$t.after.i)]
-y.closest.i <- ys[cbind(together.seqs$i, together.seqs$t.closest)]
-
-x.start.j <- xs[cbind(together.seqs$j, together.seqs$t.start)]
-x.before.j <- xs[cbind(together.seqs$j, together.seqs$t.before.j)]
-x.end.j <- xs[cbind(together.seqs$j, together.seqs$t.end)]
-x.after.j <- xs[cbind(together.seqs$j, together.seqs$t.after.j)]
-x.closest.j <- xs[cbind(together.seqs$j, together.seqs$t.closest)]
-
-y.start.j <- ys[cbind(together.seqs$j, together.seqs$t.start)]
-y.before.j <- ys[cbind(together.seqs$j, together.seqs$t.before.j)]
-y.end.j <- ys[cbind(together.seqs$j, together.seqs$t.end)]
-y.after.j <- ys[cbind(together.seqs$j, together.seqs$t.after.j)]
-y.closest.j <- ys[cbind(together.seqs$j, together.seqs$t.closest)]
-
-
-### Displacement
-together.seqs$disp.during.i <- sqrt((x.start.i-x.end.i)^2 + (y.start.i-y.end.i)^2)
-together.seqs$disp.before.i <- sqrt((x.before.i-x.start.i)^2 + (y.before.i-y.start.i)^2)
-together.seqs$disp.after.i <- sqrt((x.end.i-x.after.i)^2 + (y.end.i-y.after.i)^2)
-
-together.seqs$disp.during.j <- sqrt((x.start.j-x.end.j)^2 + (y.start.j-y.end.j)^2)
-together.seqs$disp.before.j <- sqrt((x.before.j-x.start.j)^2 + (y.before.j-y.start.j)^2)
-together.seqs$disp.after.j <- sqrt((x.end.j-x.after.j)^2 + (y.end.j-y.after.j)^2)
-
-### Time
-together.seqs$duration.before.i <- together.seqs$t.start - together.seqs$t.before.i
-together.seqs$duration.after.i <- together.seqs$t.after.i - together.seqs$t.end
-
-together.seqs$duration.during <- together.seqs$t.end - together.seqs$t.start
-
-together.seqs$duration.before.j <- together.seqs$t.start - together.seqs$t.before.j
-together.seqs$duration.after.j <- together.seqs$t.after.j - together.seqs$t.end
-
-### Speed
-together.seqs.speed.before.i <- together.seqs$disp.before.i / together.seqs$duration.before.i
-together.seqs$speed.during.i <- together.seqs$disp.during.i / together.seqs$duration.during
-together.seqs$speed.after.i <- together.seqs$disp.after.i / together.seqs$duration.after.i
-
-together.seqs.speed.before.j <- together.seqs$disp.before.j / together.seqs$duration.before.j
-together.seqs$speed.during.j <- together.seqs$disp.during.j / together.seqs$duration.during
-together.seqs$speed.after.j <- together.seqs$disp.after.j / together.seqs$duration.after.j
+### Remove events (only 1) with undefined start and end times
+together.seqs <- together.seqs[!is.na(together.seqs$t.start) & !is.na(together.seqs$t.end),]
 
 
 
 
-
-
-r = 1
-
-fp <- list(x0 = x[1], 
-           y0 = y[1],
-           xf = x[length(x)],
-           yf = y[length(y)])
-
-p <- constrOptim(theta = c(fp$x0+5, fp$xf-5, 1), f = ls_error, fixed.parameters = fp, x = x, y =y,
-                 ui = matrix(nrow  = 7, ncol = 3, byrow = TRUE,
-                             data = c(1,0,0,
-                                      -1,0,0,
-                                      0,1,0,
-                                      0,-1,0,
-                                      0,0,1,
-                                      0,0,-1,
-                                      -1,1,0)),
-                 ci = c(fp$x0+1, -fp$xf-1, fp$x0+1, -fp$xf-1, 0, -fp$yf , 0),
-                 grad = NULL)
-
-# p <- optim(par = c(fp$x0+5, fp$xf-5, 0), fn = ls_error, fixed.parameters = fp, x = x, y = y, method = "L-BFGS-B",
-#            lower = c(fp$x0+1, fp$x0+1, 0), upper = c(fp$xf-1, fp$xf-1, fp$yf))
-
-
-plot_dyad_dists(r)
-lines(x =x, y = fission_fusion_function(x, p$par[1], p$par[2], p$par[3], fp), col = 'red')
-
-
-together.seqs.exact <- together.seqs[together.seqs$start.exact & together.seqs$end.exact,]
-together.seqs.exact[,c('b1', 'b2', 'y.intercept')] <- NA
-for(r in 1:nrow(together.seqs.exact)){
+together.seqs[,c('b1', 'b2', 'y.intercept')] <- NA
+for(r in 1:nrow(together.seqs)){
   
-  ### Remove one case at the very start of the data
-  if(is.na(together.seqs.exact$t.start[r]))
+  if(!together.seqs$start.exact[r] | !together.seqs$end.exact[r])
     next
   
-  y = dyad.dists[together.seqs.exact$i[r], together.seqs.exact$j[r], together.seqs.exact$t.start[r]:together.seqs.exact$t.end[r]]
-  x = together.seqs.exact$t.start[r]:together.seqs.exact$t.end[r]
+  y = dyad.dists[together.seqs$i[r], together.seqs$j[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
+  x = together.seqs$t.start[r]:together.seqs$t.end[r]
   fp <- list(x0 = x[1], 
              y0 = y[1],
              xf = x[length(x)],
@@ -215,83 +135,156 @@ for(r in 1:nrow(together.seqs.exact)){
                    grad = NULL)
   
   
-  together.seqs.exact[r,c('b1', 'b2', 'y.intercept')] <-p$par
+  together.seqs[r,c('b1', 'b2', 'y.intercept')] <-p$par
+}
+
+together.seqs$b1 <- round(together.seqs$b1)
+together.seqs$b2 <- round(together.seqs$b2)
+
+empty.vec <- rep(NA, nrow(together.seqs))
+positions <- data.frame(x.before.i = empty.vec,
+                        x.start.i = empty.vec,
+                        x.b1.i = empty.vec,
+                        x.b2.i = empty.vec,
+                        x.end.i = empty.vec,
+                        x.after.i = empty.vec,
+                        x.closest.i = empty.vec,
+                        y.before.i = empty.vec,
+                        y.start.i = empty.vec,
+                        y.b1.i = empty.vec,
+                        y.b2.i = empty.vec,
+                        y.end.i = empty.vec,
+                        y.after.i = empty.vec,
+                        y.closest.i = empty.vec,
+                        x.before.j = empty.vec,
+                        x.start.j = empty.vec,
+                        x.b1.j = empty.vec,
+                        x.b2.j = empty.vec,
+                        x.end.j = empty.vec,
+                        x.after.j = empty.vec,
+                        x.closest.j = empty.vec,
+                        y.before.j = empty.vec,
+                        y.start.j = empty.vec,
+                        y.b1.j = empty.vec,
+                        y.b2.j = empty.vec,
+                        y.end.j = empty.vec,
+                        y.after.j = empty.vec,
+                        y.closest.j = empty.vec)
+
+### Get locations for relevant time points
+
+idxs.start.end.exact <- which(together.seqs$start.exact & together.seqs$end.exact)
+idxs.start.exact <- which(together.seqs$start.exact)
+idxs.end.exact <- which(together.seqs$end.exact)
+
+#####i
+# start exact
+positions$x.before.i[idxs.start.exact] <- xs[cbind(together.seqs$i, together.seqs$t.before.i)[idxs.start.exact,]]
+positions$y.before.i[idxs.start.exact] <- ys[cbind(together.seqs$i, together.seqs$t.before.i)[idxs.start.exact,]]
+positions$x.start.i[idxs.start.exact] <- xs[cbind(together.seqs$i, together.seqs$t.start)[idxs.start.exact,]]
+positions$y.start.i[idxs.start.exact] <- ys[cbind(together.seqs$i, together.seqs$t.start)[idxs.start.exact,]]
+
+#both exact
+positions$x.b1.i[idxs.start.end.exact] <- xs[cbind(together.seqs$i, together.seqs$b1)[idxs.start.end.exact,]]
+positions$y.b1.i[idxs.start.end.exact] <- ys[cbind(together.seqs$i, together.seqs$b1)[idxs.start.end.exact,]]
+positions$x.b2.i[idxs.start.end.exact] <- xs[cbind(together.seqs$i, together.seqs$b2)[idxs.start.end.exact,]]
+positions$y.b2.i[idxs.start.end.exact] <- ys[cbind(together.seqs$i, together.seqs$b2)[idxs.start.end.exact,]]
+
+#end exact
+positions$x.end.i[idxs.end.exact] <- xs[cbind(together.seqs$i, together.seqs$t.end)[idxs.end.exact,]]
+positions$y.end.i[idxs.end.exact] <- ys[cbind(together.seqs$i, together.seqs$t.end)[idxs.end.exact,]]
+positions$x.after.i[idxs.end.exact] <- xs[cbind(together.seqs$i, together.seqs$t.after.i)[idxs.end.exact,]]
+positions$y.after.i[idxs.end.exact] <- ys[cbind(together.seqs$i, together.seqs$t.after.i)[idxs.end.exact,]]
+
+positions$x.closest.i <- xs[cbind(together.seqs$i, together.seqs$t.closest)]
+positions$y.closest.i <- ys[cbind(together.seqs$i, together.seqs$t.closest)]
+
+#####j
+# start exact
+positions$x.before.j[idxs.start.exact] <- xs[cbind(together.seqs$j, together.seqs$t.before.j)[idxs.start.exact,]]
+positions$y.before.j[idxs.start.exact] <- ys[cbind(together.seqs$j, together.seqs$t.before.j)[idxs.start.exact,]]
+positions$x.start.j[idxs.start.exact] <- xs[cbind(together.seqs$j, together.seqs$t.start)[idxs.start.exact,]]
+positions$y.start.j[idxs.start.exact] <- ys[cbind(together.seqs$j, together.seqs$t.start)[idxs.start.exact,]]
+
+#both exact
+positions$x.b1.j[idxs.start.end.exact] <- xs[cbind(together.seqs$j, together.seqs$b1)[idxs.start.end.exact,]]
+positions$y.b1.j[idxs.start.end.exact] <- ys[cbind(together.seqs$j, together.seqs$b1)[idxs.start.end.exact,]]
+positions$x.b2.j[idxs.start.end.exact] <- xs[cbind(together.seqs$j, together.seqs$b2)[idxs.start.end.exact,]]
+positions$y.b2.j[idxs.start.end.exact] <- ys[cbind(together.seqs$j, together.seqs$b2)[idxs.start.end.exact,]]
+
+#end exact
+positions$x.end.j[idxs.end.exact] <- xs[cbind(together.seqs$j, together.seqs$t.end)[idxs.end.exact,]]
+positions$y.end.j[idxs.end.exact] <- ys[cbind(together.seqs$j, together.seqs$t.end)[idxs.end.exact,]]
+positions$x.after.j[idxs.end.exact] <- xs[cbind(together.seqs$j, together.seqs$t.after.j)[idxs.end.exact,]]
+positions$y.after.j[idxs.end.exact] <- ys[cbind(together.seqs$j, together.seqs$t.after.j)[idxs.end.exact,]]
+
+positions$x.closest.j <- xs[cbind(together.seqs$j, together.seqs$t.closest)]
+positions$y.closest.j <- ys[cbind(together.seqs$j, together.seqs$t.closest)]
+
+
+##### Extract features
+### Displacement - no before or after because they are defined a priori as 100m
+
+together.seqs$disp.fusion.i <- sqrt((positions$x.start.i-positions$x.b1.i)^2 + (positions$y.start.i-positions$y.b1.i)^2)
+together.seqs$disp.together.i <- sqrt((positions$x.b2.i-positions$x.b1.i)^2 + (positions$y.b2.i-positions$y.b1.i)^2)
+together.seqs$disp.fission.i <- sqrt((positions$x.end.i-positions$x.b2.i)^2 + (positions$y.end.i-positions$y.b2.i)^2)
+
+together.seqs$disp.fusion.j <- sqrt((positions$x.start.j-positions$x.b1.j)^2 + (positions$y.start.j-positions$y.b1.j)^2)
+together.seqs$disp.together.j <- sqrt((positions$x.b2.j-positions$x.b1.j)^2 + (positions$y.b2.j-positions$y.b1.j)^2)
+together.seqs$disp.fission.j <- sqrt((positions$x.end.j-positions$x.b2.j)^2 + (positions$y.end.j-positions$y.b2.j)^2)
+
+
+### Time
+together.seqs$duration.before.i <- together.seqs$t.start - together.seqs$t.before.i
+together.seqs$duration.after.i <- together.seqs$t.after.i - together.seqs$t.end
+
+together.seqs$duration.fusion <- together.seqs$b1 - together.seqs$t.start
+together.seqs$duration.together <- together.seqs$b2 - together.seqs$b1
+together.seqs$duration.fission <- together.seqs$t.end - together.seqs$b2
+
+together.seqs$duration.before.j <- together.seqs$t.start - together.seqs$t.before.j
+together.seqs$duration.after.j <- together.seqs$t.after.j - together.seqs$t.end
+
+# ### Speed
+# together.seqs.speed.before.i <- together.seqs$disp.before.i / together.seqs$duration.before.i
+# together.seqs$speed.fusion.i <- together.seqs$disp.fusion.i / together.seqs$duration.fusion
+# together.seqs$speed.together.i <- together.seqs$disp.together.i / together.seqs$duration.together
+# together.seqs$speed.fission.i <- together.seqs$disp.fission.i / together.seqs$duration.fission
+# together.seqs$speed.after.i <- together.seqs$disp.after.i / together.seqs$duration.after.i
+# 
+# together.seqs.speed.before.j <- together.seqs$disp.before.j / together.seqs$duration.before.j
+# together.seqs$speed.fusion.j <- together.seqs$disp.fusion.j / together.seqs$duration.fusion
+# together.seqs$speed.together.j <- together.seqs$disp.together.j / together.seqs$duration.together
+# together.seqs$speed.fission.j <- together.seqs$disp.fission.j / together.seqs$duration.fission
+# together.seqs$speed.after.j <- together.seqs$disp.after.j / together.seqs$duration.after.j
+
+### Angle
+together.seqs$angle.before <- get_angle(x1.i = positions$x.before.i, x2.i = positions$x.start.i, y1.i = positions$y.before.i, y2.i = positions$y.start.i,
+                                        x1.j = positions$x.before.j, x2.j = positions$x.start.j, y1.j = positions$y.before.j, y2.j = positions$y.start.j)
+
+together.seqs$angle.fusion <- get_angle(x1.i = positions$x.start.i, x2.i = positions$x.b1.i, y1.i = positions$y.start.i, y2.i = positions$y.b1.i,
+                                        x1.j = positions$x.start.j, x2.j = positions$x.b1.j, y1.j = positions$y.start.j, y2.j = positions$y.b1.j)
+
+together.seqs$angle.together <- get_angle(x1.i = positions$x.b1.i, x2.i = positions$x.b2.i, y1.i = positions$y.b1.i, y2.i = positions$y.b2.i,
+                                          x1.j = positions$x.b1.j, x2.j = positions$x.b2.j, y1.j = positions$y.b1.j, y2.j = positions$y.b2.j)
+
+together.seqs$angle.fission <- get_angle(x1.i = positions$x.b2.i, x2.i = positions$x.end.i, y1.i = positions$y.b2.i, y2.i = positions$y.end.i,
+                                         x1.j = positions$x.b2.j, x2.j = positions$x.end.j, y1.j = positions$y.b2.j, y2.j = positions$y.end.j)
+
+together.seqs$angle.after <- get_angle(x1.i = positions$x.end.i, x2.i = positions$x.after.i, y1.i = positions$y.end.i, y2.i = positions$y.after.i,
+                                       x1.j = positions$x.end.j, x2.j = positions$x.after.j, y1.j = positions$y.end.j, y2.j = positions$y.after.j)
+
+### VEDBA
+
+for(i in 1:nrow(together.seqs)){
+  together.seqs$vedba.before.i <- mean(vedbas[together.seqs$i[i], together.seqs$t.before.i[i]:together.seqs$t.start[i]], na.rm = TRUE)
 }
 
 
 
 
 
-
-
-
-
-
-
-#### Random plots for discussion 2021-01-11
-hist(together.seqs$duration, breaks = 1000,
-     main = 'Distribution of duration of fusion events', xlab = 'Duration')
-
-hist(together.seqs$disp.start.end.i, breaks = 1000,
-     main = 'Distribution of distances travelled', xlab = 'Distance travelled')
-hist(together.seqs$disp.start.end.i, xlim = c(0,1000), breaks = 1000,
-     main = 'Distribution of distances travelled (zoomed in)', xlab = 'Distance travelled')
-
-hist(together.seqs.exact$y.intercept, breaks = 100)
-hist(together.seqs.exact$b2 - together.seqs.exact$b1, breaks = 100)
-
-
-disp.200 <- which(together.seqs$disp.during.i >= 195 & together.seqs$disp.during.i <= 205)
-plot_events(disp.200)
-
-disp.400 <- which(together.seqs$disp.during.i >= 395, together.seqs$disp.during.i <= 405)
-plot_events(disp.400)
-
-random.50 <- sample(1:nrow(together.seqs), 50)
-plot_events(random.20)
-
-random.10.exact <- sample(1:nrow(together.seqs.exact), 10)
-plot_events(10)
-plot_canonical_shape(10)
-
-disp.over.500 <- which(together.seqs$disp.during.i >= 500)
-plot_events(disp.over.500)
-
-
-
-r=200
-plot_events(r)
-
-plot_canonical_shape(rows = c(200, 100), dyad.dists = dyad.dists, together.seqs.exact = together.seqs.exact)
-
-
-
-y = dyad.dists[together.seqs.exact$i[r], together.seqs.exact$j[r], together.seqs.exact$t.start[r]:together.seqs.exact$t.end[r]]
-x = together.seqs.exact$t.start[r]:together.seqs.exact$t.end[r]
-plot(y = y, type = 'l',
-     x = x,
-     xlab = 'Time (s)', ylab = 'Distance between individuals (m)')
-
-
-
-fp <- list(x0 = x[1], 
-           y0 = y[1],
-           xf = x[length(x)],
-           yf = y[length(y)]) 
-
-p <- constrOptim(theta = c(fp$x0+5, fp$xf-5, 1), f = ls_error, fixed.parameters = fp, x = x, y =y,
-                 ui = matrix(nrow  = 7, ncol = 3, byrow = TRUE,
-                             data = c(1,0,0,
-                                      -1,0,0,
-                                      0,1,0,
-                                      0,-1,0,
-                                      0,0,1,
-                                      0,0,-1,
-                                      -1,1,0)),
-                 ci = c(fp$x0+1, -fp$xf-1, fp$x0+1, -fp$xf-1, 0, -fp$yf , 0),
-                 grad = NULL)
-
-lines(x =x, y = fission_fusion_function(x, p$par[1], p$par[2], p$par[3], fp), col = 'red')
-
-
-
+### Save features object
+events <- together.seqs
+setwd(processeddir)
+save(list=c('events'),file='fission_fusion_features.RData')
