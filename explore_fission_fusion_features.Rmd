@@ -271,7 +271,7 @@ We identified two primary variables that capture a lot of variability within pha
 of fission-fusion events: 
 
 **Displacement of individuals:** How much did each individual move during the phase?  
-**Angle between heading of individuals:** What is the angle in the heading of the two individuals?  
+**Angle between heading of individuals:** What is the angle between the headings of the two individuals?  
 
 
 #### Displacement of individuals  
@@ -379,16 +379,16 @@ fission.move.move.smallang.idxs <- which(events$disp.fission.i > move.thresh & e
 events$fusion.type <- events$together.type <- events$fission.type <- NA
 events$fusion.type[fusion.stay.move.idxs] <- 'fusion.stay.move'
 events$fusion.type[fusion.move.stay.idxs] <- 'fusion.move.stay'
-events$fusion.type[fusion.move.move.bigang.idxs] <- 'fusion.move.move.bigang'
-events$fusion.type[fusion.move.move.smallang.idxs] <- 'fusion.move.move.smallang'
+events$fusion.type[fusion.move.move.bigang.idxs] <- 'fusion.move.move.unaligned'
+events$fusion.type[fusion.move.move.smallang.idxs] <- 'fusion.move.move.aligned'
 events$together.type[together.stay.stay.idxs] <- 'together.stay.stay'
 events$together.type[together.stay.move.idxs] <- 'together.stay.move'
 events$together.type[together.move.stay.idxs] <- 'together.move.stay'
 events$together.type[together.move.move.idxs] <- 'together.move.move'
 events$fission.type[fission.stay.move.idxs] <- 'fission.stay.move'
 events$fission.type[fission.move.stay.idxs] <- 'fission.move.stay'
-events$fission.type[fission.move.move.bigang.idxs] <- 'fission.move.move.bigang'
-events$fission.type[fission.move.move.smallang.idxs] <- 'fission.move.move.smallang'
+events$fission.type[fission.move.move.bigang.idxs] <- 'fission.move.move.unaligned'
+events$fission.type[fission.move.move.smallang.idxs] <- 'fission.move.move.aligned'
 
 #look at what types emerge
 complete.events <- which(!(is.na(events$fusion.type) | is.na(events$together.type) | is.na(events$fission.type)))
@@ -402,8 +402,8 @@ Next we broke phases into a set of discrete categories.
 
 For all 3 phases, we divided events into categories based on the movement of individuals.  
 
-We chose a **movement threshold** of `r move.thresh` to classify each individual as moving or not moving. 
-We chose an **angle threshold** of `r ang.thresh/pi * 180/pi` degrees to classify individuals as having
+We chose a **movement threshold** of `r move.thresh`m to classify each individual as moving or not moving. 
+We chose an **angle threshold** of `r round(ang.thresh/pi * 180, 2)` degrees to classify individuals as having
 aligned or opposite movement trajectories.
 
 We identified the following categories: 
