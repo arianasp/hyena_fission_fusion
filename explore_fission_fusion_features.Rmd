@@ -31,11 +31,11 @@ library(lubridate)
 # name <- readline(prompt = "Enter name:")
 # 
 # if(grepl('a|A', name)){
-   # basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
-   # codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+    basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
+    codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
 # }else if(grepl('e|E', name)){
- basedir <- 'C:/Users/strau/Dropbox/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
- codedir <- 'C:/Users/strau/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+ #basedir <- 'C:/Users/strau/Dropbox/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
+ #codedir <- 'C:/Users/strau/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
 # }else{
 #   cat('Name not recognized')
 # }
@@ -160,6 +160,10 @@ for(i in 1:nrow(den.locs)){
 #min dist to den at start and end of events
 min.dist.to.den.start <- apply(dist.to.den.start, 1, min, na.rm=T)
 min.dist.to.den.end <- apply(dist.to.den.end, 1, min, na.rm=T)
+
+#store in table
+events$dist.den.start <- min.dist.to.den.start
+events$dist.den.end <- min.dist.to.den.end
 
 #min distance to den overall
 idxs.to.use <- seq(1, ncol(xs), by = 60)
@@ -352,6 +356,7 @@ text(x = p[1] + 0.15*(p[2]-p[1]), y = p[4]- 0.1*(p[4]-p[3]), 'heading unaligned'
 text(x = p[1] + 0.15*(p[2]-p[1]), y = p[4]- 0.15*(p[4]-p[3]), 'heading aligned', col = cols[1], adj = 0)
 
 ```
+
 ```{r phases to categories, echo = FALSE}
 #thresholds
 move.thresh <- 5
@@ -364,10 +369,9 @@ fusion.move.move.bigang.idxs <- which(events$disp.fusion.i > move.thresh & event
 fusion.move.move.smallang.idxs <- which(events$disp.fusion.i > move.thresh & events$disp.fusion.j > move.thresh & events$angle.fusion <= ang.thresh)
 
 #defining clusters - together
-together.stay.stay.idxs <- which(events$disp.together.i <= move.thresh & events$disp.together.j <= move.thresh)
-together.stay.move.idxs <- which(events$disp.together.i <= move.thresh & events$disp.together.j > move.thresh)
-together.move.stay.idxs <- which(events$disp.together.j <= move.thresh & events$disp.together.i > move.thresh)
-together.move.move.idxs <- which(events$disp.together.i > move.thresh & events$disp.together.j > move.thresh)
+together.travel.thresh <- 200
+together.local.idxs <- which(events$disp.together.i <= together.travel.thresh | events$disp.together.j <= together.travel.thresh)
+together.travel.idxs <- which(events$disp.together.i > together.travel.thresh & events$disp.together.j > together.travel.thresh)
 
 #defining clusters - fission
 fission.stay.move.idxs <- which(events$disp.fission.i <= move.thresh)
@@ -381,10 +385,8 @@ events$fusion.type[fusion.stay.move.idxs] <- 'fusion.stay.move'
 events$fusion.type[fusion.move.stay.idxs] <- 'fusion.move.stay'
 events$fusion.type[fusion.move.move.bigang.idxs] <- 'fusion.move.move.unaligned'
 events$fusion.type[fusion.move.move.smallang.idxs] <- 'fusion.move.move.aligned'
-events$together.type[together.stay.stay.idxs] <- 'together.stay.stay'
-events$together.type[together.stay.move.idxs] <- 'together.stay.move'
-events$together.type[together.move.stay.idxs] <- 'together.move.stay'
-events$together.type[together.move.move.idxs] <- 'together.move.move'
+events$together.type[together.local.idxs] <- 'together.local'
+events$together.type[together.travel.idxs] <- 'together.travel'
 events$fission.type[fission.stay.move.idxs] <- 'fission.stay.move'
 events$fission.type[fission.move.stay.idxs] <- 'fission.move.stay'
 events$fission.type[fission.move.move.bigang.idxs] <- 'fission.move.move.unaligned'
@@ -415,10 +417,8 @@ We identified the following categories:
 4. Both moving, trajectories unaligned  
 
 **Together phase (4)**
-1. Individual A moving, Individual B stationary  
-2. Individual A stationary, Individual B moving  
-3. Both moving  
-4. Both staying  
+1. Local (individuals stayed within 200 m)
+2. Traveling (both individuals had a displacement > 200 m)
 
 **Fission phase (4)**
 1. Individual A moving, Individual B stationary  
@@ -477,3 +477,25 @@ plot_events_of_rank(1, event.types.by.freq, events, xs, ys)
 ```
 
 These are events where two moving hyenas meeting each other at a small angle, then move together for a bit (possibly very short bit) and finally split at a small angle. These would include instances where hyenas meet up, move together, and then diverge, or could also be crossover events occurring at small angles.
+
+```{r transitions between fission and fusion}
+
+idxs.local <- which(events$together.type == 'together.local')
+idxs.travel <- which(events$together.type == 'together.travel')
+
+trans.local <- table(events$fission.type[idxs.local], events$fusion.type[idxs.local])
+par(mar = c(12,12,2,2))
+image.plot(trans.local, xaxt = 'n', yaxt = 'n', col = viridis(256))
+axis(side = 1, at = seq(0,1, length.out = nrow(trans.local)), rownames(trans.local), las = 2)
+axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.local), las = 2)
+title(main = 'Transitions for local events')
+
+
+trans.local <- table(events$fission.type[idxs.travel], events$fusion.type[idxs.travel])
+par(mar = c(12,12,2,2))
+image.plot(trans.local, xaxt = 'n', yaxt = 'n', col = viridis(256))
+axis(side = 1, at = seq(0,1, length.out = nrow(trans.local)), rownames(trans.local), las = 2)
+axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.local), las = 2)
+title(main = 'Transitions for traveling events')
+
+```
