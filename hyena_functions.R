@@ -222,7 +222,7 @@ plot_canonical_shape <- function(rows, dyad.dists, together.seqs){
 }
 
 
-plot_events <- function(indices, events, xs, ys){
+plot_events <- function(indices, events, xs, ys, phase.col = TRUE){
   for(r in indices){
     x.i <- xs[events$i[r], events$t.start[r]:events$t.end[r]]
     x.i <- x.i - mean(x.i, na.rm = TRUE)
@@ -236,11 +236,15 @@ plot_events <- function(indices, events, xs, ys){
     b1.idx <- events$b1[r] - events$t.start[r] + 1
     b2.idx <- events$b2[r] - events$t.start[r] + 1
     col1 <- rep('darkblue', length(x.i))
-    col1[b1.idx:b2.idx] <- 'blue'
-    col1[b2.idx:length(x.i)] <- 'cyan'
+    if(phase.col){
+      col1[b1.idx:b2.idx] <- 'blue'
+      col1[b2.idx:length(x.i)] <- 'cyan'
+    }
     col2 <- rep('darkred', length(x.j))
-    col2[b1.idx:b2.idx] <- 'red'
-    col2[b2.idx:length(x.j)] <- 'orange'
+    if(phase.col){
+      col2[b1.idx:b2.idx] <- 'red'
+      col2[b2.idx:length(x.j)] <- 'orange'
+    }
     plot(x.i, y.i,asp=1, ylim = c(min(c(y.i, y.j), na.rm =TRUE), max(c(y.i, y.j), na.rm = TRUE)),
          xlim = c(min(c(x.i, x.j), na.rm =TRUE), max(c(x.i, x.j), na.rm = TRUE)), col = scales::alpha(col1, 0.5),
          cex = seq(0.1, 1, length.out = length(x.i)), main = r)
