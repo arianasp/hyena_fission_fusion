@@ -1,7 +1,23 @@
 ---
-title: "explore_fission_fusion_features"
+title: "From fission-fusion events to social structure"
 output: html_document
 ---
+
+In the fission-fusion societies of spotted hyenas, all social interactions 
+arise from and are constrained by the coming together or dissolution of individuals. 
+
+Consequently, dyadic fission-fusion events can be considered
+the atomic unit of social structure in these societies.  
+
+In this project we want to understand how the mechanics of fission-fusion events 
+scale up to broader patterns in social relationships and social structure.    
+
+**Goals:**     
+* Methodological framework for identifying and measuring fission-fusion events  
+* Taxonomy of basic types of fission-fusion events  
+* Use this taxonomy to better understand social structure 
+
+![](https://static.wixstatic.com/media/a3e3e7_bc533d1dfdfc459fa3950b84700830e4~mv2_d_3727_2618_s_4_2.jpg/v1/crop/x_193,y_111,w_3297,h_2366/fill/w_560,h_394,al_c,q_80,usm_0.66_1.00_0.01/a3e3e7_bc533d1dfdfc459fa3950b84700830e4~mv2_d_3727_2618_s_4_2.webp)
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -13,11 +29,11 @@ library(scales)
 # name <- readline(prompt = "Enter name:")
 # 
 # if(grepl('a|A', name)){
-   basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
-   codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+   # basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
+   # codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
 # }else if(grepl('e|E', name)){
-#  basedir <- 'C:/Users/strau/Dropbox/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
-#  codedir <- 'C:/Users/strau/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+ basedir <- 'C:/Users/strau/Dropbox/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
+ codedir <- 'C:/Users/strau/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
 # }else{
 #   cat('Name not recognized')
 # }
@@ -34,43 +50,51 @@ load(file = paste0(processeddir,'/fission_fusion_features.RData'))
 load(file = paste0(processeddir,'/fission_fusion_events.RData'))
 load(file = paste0(datadir,'/hyena_xy_level1.RData'))
 
+good.idxs <- which(events$start.exact & events$end.exact)
+
 
 ```
 
-## Fission-fusion events
+## What is a fission-fusion event?
 
 Fission-fusion events are identified as cases where two individuals get within 100m of each other. 
-Once an event is identified, data are collected from the following periods:  
-* Before - When individuals are between 300 and 200m apart  
-* During - When individuals are within 200m of each other  
-* After - When individuals are between 200m and 300m of each other  
+Once an event is identified, data are collected for the entire duration of the period in which 
+they are within 200m of each other. 
+
+This produces `r nrow(events[good.idxs,])` fission-fusion events.
+
+**FIGURE**
 
 Here is some basic exploration of this data
 
-```{r general exploration, echo = FALSE}
+```{r general exploration, echo = FALSE, fig.show= 'hold', out.width = "50%"}
 
-good.idxs <- which(events$start.exact & events$end.exact)
+
 examples <- good.idxs[45:49]
-
-hist((events$duration.together + events$duration.fusion + events$duration.fission)/60, breaks = 500, main = 'Duration of fission-fusion events', xlab = 'Minutes together')
 
 par(mfrow = c(1,1))
 plot_events(indices = examples, events = events, xs, ys)
 ```
 
-Our goal is to characterize fission-fusion events and categorize them into a set
-of biologically meaningful categories. To do this, we decided to start by looking
-at the distance between the pair of individuals over time during each event. 
+## Canonical shape of fission-fusion events
 
-Fission-fusion events tend to have a canonical structure where there is first a 
-decrease in the dyadic distance (as the two hyenas get closer together; "fusion phase"), then a 
-relatively stable period where the hyenas spend time close together ("together phase"), followed by
-an increase in the dyadic distance as they part ways ("fission" phase). 
+A fundamental measure of dyadic fission fusion events is the distance between
+the two individuals ("dyadic distance"). 
+
+Dyadic distance during fission-fusion events has a canonical structure:  
+* There is first a decrease in the dyadic distance (as the two hyenas get closer together; "fusion phase")  
+* then a relatively stable period where the hyenas spend time close together ("together phase")  
+* followed by an increase in the dyadic distance as they part ways ("fission" phase).   
+
+<!-- Our goal is to characterize fission-fusion events and categorize them into a set -->
+<!-- of biologically meaningful categories. To do this, we decided to start by looking -->
+<!-- at the distance between the pair of individuals over time during each event.  -->
 
 Based on this idea, we decided to fit all fission-fusion events to this canonical 
-structure using a 3-part piecewise function (further details on this are available
-but seemed distracting). Although the fit isn't always perfect, this approach does
+structure using a 3-part piecewise function. Although the fit isn't always perfect, this approach does
 do a reasonable job at capturing the structure of the events.
+
+This allows fission-fusion events to be decomposed into three phases: fission phase, fusion phase, together phase. 
 
 Here are some plots of example events with dyadic distance in black and the fitted 
 phases in red. 
@@ -87,12 +111,25 @@ plot_events(indices = examples[3], events, xs, ys)
 plot_canonical_shape(rows = examples[3], dyad.dists, events)
 ```
 
-Intuitively we can think of events as varying in which individuals are moving and 
-which are stationary in each phase. Here we plot the displacement of one individual vs 
-the other individual in each of the phases separately. 
+
+## Detecting variation in phases of fission-fusion events
+
+We identified two primary variables that capture a lot of variability within phases
+of fission-fusion events: 
+
+**Displacement of individuals:** How much did each individual move during the phase?  
+**Angle between heading of individuals:** What is the angle in the heading of the two individuals?  
 
 
-```{r plot distance travelled for each individual, echo = FALSE}
+#### Displacement of individuals  
+
+We first looked at the displacement one individual vs the other individual in each of the phases separately.  
+
+Especially in the fission and fusion phases, we see two clear clusters where one 
+individual is stationary and the other is moving. We also see a large scattering 
+of points representing cases where both individuals are moving substantially. 
+
+```{r plot distance travelled for each individual, echo = FALSE, fig.show = 'hold', out.width = "50%"}
 
 plot(events$disp.fusion.i[good.idxs], events$disp.fusion.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
      xlab = 'Distance travelled by A', pch = 19, col = scales::alpha('black', 0.3), cex = 0.8, ylab = 'Distance travelled by B', main = 'Fusion phase')
@@ -104,17 +141,15 @@ plot(events$disp.fission.i[good.idxs], events$disp.fission.j[good.idxs], xlim = 
      xlab = 'Distance travelled by A', pch = 19, col = scales::alpha('black', 0.3), cex = 0.8, ylab = 'Distance travelled by B', main = 'Fission phase')
 
 
-
-
-
 ```
 
-Especially in the fission and fusion phases, we see two clear clusters where one 
-individual is stationary and the other is moving. We also see a large scattering 
-of points representing cases where both individuals are moving substantially. 
+#### Angle between heading of individuals
 
+We calculated the angle between the two individuals trajectories, calculated over
+the entire phase.  
 
-
+Including the angle in the plots shows that the angle further resolves some different
+types of fission-fusion events, especially in the fission and fusion phases.
 
 ```{r plot angle between trajectories of two individuals, echo = FALSE}
 
@@ -124,10 +159,10 @@ both.move.fusion <- which(events$disp.fusion.i >= min.move & events$disp.fusion.
 both.move.together <- which(events$disp.together.i >= min.move & events$disp.together.j >= min.move)
 both.move.fission <- which(events$disp.fission.i >= min.move & events$disp.fission.j >= min.move)
 
-hist(events$angle.fusion[both.move.fusion], main = 'Angles during fusion', breaks = 50, xlab = 'Angle (radians)')
-hist(events$angle.together[both.move.together], main = 'Angles during together', breaks = 50, xlab = 'Angle (radians)')
-hist(events$angle.fission[both.move.fission], main = 'Angles during fission', breaks = 50, xlab = 'Angle (radians)')
-
+# hist(events$angle.fusion[both.move.fusion], main = 'Angles during fusion', breaks = 50, xlab = 'Angle (radians)')
+# hist(events$angle.together[both.move.together], main = 'Angles during together', breaks = 50, xlab = 'Angle (radians)')
+# hist(events$angle.fission[both.move.fission], main = 'Angles during fission', breaks = 50, xlab = 'Angle (radians)')
+# 
 
 
 pal <- colorRampPalette(c('blue', 'black', 'goldenrod1'))
@@ -138,16 +173,32 @@ plot(events$disp.fusion.i[good.idxs], events$disp.fusion.j[good.idxs], xlim = c(
      xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Fusion phase',
      col = alpha(cols[ceiling(events$angle.fusion[good.idxs] * 100)], 0.7))
 
-plot(events$disp.together.i[good.idxs], events$disp.together.j[good.idxs], xlim = c(0,200), ylim = c(0, 200),
+p <- par()$usr
+text(x = p[1] + 0.15*(p[2]-p[1]), y = p[4]- 0.1*(p[4]-p[3]), 'heading unaligned', col = cols[314], adj = 0)
+text(x = p[1] + 0.15*(p[2]-p[1]), y = p[4]- 0.15*(p[4]-p[3]), 'heading aligned', col = cols[1], adj = 0)
+
+plot(events$disp.together.i[good.idxs], events$disp.together.j[good.idxs],
      xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Together phase',
      col = alpha(cols[ceiling(events$angle.together[good.idxs] * 100)], 0.7))
+p <- par()$usr
+text(x = p[1] + 0.15*(p[2]-p[1]), y = p[4]- 0.1*(p[4]-p[3]), 'heading unaligned', col = cols[314], adj = 0)
+text(x = p[1] + 0.15*(p[2]-p[1]), y = p[4]- 0.15*(p[4]-p[3]), 'heading aligned', col = cols[1], adj = 0)
+
+plot(events$disp.together.i[good.idxs], events$disp.together.j[good.idxs], xlim = c(0,200), ylim = c(0,200),
+     xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Together phase (zoomed in)',
+     col = alpha(cols[ceiling(events$angle.together[good.idxs] * 100)], 0.7))
+p <- par()$usr
+text(x = p[1] + 0.15*(p[2]-p[1]), y = p[4]- 0.1*(p[4]-p[3]), 'heading unaligned', col = cols[314], adj = 0)
+text(x = p[1] + 0.15*(p[2]-p[1]), y = p[4]- 0.15*(p[4]-p[3]), 'heading aligned', col = cols[1], adj = 0)
 
 plot(events$disp.fission.i[good.idxs], events$disp.fission.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
      xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Fission phase',
      col = alpha(cols[ceiling(events$angle.fission[good.idxs] * 100)], 0.7))
+p <- par()$usr
+text(x = p[1] + 0.15*(p[2]-p[1]), y = p[4]- 0.1*(p[4]-p[3]), 'heading unaligned', col = cols[314], adj = 0)
+text(x = p[1] + 0.15*(p[2]-p[1]), y = p[4]- 0.15*(p[4]-p[3]), 'heading aligned', col = cols[1], adj = 0)
 
 ```
-Next step is to break the phases into a set of discrete categories for each phase. We will use the displacements for each individual as well as the angle between their headings during the phase for the categorization. For now, we set a threshold of 5 m to capture individuals that aren't moving at all.
 ```{r phases to categories, echo = FALSE}
 #thresholds
 move.thresh <- 5
@@ -190,11 +241,59 @@ events$fission.type[fission.move.move.smallang.idxs] <- 'fission.move.move.small
 complete.events <- which(!(is.na(events$fusion.type) | is.na(events$together.type) | is.na(events$fission.type)))
 events$event.type <- paste(events$fusion.type, events$together.type, events$fission.type, sep = '__')
 
+```
+
+## Taxonomy of fission-fusion events using phase measurements
+
+Next we broke phases into a set of discrete categories.
+
+For all 3 phases, we divided events into categories based on the movement of individuals.  
+
+We chose a **movement threshold** of `r move.thresh` to classify each individual as moving or not moving. 
+We chose an **angle threshold** of `r ang.thresh/pi * 180/pi` degrees to classify individuals as having
+aligned or opposite movement trajectories.
+
+We identified the following categories: 
+
+**Fusion phase (4)**
+1. Individual A moving, Individual B stationary    
+2. Individual A stationary, Individual B moving  
+3. Both moving, trajectories aligned  
+4. Both moving, trajectories unaligned  
+
+**Together phase (4)**
+1. Individual A moving, Individual B stationary  
+2. Individual A stationary, Individual B moving  
+3. Both moving  
+4. Both staying  
+
+**Fission phase (4)**
+1. Individual A moving, Individual B stationary  
+2. Individual A stationary, Individual B moving  
+3. Both moving, trajectories aligned  
+4. Both moving, trajectories unaligned  
+
+
+```{r plotting phase categories, echo = FALSE, message = FALSE}
+
+fusion.cols <- c('#33658A', '#86BBD8', '#758E4F', '#F26419')
+together.cols <- c('#210124', '#750D37', '#9CD3AE', '#0C4634')
+
+
 #3d plot
 aX <- list(title = "Distance travelled by A (m)", range = c(0,700))
 aY <- list(title = "Distance travelled by B (m)", range = c(0,700))
 aZ <- list(title = 'Angle (degrees)', range = c(0, 210))
-plot_ly(x = events$disp.together.i[good.idxs], y = events$disp.together.j[good.idxs], z = events$angle.together[good.idxs]*180/pi, type = 'scatter3d', mode = 'markers', size = 0.5) %>%
+plot_ly(x = events$disp.together.i[good.idxs], y = events$disp.together.j[good.idxs], z = events$angle.together[good.idxs]*180/pi, type = 'scatter3d', mode = 'markers', size = 0.5,
+        color = as.factor(events$together.type[good.idxs]), colors = together.cols) %>%
+   layout(scene = list(xaxis = aX, yaxis = aY, zaxis = aZ, dragmode="turntable"))
+
+
+aX <- list(title = "Distance travelled by A (m)", range = c(0,700))
+aY <- list(title = "Distance travelled by B (m)", range = c(0,700))
+aZ <- list(title = 'Angle (degrees)', range = c(0, 210))
+plot_ly(x = events$disp.fusion.i[good.idxs], y = events$disp.fusion.j[good.idxs], z = events$angle.fusion[good.idxs]*180/pi, type = 'scatter3d', mode = 'markers', size = 0.5,
+        color = as.factor(events$fusion.type[good.idxs]), colors = fusion.cols) %>%
    layout(scene = list(xaxis = aX, yaxis = aY, zaxis = aZ, dragmode="turntable"))
 
 #2d plot
@@ -202,11 +301,11 @@ cols <- c('red','blue','green','black','gray')
 fusion.event.types <- unique(events$fusion.type)
 plot(events$disp.fusion.i[good.idxs], events$disp.fusion.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
      xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Fusion phase',
-     col = cols[match(events$fusion.type[good.idxs], fusion.event.types)])
+     col = fusion.cols[as.factor(events$fusion.type[good.idxs])])
 
 ```
 
-Now that we have a taxonomy of event types, let's have a look at some common ones and hypothesize about what's going on (give them names). 
+Now that we have a taxonomy of event types, let's have a look at some common ones and hypothesize about what's going on (give them names).
 
 ```{r code to plot examples of an event of a certain rank, echo = FALSE}
 
