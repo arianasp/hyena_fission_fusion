@@ -27,6 +27,7 @@ library(plotly)
 library(scales)
 library(fields)
 library(lubridate)
+library(gifski)
 
 # name <- readline(prompt = "Enter name:")
 # 
@@ -499,3 +500,89 @@ axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.loc
 title(main = 'Transitions for traveling events')
 
 ```
+
+```{r, echo = FALSE}
+animate_event <- function(event.row, events = events, xs = xs, ys = ys, frame.step = 20, tail.step = 5, tail = 300){
+  ind.i <- events$i[event.row]
+  ind.j <- events$j[event.row]
+  t0 <- events$t.start[event.row]
+  tf <- events$t.end[event.row]
+  b1 <- events$b1[event.row]
+  b2 <- events$b2[event.row]
+  t.idxs <- seq(t0, tf, by = frame.step)
+  xmax <- max(max(xs[ind.i,t.idxs], na.rm=T),max(xs[ind.j,t.idxs], na.rm=T))
+  xmin <- min(min(xs[ind.i,t.idxs], na.rm=T),min(xs[ind.j,t.idxs], na.rm=T))
+  ymax <- max(max(ys[ind.i,t.idxs], na.rm=T),max(ys[ind.j,t.idxs], na.rm=T))
+  ymin <- min(min(ys[ind.i,t.idxs], na.rm=T),min(ys[ind.j,t.idxs], na.rm=T))
+  col1 <- 'blue'
+  col2 <- 'red'
+  for(delay in 1:10){
+    par(bg = 'black')
+    plot(NULL, xlim = c(xmin,xmax), ylim = c(ymin, ymax), 
+         asp = 1, bg = 'black', xlab = '', ylab = '', main = events$event.type[event.row])
+  }
+  for (t in t.idxs) {
+    ts <- seq(t - tail, t, by = tail.step)
+    xi <- xs[ind.i, ts] - xmin
+    yi <- ys[ind.i, ts] - ymin
+    xj <- xs[ind.j, ts] - xmin
+    yj <- ys[ind.j, ts] - ymin
+    cols1 <- rep('darkblue', length(ts))
+    cols1[which(ts > b1)] <- 'blue'
+    cols1[which(ts > b2)] <- 'cyan'
+    cols2 <- rep('darkred', length(ts))
+    cols2[which(ts > b1)] <- 'red'
+    cols2[which(ts > b2)] <- 'orange'
+    par(bg = 'white')
+    plot(NULL, xlim = c(0,xmax - xmin), ylim = c(0, ymax - ymin), asp = 1, xlab = '', ylab = '', main = events$event.type[event.row])
+    sizes <- seq(.1,1,length.out = length(xi))
+    points(xi, yi, pch = 19, cex = sizes, col = scales::alpha(cols1, 0.5))
+    points(xj, yj, pch = 19, cex = sizes, col = scales::alpha(cols2, 0.5))
+    legend('topright',legend = paste(round((t - min(t.idxs))/60), 'min'))
+  }
+}
+```
+
+Let's look at some examples of events of different types.
+
+The most common type is fusion.move.move.unaligned__together.local__fission.move.move.unaligned - there are 55 events of this type. We call this type "crossing".
+
+```{r, animation.hook="gifski", interval = 0.1, echo = FALSE}
+#crossing
+row <- 30
+animate_event(event.row = row, events = events, xs = xs, ys = ys)
+```
+
+Next most common is fusion.stay.move__together.local__fission.stay.move - we interpret this as "passing" (51 events). We call this type "passing".
+
+```{r, animation.hook="gifski", interval = 0.1, echo = FALSE}
+#passing
+row <- 6
+animate_event(event.row = row, events = events, xs = xs, ys = ys)
+```
+
+Next up is fusion.stay.move__together.local__fission.move.stay (45 events). We call this "displacement".
+
+```{r, animation.hook="gifski", interval = 0.1, echo = FALSE}
+#displacement type
+row <- 15
+animate_event(event.row = row, events = events, xs = xs, ys = ys)
+```
+
+All of the most common types of events are "local" events, i.e. the pair does not travel together. In fact, out of all events, only 61 of them (11%) are defined as "traveling" during the together phase, meaning the pair traveled more than 200 m.
+
+Let's have a look at a few of these. First up, there is the most common one (still only 11 events!), fusion.move.move.aligned__together.travel__fission.move.move.aligned. We call this "catching up".
+
+```{r, animation.hook="gifski", interval = 0.1, echo = FALSE}
+row <- 16
+animate_event(event.row = row, events = events, xs = xs, ys = ys)
+```
+
+Here is another type - fusion.stay.move__together.travel__fission.move.move.aligned (10 events) - we call this "picking up".
+
+```{r, animation.hook="gifski", interval = 0.1, echo = FALSE}
+#pick up
+row <- 36
+animate_event(event.row = row, events = events, xs = xs, ys = ys)
+```
+
