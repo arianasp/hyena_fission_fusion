@@ -536,16 +536,17 @@ idxs.travel <- which(events$together.type == 'together.travel')
 trans.travel <- table(events$fission.type[idxs.travel], events$fusion.type[idxs.travel])
 trans.local <- table(events$fission.type[idxs.local], events$fusion.type[idxs.local])
 par(mar = c(12,12,2,2))
+image.plot(trans.local, xaxt = 'n', yaxt = 'n', col = viridis(256))
+axis(side = 1, at = seq(0,1, length.out = nrow(trans.local)), rownames(trans.local), las = 2)
+axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.local), las = 2)
+title(main = 'Transitions for local events')
+
+par(mar = c(12,12,2,2))
 image.plot(trans.travel, xaxt = 'n', yaxt = 'n', col = viridis(256))
 axis(side = 1, at = seq(0,1, length.out = nrow(trans.travel)), rownames(trans.travel), las = 2)
 axis(side = 2, at = seq(0,1, length.out = ncol(trans.travel)), colnames(trans.travel), las = 2)
 title(main = 'Transitions for traveling events')
 
-par(mar = c(12,12,2,2))
-image.plot(trans.local, xaxt = 'n', yaxt = 'n', col = viridis(256))
-axis(side = 1, at = seq(0,1, length.out = nrow(trans.local)), rownames(trans.local), las = 2)
-axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.local), las = 2)
-title(main = 'Transitions for traveling events')
 
 
 ## Chord diagrams 
@@ -586,7 +587,7 @@ circos.clear()
 ```
 
 ```{r animation function, echo = FALSE}
-animate_event <- function(event.row, events = events, xs = xs, ys = ys, frame.step = 20, tail.step = 5, tail = 300){
+animate_ff_event <- function(event.row, events = events, xs = xs, ys = ys, frame.step = 20, tail.step = 5, tail = 300){
   ind.i <- events$i[event.row]
   ind.j <- events$j[event.row]
   t0 <- events$t.start[event.row]
@@ -649,7 +650,6 @@ animate_event <- function(event.row, events = events, xs = xs, ys = ys, frame.st
 
 
 ## Event type examples
->>>>>>> 20297f410fb90a97c62d9f772d08333bc696a361
 
 Let's look at some examples of events of different types.
 
