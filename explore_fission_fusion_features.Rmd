@@ -530,13 +530,23 @@ Overall, there are `r length(unique(events$event.type.collapsed))` types of even
 These are events where one moving hyena "passes" a relatively stationary hyena.
 
 ```{r transitions between fission and fusion, echo = FALSE} 
+idxs.local <- which(events$together.type == 'together.local')
+idxs.travel <- which(events$together.type == 'together.travel')
   
 trans.travel <- table(events$fission.type[idxs.travel], events$fusion.type[idxs.travel])
+trans.local <- table(events$fission.type[idxs.local], events$fusion.type[idxs.local])
 par(mar = c(12,12,2,2))
 image.plot(trans.travel, xaxt = 'n', yaxt = 'n', col = viridis(256))
 axis(side = 1, at = seq(0,1, length.out = nrow(trans.travel)), rownames(trans.travel), las = 2)
 axis(side = 2, at = seq(0,1, length.out = ncol(trans.travel)), colnames(trans.travel), las = 2)
 title(main = 'Transitions for traveling events')
+
+par(mar = c(12,12,2,2))
+image.plot(trans.local, xaxt = 'n', yaxt = 'n', col = viridis(256))
+axis(side = 1, at = seq(0,1, length.out = nrow(trans.local)), rownames(trans.local), las = 2)
+axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.local), las = 2)
+title(main = 'Transitions for traveling events')
+
 
 ## Chord diagrams 
 par(mfrow = c(1,1), par(mar = c(1,1,1,1)))
@@ -559,7 +569,7 @@ title('Local')
 
 
 chordDiagram(t(trans.travel),
-             grid.col = rep(fusion.cols, 2), annotationTrack = 'grid', preAllocateTracks = list(list(list(track.height = 0.001, list(track.height = 0.9)))))
+             grid.col = rep(fusion.cols, 2), annotationTrack = 'grid', preAllocateTracks = list(list(list(track.height = 0.3, list(track.height = 0.9)))))
 
 circos.track(track.index = 2, panel.fun = function(x, y) {
     circos.text(CELL_META$xcenter, CELL_META$ylim[1], gsub('\\.', '\n', gsub('fusion.|fission.', '', CELL_META$sector.index)), 
