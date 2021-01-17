@@ -20,7 +20,7 @@ scale up to broader patterns in social relationships and social structure.
 ![](https://static.wixstatic.com/media/a3e3e7_bc533d1dfdfc459fa3950b84700830e4~mv2_d_3727_2618_s_4_2.jpg/v1/crop/x_193,y_111,w_3297,h_2366/fill/w_560,h_394,al_c,q_80,usm_0.66_1.00_0.01/a3e3e7_bc533d1dfdfc459fa3950b84700830e4~mv2_d_3727_2618_s_4_2.webp)
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 
 library(dichromat)
 library(plotly)
@@ -28,15 +28,16 @@ library(scales)
 library(fields)
 library(lubridate)
 library(gifski)
+library(circlize)
 
 # name <- readline(prompt = "Enter name:")
 # 
 # if(grepl('a|A', name)){
-    basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
-    codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+#    basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
+ #   codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
 # }else if(grepl('e|E', name)){
- #basedir <- 'C:/Users/strau/Dropbox/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
- #codedir <- 'C:/Users/strau/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
+ basedir <- 'C:/Users/strau/Dropbox/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
+ codedir <- 'C:/Users/strau/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
 # }else{
 #   cat('Name not recognized')
 # }
@@ -77,7 +78,7 @@ Once an event is identified, data are collected for the entire duration of the p
 they are within 200m of each other. 
 
 
-**FIGURE**
+![](fission_fusion_event_figure.png)
 
 ```{r general exploration, echo = FALSE, fig.show= 'hold', out.width = "50%"}
 
@@ -418,8 +419,8 @@ We identified the following categories:
 4. Both moving, trajectories unaligned  
 
 **Together phase (4)**
-1. Local (individuals stayed within 200 m)
-2. Traveling (both individuals had a displacement > 200 m)
+1. Local (individuals stayed within 200 m)  
+2. Traveling (both individuals had a displacement > 200 m)  
 
 **Fission phase (4)**
 1. Individual A moving, Individual B stationary  
@@ -451,7 +452,6 @@ plot_ly(x = events$disp.fusion.i[good.idxs], y = events$disp.fusion.j[good.idxs]
    layout(scene = list(xaxis = aX, yaxis = aY, zaxis = aZ, dragmode="turntable"))
 
 #2d plot
-cols <- c('red','blue','green','black','gray')
 fusion.event.types <- unique(events$fusion.type)
 plot(events$disp.fusion.i[good.idxs], events$disp.fusion.j[good.idxs], xlim = c(0,700), ylim = c(0, 700),
      xlab = 'Distance travelled by A', pch = 19, cex = 0.8, ylab = 'Distance travelled by B', main = 'Fusion phase',
@@ -479,7 +479,7 @@ plot_events_of_rank(1, event.types.by.freq, events, xs, ys)
 
 These are events where two moving hyenas meeting each other at a small angle, then move together for a bit (possibly very short bit) and finally split at a small angle. These would include instances where hyenas meet up, move together, and then diverge, or could also be crossover events occurring at small angles.
 
-```{r transitions between fission and fusion}
+```{r transitions between fission and fusion, echo = FALSE}
 
 idxs.local <- which(events$together.type == 'together.local')
 idxs.travel <- which(events$together.type == 'together.travel')
@@ -491,17 +491,51 @@ axis(side = 1, at = seq(0,1, length.out = nrow(trans.local)), rownames(trans.loc
 axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.local), las = 2)
 title(main = 'Transitions for local events')
 
-
-trans.local <- table(events$fission.type[idxs.travel], events$fusion.type[idxs.travel])
+trans.travel <- table(events$fission.type[idxs.travel], events$fusion.type[idxs.travel])
 par(mar = c(12,12,2,2))
-image.plot(trans.local, xaxt = 'n', yaxt = 'n', col = viridis(256))
-axis(side = 1, at = seq(0,1, length.out = nrow(trans.local)), rownames(trans.local), las = 2)
-axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.local), las = 2)
+image.plot(trans.travel, xaxt = 'n', yaxt = 'n', col = viridis(256))
+axis(side = 1, at = seq(0,1, length.out = nrow(trans.travel)), rownames(trans.travel), las = 2)
+axis(side = 2, at = seq(0,1, length.out = ncol(trans.travel)), colnames(trans.travel), las = 2)
 title(main = 'Transitions for traveling events')
+
+## Chord diagrams 
+par(mfrow = c(1,1), par(mar = c(1,1,1,1)))
+circos.par(start.degree = 270)
+chordDiagram(t(trans.local),
+             grid.col = rep(fusion.cols, 2), annotationTrack = 'grid', preAllocateTracks = list(list(list(track.height = 0.001, list(track.height = 0.9)))))
+
+circos.track(track.index = 2, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], gsub('\\.', '\n', gsub('fusion.|fission.', '', CELL_META$sector.index)), 
+                facing = 'inside', niceFacing = TRUE)
+}, bg.border = NA)
+highlight.sector(rownames(trans.local), track.index = 1, col = alpha("white", 0), 
+    text = "Fission", cex = 1.1, text.col = "black", niceFacing = F)
+highlight.sector(colnames(trans.local), track.index = 1, col = alpha("white", 0), 
+    text = "Fusion", cex = 1.1, text.col = "black", niceFacing = F)
+
+
+abline(v = 0, lty = 2, col = "#00000080")
+title('Local')
+
+
+chordDiagram(t(trans.travel),
+             grid.col = rep(fusion.cols, 2), annotationTrack = 'grid', preAllocateTracks = list(list(list(track.height = 0.001, list(track.height = 0.9)))))
+
+circos.track(track.index = 2, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], gsub('\\.', '\n', gsub('fusion.|fission.', '', CELL_META$sector.index)), 
+                facing = 'inside', niceFacing = TRUE)
+}, bg.border = NA)
+highlight.sector(rownames(trans.travel), track.index = 1, col = alpha("white", 0), 
+    text = "Fission", cex = 1.1, text.col = "black", niceFacing = F)
+highlight.sector(colnames(trans.travel), track.index = 1, col = alpha("white", 0), 
+    text = "Fusion", cex = 1.1, text.col = "black", niceFacing = F)
+abline(v = 0, lty = 2, col = "#00000080")
+title('Travel')
+circos.clear()
 
 ```
 
-```{r, echo = FALSE}
+```{r animation function, echo = FALSE}
 animate_event <- function(event.row, events = events, xs = xs, ys = ys, frame.step = 20, tail.step = 5, tail = 300){
   ind.i <- events$i[event.row]
   ind.j <- events$j[event.row]
