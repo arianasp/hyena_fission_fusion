@@ -22,12 +22,14 @@ scale up to broader patterns in social relationships and social structure.
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+library(knitr)
 library(dichromat)
 library(plotly)
 library(scales)
 library(fields)
 library(lubridate)
 library(gifski)
+library(textclean)
 
 # name <- readline(prompt = "Enter name:")
 # 
@@ -92,7 +94,7 @@ plot_events(indices = examples, events = events, xs, ys, phase.col = FALSE)
 
 Overall, there are `r nrow(events)` fission-fusion events total in our dataset. Of these, `r length(good.idxs)` have defined starting and ending points. We will focus on these 'complete' events for the purposes of this initial analysis. 
 
-First, let's get some basic info. How long do these events tend to be?
+First, let's get some basic info. **How long do these events tend to be?**
 
 ```{r duration distribution, echo = FALSE}
 
@@ -100,7 +102,7 @@ hist((events$t.end[good.idxs] - events$t.start[good.idxs])/60/60, breaks = 100, 
 
 ```
 
-How far do two hyenas typically travel during a fission-fusion event? The plot below shows the distribution of displacements for one of the hyenas during the entire event
+**How far do two hyenas typically travel during a fission-fusion event?** The plot below shows the distribution of displacements for one of the hyenas during the entire event.
 
 ```{r displacement distribution, echo = FALSE}
 
@@ -113,7 +115,7 @@ hist(ds, breaks = 100, main = 'Displacement during fission-fusion events', xlab 
 
 ```
 
-How close do hyenas normally get during fission-fusion events?
+H**ow close do hyenas normally get to one another during fission-fusion events?**
 
 ```{r closest approach, echo = FALSE}
 
@@ -121,7 +123,7 @@ hist(events$closest.app[good.idxs], breaks = 20, main = 'Closest approach during
 
 ```
 
-Where do fission-fusion events occur? How often do they occur at dens?
+**Where do fission-fusion events occur? How often do they occur at dens?**
 
 Let's look at the distance to the closest den at the start of events (for the hyena closest to the den):
 
@@ -195,7 +197,7 @@ at.den.all <- mean(min.dist.to.den.all < R.den)
 
 Overall, we find that fission-fusion events start at the den `r round(at.den.start*100)`% of the time and end at the den `r round(at.den.end*100)`% of the time. This can be compared to the total amount of time that hyenas spend close to dens, which is `r round(at.den.all*100)`%. As expected, fission-fusion events occur a large proportion of the time at dens, but not always. If we expand our definition of 'at the den' to include up to 500 m away from the den, then these numbers change to `r round(mean(min.dist.to.den.start < 500)*100)`% at event start, `r round(mean(min.dist.to.den.end < 500)*100)`% at event end, and `r round(mean(min.dist.to.den.all < 500)*100)`% over all the data. 
 
-What time of day do fission-fusion events occur?
+**What time of day do fission-fusion events occur?**
 
 ```{r fission-fusion time of day, echo = FALSE}
 
@@ -204,7 +206,7 @@ hist(hour(timestamps[events$t.end]+3*60*60), breaks = seq(0,24,1), xlab = 'Time 
 
 ```
 
-Who takes part in fission-fusion events, and how often? 
+**Who takes part in fission-fusion events, and how often?**
 
 ```{r number of events per dyad, echo = FALSE}
 
@@ -418,8 +420,8 @@ We identified the following categories:
 4. Both moving, trajectories unaligned  
 
 **Together phase (4)**
-1. Local (individuals stayed within 200 m)
-2. Traveling (both individuals had a displacement > 200 m)
+1. Local (individuals stayed within 200 m)  
+2. Traveling (both individuals had a displacement > 200 m)  
 
 **Fission phase (4)**
 1. Individual A moving, Individual B stationary  
@@ -459,11 +461,52 @@ plot(events$disp.fusion.i[good.idxs], events$disp.fusion.j[good.idxs], xlim = c(
 
 ```
 
-Now that we have a taxonomy of event types, let's have a look at some common ones and hypothesize about what's going on (give them names).
+Summarizing how often we find fusions, together phases, and fissions of each type, we can have a look at the frequencies of each type. It's worth nothing that the "stay.move" and "move.stay" categories in the fusion and fission phases are essentially the same, however let's keep them separate now since the order matters when combining the phases into sequences, as we'll do next.
+
+```{r phase frequency tables, echo = FALSE}
+kable(table(events$fusion.type[good.idxs]), col.names = c('Fusion phase type','Frequency'))
+kable(table(events$together.type[good.idxs]), col.names = c('Together phase type','Frequency'))
+kable(table(events$fission.type[good.idxs]), col.names = c('Fission phase type','Frequency'))
+
+```
+
+## Combining phase types to classify entire events
+
+Now that we've classified the phases into types, we can look at entire fusion-together-fision sequences and classify those into types. These classifications (ideally) give a very simple category for each fission-fusion interaction. Of course, we know this is a drastic simplification, and there are many more aspects of these interactions that would be good to explore in the future. But for now, let's categorize them into "event types" simply by connecting the phases.
+
+Note here that there are a few equivalent event types that we need to combine - for instance fusion.stay.move__together.move.stay__fission.move.stay is equivalent to fusion.move.stay__together.stay.move__fission.stay.move, just with the identities of the individuals swapped. To avoid confusion, let's call the non-symmetrized version the "event.type" and the one in which the symmetries have been collapsed the "event.type.collapsed"
+
+```{r collapse symmetric events, echo = FALSE}
+
+#create a column for the collapsed event type (collapsing the symmetry of move.stay and stay.move)
+events$event.type.collapsed <- events$event.type
+
+#fusion move.stay --> fusion.stay.move in cases where fission has a mover and a stayer
+fusion.move.stay.idxs <- which(events$fusion.type == 'fusion.move.stay') #get indexes where fusion type is move.stay
+fission.asymmetric.idxs <- which(grepl('move',events$fission.type) & grepl('stay', events$fission.type)) #get indexes where fusion type is stay.move or move.stay
+idxs.to.swap <- intersect(fusion.move.stay.idxs, fission.asymmetric.idxs)
+events$event.type.collapsed[idxs.to.swap] <- textclean::swap(events$event.type[idxs.to.swap], 'move','stay')
+
+#fusion.move.stay --> fusion.stay.move in cases where fission has only movers
+fission.move.move.idxs <- which(!grepl('stay', events$fission.type))
+idxs.to.change <- intersect(fusion.move.stay.idxs, fission.move.move.idxs)
+events$event.type.collapsed[idxs.to.change] <- sub('fusion.move.stay', 'fusion.stay.move', events$event.type[idxs.to.change])
+
+#fission.move.stay --> fission.stay.move in cases where fusion has only movers
+fission.move.stay.idxs <- which(events$fission.type == 'fission.move.stay') #get indexes where fission type is move.stay
+fusion.move.move.idxs <- which(!grepl('stay', events$fusion.type))
+idxs.to.change <- intersect(fission.move.stay.idxs, fusion.move.move.idxs)
+events$event.type.collapsed[idxs.to.change] <- sub('fission.move.stay', 'fission.stay.move', events$event.type[idxs.to.change])
+
+```
+
+Doing this gives us a "taxonomy" of event types. What kinds of events do we commonly see?
 
 ```{r code to plot examples of an event of a certain rank, echo = FALSE}
 
-event.types.by.freq <- sort(table(events$event.type[complete.events]), decreasing = T)
+event.types.by.freq <- sort(table(events$event.type.collapsed[complete.events]), decreasing = T)
+
+kable(event.types.by.freq, col.names = c('Event Type','Frequency'))
 
 plot_events_of_rank <- function(event.rank, event.types.by.freq = event.types.by.freq, events = events, xs = xs, ys = ys){
 
@@ -472,101 +515,73 @@ plot_events_of_rank <- function(event.rank, event.types.by.freq = event.types.by
 }
 
 ```
-The most common event type is `r names(event.types.by.freq[1])`
-```{r plotting, echo = FALSE}
-plot_events_of_rank(1, event.types.by.freq, events, xs, ys)
-```
 
-These are events where two moving hyenas meeting each other at a small angle, then move together for a bit (possibly very short bit) and finally split at a small angle. These would include instances where hyenas meet up, move together, and then diverge, or could also be crossover events occurring at small angles.
+Overall, there are `r length(unique(events$event.type.collapsed))` types of events.
 
-```{r transitions between fission and fusion}
+<!-- The most common event type is `r names(event.types.by.freq[1])` -->
+<!-- ```{r plotting, echo = FALSE} -->
+<!-- plot_events_of_rank(1, event.types.by.freq, events, xs, ys) -->
+<!-- ``` -->
 
-idxs.local <- which(events$together.type == 'together.local')
-idxs.travel <- which(events$together.type == 'together.travel')
+<!-- These are events where one moving hyena "passes" a relatively stationary hyena. -->
 
-trans.local <- table(events$fission.type[idxs.local], events$fusion.type[idxs.local])
-par(mar = c(12,12,2,2))
-image.plot(trans.local, xaxt = 'n', yaxt = 'n', col = viridis(256))
-axis(side = 1, at = seq(0,1, length.out = nrow(trans.local)), rownames(trans.local), las = 2)
-axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.local), las = 2)
-title(main = 'Transitions for local events')
+<!-- ```{r transitions between fission and fusion, echo = FALSE} -->
+
+<!-- idxs.local <- which(events$together.type == 'together.local') -->
+<!-- idxs.travel <- which(events$together.type == 'together.travel') -->
+
+<!-- trans.local <- table(events$fission.type[idxs.local], events$fusion.type[idxs.local]) -->
+<!-- par(mar = c(12,12,2,2)) -->
+<!-- image.plot(trans.local, xaxt = 'n', yaxt = 'n', col = viridis(256)) -->
+<!-- axis(side = 1, at = seq(0,1, length.out = nrow(trans.local)), rownames(trans.local), las = 2) -->
+<!-- axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.local), las = 2) -->
+<!-- title(main = 'Transitions for local events') -->
 
 
-trans.local <- table(events$fission.type[idxs.travel], events$fusion.type[idxs.travel])
-par(mar = c(12,12,2,2))
-image.plot(trans.local, xaxt = 'n', yaxt = 'n', col = viridis(256))
-axis(side = 1, at = seq(0,1, length.out = nrow(trans.local)), rownames(trans.local), las = 2)
-axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.local), las = 2)
-title(main = 'Transitions for traveling events')
+<!-- trans.local <- table(events$fission.type[idxs.travel], events$fusion.type[idxs.travel]) -->
+<!-- par(mar = c(12,12,2,2)) -->
+<!-- image.plot(trans.local, xaxt = 'n', yaxt = 'n', col = viridis(256)) -->
+<!-- axis(side = 1, at = seq(0,1, length.out = nrow(trans.local)), rownames(trans.local), las = 2) -->
+<!-- axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.local), las = 2) -->
+<!-- title(main = 'Transitions for traveling events') -->
 
-```
+<!-- ``` -->
 
-```{r, echo = FALSE}
-animate_event <- function(event.row, events = events, xs = xs, ys = ys, frame.step = 20, tail.step = 5, tail = 300){
-  ind.i <- events$i[event.row]
-  ind.j <- events$j[event.row]
-  t0 <- events$t.start[event.row]
-  tf <- events$t.end[event.row]
-  b1 <- events$b1[event.row]
-  b2 <- events$b2[event.row]
-  t.idxs <- seq(t0, tf, by = frame.step)
-  xmax <- max(max(xs[ind.i,t.idxs], na.rm=T),max(xs[ind.j,t.idxs], na.rm=T))
-  xmin <- min(min(xs[ind.i,t.idxs], na.rm=T),min(xs[ind.j,t.idxs], na.rm=T))
-  ymax <- max(max(ys[ind.i,t.idxs], na.rm=T),max(ys[ind.j,t.idxs], na.rm=T))
-  ymin <- min(min(ys[ind.i,t.idxs], na.rm=T),min(ys[ind.j,t.idxs], na.rm=T))
-  col1 <- 'blue'
-  col2 <- 'red'
-  for(delay in 1:10){
-    par(bg = 'black')
-    plot(NULL, xlim = c(xmin,xmax), ylim = c(ymin, ymax), 
-         asp = 1, bg = 'black', xlab = '', ylab = '', main = events$event.type[event.row])
-  }
-  for (t in t.idxs) {
-    ts <- seq(t - tail, t, by = tail.step)
-    xi <- xs[ind.i, ts] - xmin
-    yi <- ys[ind.i, ts] - ymin
-    xj <- xs[ind.j, ts] - xmin
-    yj <- ys[ind.j, ts] - ymin
-    cols1 <- rep('darkblue', length(ts))
-    cols1[which(ts > b1)] <- 'blue'
-    cols1[which(ts > b2)] <- 'cyan'
-    cols2 <- rep('darkred', length(ts))
-    cols2[which(ts > b1)] <- 'red'
-    cols2[which(ts > b2)] <- 'orange'
-    par(bg = 'white')
-    plot(NULL, xlim = c(0,xmax - xmin), ylim = c(0, ymax - ymin), asp = 1, xlab = '', ylab = '', main = events$event.type[event.row])
-    sizes <- seq(.1,1,length.out = length(xi))
-    points(xi, yi, pch = 19, cex = sizes, col = scales::alpha(cols1, 0.5))
-    points(xj, yj, pch = 19, cex = sizes, col = scales::alpha(cols2, 0.5))
-    legend('topright',legend = paste(round((t - min(t.idxs))/60), 'min'))
-  }
-}
-```
+
+## Event type examples
 
 Let's look at some examples of events of different types.
 
-The most common type is fusion.move.move.unaligned__together.local__fission.move.move.unaligned - there are 55 events of this type. We call this type "crossing".
+The most common type is `r names(event.types.by.freq[1])` - there are `r event.types.by.freq[1]` events of this type, meaning it makes up `r round(event.types.by.freq[1] / sum(event.types.by.freq) * 100)`% of all events. We call this type "passing".
 
 ```{r, animation.hook="gifski", interval = 0.1, echo = FALSE}
-#crossing
-row <- 30
-animate_event(event.row = row, events = events, xs = xs, ys = ys)
-```
-
-Next most common is fusion.stay.move__together.local__fission.stay.move - we interpret this as "passing" (51 events). We call this type "passing".
-
-```{r, animation.hook="gifski", interval = 0.1, echo = FALSE}
-#passing
+#1-passing
 row <- 6
-animate_event(event.row = row, events = events, xs = xs, ys = ys)
+animate_ff_event(event.row = row, events = events, xs = xs, ys = ys)
 ```
 
-Next up is fusion.stay.move__together.local__fission.move.stay (45 events). We call this "displacement".
+Second most common is `r names(event.types.by.freq[2])` (`r event.types.by.freq[2]` events = `r round(event.types.by.freq[2] / sum(event.types.by.freq) * 100)`%). We call this "displacement".
 
 ```{r, animation.hook="gifski", interval = 0.1, echo = FALSE}
-#displacement type
-row <- 15
-animate_event(event.row = row, events = events, xs = xs, ys = ys)
+#2-displacement type
+row <- 64
+animate_ff_event(event.row = row, events = events, xs = xs, ys = ys)
+```
+
+The bronze medal goes to `r names(event.types.by.freq[3])` (`r event.types.by.freq[3]` events = `r round(event.types.by.freq[3] / sum(event.types.by.freq) * 100)`%). We call this "waking up".
+
+```{r, animation.hook="gifski", interval = 0.1, echo = FALSE}
+#3-waking up
+row <- 9
+animate_ff_event(event.row = row, events = events, xs = xs, ys = ys)
+```
+
+Fourth place goes to `r names(event.types.by.freq[4])` (`r event.types.by.freq[4]` events = `r round(event.types.by.freq[4] / sum(event.types.by.freq) * 100)`%). We call this "crossing".
+
+```{r, animation.hook="gifski", interval = 0.1, echo = FALSE}
+#4-crossing
+row <- 30
+animate_ff_event(event.row = row, events = events, xs = xs, ys = ys)
 ```
 
 All of the most common types of events are "local" events, i.e. the pair does not travel together. In fact, out of all events, only 61 of them (11%) are defined as "traveling" during the together phase, meaning the pair traveled more than 200 m.
@@ -575,7 +590,7 @@ Let's have a look at a few of these. First up, there is the most common one (sti
 
 ```{r, animation.hook="gifski", interval = 0.1, echo = FALSE}
 row <- 16
-animate_event(event.row = row, events = events, xs = xs, ys = ys)
+animate_ff_event(event.row = row, events = events, xs = xs, ys = ys)
 ```
 
 Here is another type - fusion.stay.move__together.travel__fission.move.move.aligned (10 events) - we call this "picking up".
@@ -583,6 +598,26 @@ Here is another type - fusion.stay.move__together.travel__fission.move.move.alig
 ```{r, animation.hook="gifski", interval = 0.1, echo = FALSE}
 #pick up
 row <- 36
-animate_event(event.row = row, events = events, xs = xs, ys = ys)
+animate_ff_event(event.row = row, events = events, xs = xs, ys = ys)
 ```
+
+# Future directions
+
+Looking back at our goals, we feel we have made good headway on the first two:
+
+1. Methodological framework for identifying and measuring fission-fusion events  
+2. Taxonomy of basic types of fission-fusion events  
+
+From here, we'd like to work more on the third one:
+
+3. Use this taxonomy to better understand social structure  
+
+Some future directions for our analyses within this project include:
+
+-- Going into more detail on the dynamics of events, including how long hyenas stay together, and how their headings change between the phases  
+-- Looking at what types of fission-fusion events occur where (e.g. at the den, etc.) and when (time of day).  
+-- Mapping variation in the types of events that occur between different dyads, which perhaps reflects different social relationships.  
+-- Mapping variation in the roles individuals play during events, e.g. can we detect asymmetries such as hyena A always approaching hyena B but not the reverse?  
+-- Looking more in detail at the "together phase", where a lot of additional complexity arises. For instance, how coordinated are hyenas during this phase, do leader-follower relationships arise, etc.?  
+
 
