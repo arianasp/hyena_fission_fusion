@@ -201,9 +201,10 @@ Overall, we find that fission-fusion events start at the den `r round(at.den.sta
 **What time of day do fission-fusion events occur?**
 
 ```{r fission-fusion time of day, echo = FALSE}
+daylight.pal <- colorRampPalette(colors = c(viridis::cividis(2)[1], viridis::cividis(2)[2], viridis::cividis(2)[1]))
 
-hist(hour(timestamps[events$t.start]+3*60*60), breaks = seq(0,24,1), xlab = 'Time of day (hour)', ylab = 'Frequency', col = rainbow(24), main = 'Time of day of fission-fusion event starts')
-hist(hour(timestamps[events$t.end]+3*60*60), breaks = seq(0,24,1), xlab = 'Time of day (hour)', ylab = 'Frequency', col = rainbow(24), main = 'Time of day of fission-fusion event ends')
+hist(hour(timestamps[events$t.start]+3*60*60), breaks = seq(0,24,1), xlab = 'Time of day (hour)', ylab = 'Frequency', col = daylight.pal(24), main = 'Time of day of fission-fusion event starts')
+hist(hour(timestamps[events$t.end]+3*60*60), breaks = seq(0,24,1), xlab = 'Time of day (hour)', ylab = 'Frequency', col = daylight.pal(24), main = 'Time of day of fission-fusion event ends')
 
 ```
 
@@ -474,7 +475,7 @@ kable(table(events$fission.type[good.idxs]), col.names = c('Fission phase type',
 
 Now that we've classified the phases into types, we can look at entire fusion-together-fision sequences and classify those into types. These classifications (ideally) give a very simple category for each fission-fusion interaction. Of course, we know this is a drastic simplification, and there are many more aspects of these interactions that would be good to explore in the future. But for now, let's categorize them into "event types" simply by connecting the phases.
 
-Note here that there are a few equivalent event types that we need to combine - for instance fusion.stay.move__together.move.stay__fission.move.stay is equivalent to fusion.move.stay__together.stay.move__fission.stay.move, just with the identities of the individuals swapped. To avoid confusion, let's call the non-symmetrized version the "event.type" and the one in which the symmetries have been collapsed the "event.type.collapsed"
+Note here that there are a few equivalent event types that we need to combine - for instance fusion.stay.move__together.local__fission.move.stay is equivalent to fusion.move.stay__together.local__fission.stay.move, just with the identities of the individuals swapped. To avoid confusion, let's call the non-symmetrized version the "event.type" and the one in which the symmetries have been collapsed the "event.type.collapsed"
 
 ```{r collapse symmetric events, echo = FALSE}
 
@@ -497,6 +498,25 @@ fission.move.stay.idxs <- which(events$fission.type == 'fission.move.stay') #get
 fusion.move.move.idxs <- which(!grepl('stay', events$fusion.type))
 idxs.to.change <- intersect(fission.move.stay.idxs, fusion.move.move.idxs)
 events$event.type.collapsed[idxs.to.change] <- sub('fission.move.stay', 'fission.stay.move', events$event.type[idxs.to.change])
+
+
+#### Elis solution for the transition heatmaps + chord diagrams
+events$fusion.type.sym <- events$fusion.type
+events$fission.type.sym <- events$fission.type
+
+## combine move.stay and stay.move into one category for fusion events
+events$fusion.type.sym[grepl('move', events$fusion.type) & grepl('stay', events$fusion.type)] <- 'fusion.move.stay'
+## rename move.stay and stay.move to be move.stay and move.stay.swap
+# move.stay -> stay.move = move.stay.swap
+events$fission.type.sym[grepl('move\\.stay', events$fusion.type) & grepl('stay\\.move', events$fission.type)] <- 'fission.move.stay.swap'
+#move.stay -> move.stay = move.stay (no change)
+#stay.move -> stay.move = move.stay
+events$fission.type.sym[grepl('stay\\.move', events$fusion.type) & grepl('stay\\.move', events$fission.type)] <- 'fission.move.stay'
+#stay.move -> move.stay = move.stay.swap
+events$fission.type.sym[grepl('stay\\.move', events$fusion.type) & grepl('move\\.stay', events$fission.type)] <- 'fission.move.stay.swap'
+#move.move (both types) -> stay.move or move.stay = move.stay 
+events$fission.type.sym[grepl('move\\.move', events$fusion.type) & grepl('stay\\.move', events$fission.type)] <- 'fission.move.stay'
+events$fission.type.sym[which(events$fission.type.sym == 'fission.stay.move' & is.na(events$fusion.type.sym))] <- 'fission.move.stay'
 
 ```
 
@@ -532,17 +552,26 @@ These are events where one moving hyena "passes" a relatively stationary hyena.
 ```{r transitions between fission and fusion, echo = FALSE} 
 idxs.local <- which(events$together.type == 'together.local')
 idxs.travel <- which(events$together.type == 'together.travel')
-  
-trans.travel <- table(events$fission.type[idxs.travel], events$fusion.type[idxs.travel])
-trans.local <- table(events$fission.type[idxs.local], events$fusion.type[idxs.local])
+
+trans.travel <- table(events$fission.type.sym[idxs.travel], events$fusion.type.sym[idxs.travel])
+trans.local <- table(events$fission.type.sym[idxs.local], events$fusion.type.sym[idxs.local])
+
+## Add NA to impossible squares
+trans.travel.na <- trans.travel
+trans.travel.na['fission.move.stay.swap', 'fusion.move.move.aligned'] <- NA
+trans.travel.na['fission.move.stay.swap', 'fusion.move.move.unaligned'] <- NA
+trans.local.na <- trans.local
+trans.local.na['fission.move.stay.swap', 'fusion.move.move.aligned'] <- NA
+trans.local.na['fission.move.stay.swap', 'fusion.move.move.unaligned'] <- NA
+
 par(mar = c(12,12,2,2))
-image.plot(trans.local, xaxt = 'n', yaxt = 'n', col = viridis(256))
+image.plot(trans.local.na, xaxt = 'n', yaxt = 'n', col = viridis(256))
 axis(side = 1, at = seq(0,1, length.out = nrow(trans.local)), rownames(trans.local), las = 2)
 axis(side = 2, at = seq(0,1, length.out = ncol(trans.local)), colnames(trans.local), las = 2)
 title(main = 'Transitions for local events')
 
 par(mar = c(12,12,2,2))
-image.plot(trans.travel, xaxt = 'n', yaxt = 'n', col = viridis(256))
+image.plot(trans.travel.na, xaxt = 'n', yaxt = 'n', col = viridis(256))
 axis(side = 1, at = seq(0,1, length.out = nrow(trans.travel)), rownames(trans.travel), las = 2)
 axis(side = 2, at = seq(0,1, length.out = ncol(trans.travel)), colnames(trans.travel), las = 2)
 title(main = 'Transitions for traveling events')
@@ -553,10 +582,10 @@ title(main = 'Transitions for traveling events')
 par(mfrow = c(1,1), par(mar = c(1,1,1,1)))
 circos.par(start.degree = 270)
 chordDiagram(t(trans.local),
-             grid.col = rep(fusion.cols, 2), annotationTrack = 'grid', preAllocateTracks = list(list(list(track.height = 0.001, list(track.height = 0.9)))))
+             grid.col = c(fusion.cols[1:3], fusion.cols), annotationTrack = 'grid', preAllocateTracks = list(list(list(track.height = 0.001, list(track.height = 0.9)))))
 
 circos.track(track.index = 2, panel.fun = function(x, y) {
-    circos.text(CELL_META$xcenter, CELL_META$ylim[1], gsub('\\.', '\n', gsub('fusion.|fission.', '', CELL_META$sector.index)), 
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], gsub('\\.', '\n', gsub('fusion|fission', '', CELL_META$sector.index)), 
                 facing = 'inside', niceFacing = TRUE)
 }, bg.border = NA)
 highlight.sector(rownames(trans.local), track.index = 1, col = alpha("white", 0), 
@@ -570,7 +599,7 @@ title('Local')
 
 
 chordDiagram(t(trans.travel),
-             grid.col = rep(fusion.cols, 2), annotationTrack = 'grid', preAllocateTracks = list(list(list(track.height = 0.3, list(track.height = 0.9)))))
+             grid.col = c(fusion.cols[1:3], fusion.cols), annotationTrack = 'grid', preAllocateTracks = list(list(list(track.height = 0.3, list(track.height = 0.9)))))
 
 circos.track(track.index = 2, panel.fun = function(x, y) {
     circos.text(CELL_META$xcenter, CELL_META$ylim[1], gsub('\\.', '\n', gsub('fusion.|fission.', '', CELL_META$sector.index)), 
