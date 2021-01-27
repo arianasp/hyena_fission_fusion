@@ -157,37 +157,6 @@ first.passage.time <- function(x, y, R){
   
 }
 
-### Find parameters defining the 'canonical shape' that best matches data for a fission-fusion event
-fission_fusion_function <- function(x, b1, b2, b.y.intercept, fixed.parameters){
-  x0 <- fixed.parameters$x0
-  y0 <- fixed.parameters$y0
-  xf <- fixed.parameters$xf
-  yf <- fixed.parameters$yf
-  
-  val <- rep(NA, length(x))
-  ## Aproach
-  m1 <- (b.y.intercept - y0)/(b1 - x0)
-  val[which(x < b1)] <- y0 + m1*(x[which(x < b1)]-x0)
-  
-  ## Together
-  val[which(x < b2 &  x >= b1)] <- b.y.intercept
-  
-  ## Depart
-  m2 <- (yf-b.y.intercept)/(xf - b2)
-  val[which(x >= b2)] <- b.y.intercept + m2*(x[which(x >= b2)] - b2)
-  return(val)
-}
-
-
-### Calculate least squared error for fission_fusion_function. For optimization. 
-ls_error <- function(params, fixed.parameters, x, y){
-  y.fit <- fission_fusion_function(x = x, b1 = params[1], b2 = params[2],
-                                   b.y.intercept = params[3], fixed.parameters = fixed.parameters)
-  
-  error <- sum((y.fit - y)^2, na.rm = TRUE)
-  return(error)
-}
-
 
 plot_dyad_dists <- function(indices){
   for(r in indices){
