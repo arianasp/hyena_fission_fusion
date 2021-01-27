@@ -1,40 +1,93 @@
-#DIRECTORIES - MODIFY THIS TO YOUR OWN COMPUTER SETUP
-name <- readline(prompt = "Enter name:")
+#This code is an analysis of hyena repeated use sites (i.e. locations that they stay at for extended periods on multiple days)
+#vs sites that are only used once (but for an extended period). We are interested in looking at:
+# - the birth and death of these "places" over time
+# - whether movement patterns when going to / leaving from these places differ from typical movement patterns (e.g. are more directed)
 
-if(grepl('a|A', name)){
-  basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
-  codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
-}else if(grepl('e|E', name)){
-  basedir <- 'C:/Users/strau/Dropbox/hyena_fission_fusion/' # <-- CHANGE TO THE MAIN PROJECT FOLDER
-  codedir <- 'C:/Users/strau/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/' # <-- CHANGE TO THE DIRECTORY WHERE CODE REPOSITORY IS
-}else{
-  cat('Name not recognized')
+#FILES LOADED
+#'hyena_xy_level1.RData'
+#'hyena_timestamps.RData'
+#'hyena_ids.RData'
+
+#FILES GENERATED
+#'first_passage_times.RData' #first passage times
+#'hyena_visits_10minthresh_R200.RData' #visits data (also contains place ids and info about their locs)
+
+#PARAMRETERS
+#analysis parameters
+downsamp.rate <- 60 #downsample to 1 point per downsamp.rate seconds (to save processing time)
+Rs <- c(10,50, 100, 200, 500, 1000) #radius to use for first passage time (in meters)
+fpt.thresh <- 10*60 #threshold of first passage time to consider something a 'place' (default 10 min = 600 sec)
+R.place.idx <- 4 #index to the R value in the vector Rs that is used for identifying a 'place' (default = 4, ie 200 m to be consistent with field definitions)
+min.separation.distance <- 100 #places less than this distance apart will be aggregated into one place using the chain rule / DBSCAN
+
+#what to compute
+recompute.first.passage.times <- FALSE #if true, recompute fpts, if false, load from file
+save.first.passage.times <- FALSE #whether to overwrite fpt saved file
+save.visits <- TRUE #whether to overwrite visits data frame
+make.plots <- FALSE #whether to show the plots of places and histograms of path directedness when entering or leaving
+
+#Directories and files
+basedir <- '~/Dropbox/hyenas/hyena_fission_fusion/'
+codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
+
+#File save names
+fpt.savename <- 'first_passage_times.RData' #where to store fpt data
+visits.savename <- 'hyena_visits_10minthresh_R200.RData' #where to save visits data
+den.file <- 'hyena_isolate_dens.csv'
+den.names <- c('DAVE D','RBEND D','RES M D1','DICK D')
+
+#--------------LIBRARIES-------------
+library(viridis)
+library(dbscan)
+
+#cluster using chain rule and radius R
+chain.cluster.groups <- function(x,y,R){
+  
+  n.inds <- length(x)
+  
+  groups <- rep(NA,n.inds)
+  non.nas <- which(!is.na(x))
+  
+  r <- cbind(x[non.nas],y[non.nas])
+  
+  #dyadic dists
+  dyad.dists <- dist(r)
+  
+  #hierarchical clustering to get group identities
+  clusts <- hclust(dyad.dists,method='single')
+  groups.non.na <- cutree(clusts,h=R)
+  groups[non.nas] <- groups.non.na
+  
+  return(groups)
+  
 }
 
-#SUBDIRECTORIES
-datadir <- paste(basedir, 'data/raw', sep = '')
-processeddir <- paste(basedir, 'data/processed', sep = '') #this is where the output will be saved (the fission fusion events RData file)
+#compute directedness of a trajectory, defined as displacement over path length
+path.directedness <- function(x, y){
+  
+  displacement <- sqrt((x[length(x)] - x[1])^2 + (y[length(y)] - y[1])^2)
+  path.len <- sum(diff(x)^2 + diff(y)^2)
+  
+  pd <- displacement / path.len
+  
+  return(pd)
+  
+}
 
-#FUNCTIONS
+#----------------------- MAIN -----------------------------
+
+#SOURCE FUNCTIONS
 setwd(codedir)
 source('hyena_functions.R')
 
-#PARAMETERS
-R.before.after <- 100
-
-#----------- MAIN -----------------
-#Set working directory for main analysis
+#LOAD DATA
+datadir <- paste(basedir, 'data/raw',sep='')
 setwd(datadir)
-
-#Load data
 load('hyena_xy_level1.RData')
-load('hyena_timestamps.Rdata')
+load('hyena_timestamps.RData')
 load('hyena_ids.RData')
-load('hyena_vedba.RData')
 
 #Read in den data
-den.file <- 'hyena_isolate_dens.csv'
-den.names <- c('DAVE D','RBEND D','RES M D1','DICK D')
 known.locs <- read.csv(den.file,stringsAsFactors=F)
 eastsNorths <- latlon.to.utm(cbind(known.locs$lon,known.locs$lat),southern_hemisphere=T,utm.zone=36)
 known.locs$east <- eastsNorths[,1]
@@ -42,249 +95,275 @@ known.locs$north <- eastsNorths[,2]
 den.locs <- known.locs[which(known.locs$name %in% den.names),]
 den.locs$name <- as.character(den.locs$name)
 
-setwd(processeddir)
-load('fission_fusion_events.RData')
-
-together.seqs[,c('t.start', 't.end', 't.before.i', 
-                 't.after.i', 't.before.j', 't.after.j',
-                 't.closest', 'start.exact', 'end.exact')] <- NA
-for(i in 1:nrow(together.seqs)){
-  ind.i <- together.seqs[i,'i']
-  ind.j <- together.seqs[i,'j']
-  t0 <- together.seqs$t0[i]
-  tf <- together.seqs$tf[i]
+if(recompute.first.passage.times){
+  #save fpt parameters in object
+  fpt.params <- list()
+  fpt.params$downsamp.rate <- downsamp.rate
+  fpt.params$Rs <- Rs
   
+  #Evaluate first passage time at only 1 point per 10 sec to reduce processing time (don't need that much resolution, and reduce autocorrelation anyway)
+  t.idxs.samp <- seq(1,ncol(xs),downsamp.rate)
   
-  ## Identify time points
-  prev.dists <- dyad.dists[ind.i, ind.j,1:t0]
+  #numer of individuals and number of times
+  xs.sub <- xs[,t.idxs.samp]
+  ys.sub <- ys[,t.idxs.samp]
+  n.inds <- nrow(xs.sub)
+  n.times <- ncol(xs.sub)
+  n.Rs <- length(Rs)
   
-  #End
-  together.seqs$t.end[i] <- tf
-  t.end <- tf
-  together.seqs$end.exact[i] <- together.seqs[i,'tf.exact']
-  
-  #Start
-  far.times <- which(prev.dists > R.fission)
-  
-  ## Exclude events that are too early to have prior data where they are apart
-  if(!(length(far.times) > 0)){
-    together.seqs$start.exact[i] <- FALSE
-    next
+  #Get all first passage times for the different radii
+  fp.times <- array(NA, dim=c(n.inds,length(t.idxs.samp),n.Rs))
+  for(r in 1:n.Rs){
+    print('R')
+    print(r)
+    for(i in 1:n.inds){
+      print(i)
+      for(j in 1:length(t.idxs.samp)){
+        fp.times[i,j,r] <- first.passage.time(x = xs.sub[i, j:n.times], y = ys.sub[i, j:n.times], R = Rs[r]) * downsamp.rate
+      }
+    }
   }
-    
-  together.seqs$t.start[i] <- max(far.times, na.rm = TRUE)
-  t.start <- together.seqs$t.start[i]
-  together.seqs$start.exact[i] <- !is.na(dyad.dists[ind.i, ind.j, t.start+1])
   
-  #Before - different for each individual
-  before.steps <- seq(t.start, 1, -1)
-  together.seqs$t.before.i[i] <- t.start - first.passage.time(x = xs[ind.i,before.steps],
-                     y = ys[ind.i,before.steps],
-                     R = R.before.after) + 1
+  #Make histograms of the first passage times for different scales (R)
+  for(ind in 1:5){
+  time.bins.log <- seq(0,5,.1) #time bins
+  hists <- matrix(NA,nrow=n.Rs,ncol=length(time.bins.log)-1)
+  for(i in 1:n.Rs){
+    histo <- hist(log(fp.times[ind,,i],base=10),breaks=time.bins.log, plot = F)
+    mids <- histo$mids #get midpoints of time bins (will be same for all Rs)
+    hists[i,] <- histo$density #get probability densities for each bin (for each R)
+  }
   
-  together.seqs$t.before.j[i] <- t.start - first.passage.time(x = xs[ind.j,before.steps],
-                                             y = ys[ind.j,before.steps],
-                                             R = R.before.after) + 1
+  quartz(width=10,height = 6)
+  plot(NULL,xlim=range(time.bins.log),ylim=c(0,max(hists)),xlab='First passage time (log scale)', ylab = 'Probability density',xaxt='n', cex.lab=1.5,cex.axis=1.5)
+  xlabels.sec <- c(10,60,10*60,60*60,12*60*60)
+  xlabels.text <- c('10 sec','1 min','10 min','1 hr','10 hr')
+  xlocs <- log(xlabels.sec,base=10)
+  axis(side=1,at=xlocs, labels =xlabels.text,cex.axis=1.5)
+  cols <- viridis(n.Rs)
+  for(i in 1:n.Rs){
+    lines(mids,hists[i,],col=cols[i],lwd=3)
+  }
+  legend('topleft',legend = paste(Rs, 'm'),lty=1,col=cols, lwd = 3,cex=1.2)
+  }
   
-  #After - different for each individual
-  after.steps <- seq(t.end, ncol(xs), 1)
-  together.seqs$t.after.i[i] <- t.end + first.passage.time(x = xs[ind.i,after.steps],
-                                             y = ys[ind.i,after.steps],
-                                             R = R.before.after) - 1 
+  if(save.first.passage.times){
+    setwd(paste(basedir,'data/processed',sep=''))
+    save(list=c('fpt.params','fp.times','t.idxs.samp'), file = fpt.savename)
+  }
   
-  together.seqs$t.after.j[i] <- t.end + first.passage.time(x = xs[ind.j,after.steps],
-                                             y = ys[ind.j,after.steps],
-                                             R = R.before.after) - 1 
+} else{
+  setwd(paste(basedir,'data/processed',sep=''))
+  load(fpt.savename)
   
-  #Closest approach - (first) time at t.end individuals are closest
-  together.seqs$t.closest[i] <- t.start + base::which.min(dyad.dists[ind.i, ind.j, t.start:t.end]) - 1
-  
-  print(i)
 }
 
-### Remove events (only 1) with undefined start and end times
-together.seqs <- together.seqs[!is.na(together.seqs$t.start) & !is.na(together.seqs$t.end),]
 
+#Identify times when hyena first passage times were > a time threshold
+n.inds <- nrow(xs)
 
-
-
-together.seqs[,c('b1', 'b2', 'y.intercept')] <- NA
-for(r in 1:nrow(together.seqs)){
-  
-  if(!together.seqs$start.exact[r] | !together.seqs$end.exact[r])
-    next
-  
-  y = dyad.dists[together.seqs$i[r], together.seqs$j[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
-  x = together.seqs$t.start[r]:together.seqs$t.end[r]
-  fp <- list(x0 = x[1], 
-             y0 = y[1],
-             xf = x[length(x)],
-             yf = y[length(y)])
-  
-  
-  p <- constrOptim(theta = c(fp$x0+5, fp$xf-5, 1), f = ls_error, fixed.parameters = fp, x = x, y =y,
-                   ui = matrix(nrow  = 7, ncol = 3, byrow = TRUE,
-                               data = c(1,0,0,
-                                        -1,0,0,
-                                        0,1,0,
-                                        0,-1,0,
-                                        0,0,1,
-                                        0,0,-1,
-                                        -1,1,0)),
-                   ci = c(fp$x0+1, -fp$xf-1, fp$x0+1, -fp$xf-1, 0, -fp$yf , 0),
-                   grad = NULL)
-  
-  
-  together.seqs[r,c('b1', 'b2', 'y.intercept')] <-p$par
+places <- data.frame()
+for(i in 1:n.inds){
+  fp.times.ind <- fp.times[i,,R.place.idx]
+  place.time.idxs <- which(fp.times.ind > fpt.thresh)
+  tmp.places <- data.frame(ind = rep(i, length(place.time.idxs)), t = t.idxs.samp[place.time.idxs])
+  places <- rbind(places, tmp.places)
 }
 
-together.seqs$b1 <- round(together.seqs$b1)
-together.seqs$b2 <- round(together.seqs$b2)
+#find contiguous sequences within each individual's data, call them "visits"
+visits <- data.frame()
+for(i in 1:n.inds){
+  places.ind <- places[which(places$ind==i),]
+  places.ind <- places.ind[order(places.ind$t),]
+  
+  t0 <- t.curr <- places.ind$t[1] #start at beginning
+  for(j in 1:nrow(places.ind)){
+    dt <- places.ind$t[j] - t.curr
+    if(dt <= downsamp.rate){
+      t.curr <- places.ind$t[j]
+    } else{
+      visits <- rbind(visits, data.frame(i = i, t0 = t0, tf = t.curr))
+      t0 <- t.curr <- places.ind$t[j]
+    }
+  }
+  
+}
 
-empty.vec <- rep(NA, nrow(together.seqs))
-positions <- data.frame(x.before.i = empty.vec,
-                        x.start.i = empty.vec,
-                        x.b1.i = empty.vec,
-                        x.b2.i = empty.vec,
-                        x.end.i = empty.vec,
-                        x.after.i = empty.vec,
-                        x.closest.i = empty.vec,
-                        y.before.i = empty.vec,
-                        y.start.i = empty.vec,
-                        y.b1.i = empty.vec,
-                        y.b2.i = empty.vec,
-                        y.end.i = empty.vec,
-                        y.after.i = empty.vec,
-                        y.closest.i = empty.vec,
-                        x.before.j = empty.vec,
-                        x.start.j = empty.vec,
-                        x.b1.j = empty.vec,
-                        x.b2.j = empty.vec,
-                        x.end.j = empty.vec,
-                        x.after.j = empty.vec,
-                        x.closest.j = empty.vec,
-                        y.before.j = empty.vec,
-                        y.start.j = empty.vec,
-                        y.b1.j = empty.vec,
-                        y.b2.j = empty.vec,
-                        y.end.j = empty.vec,
-                        y.after.j = empty.vec,
-                        y.closest.j = empty.vec)
+visits$dur <- visits$tf - visits$t0
 
-### Get locations for relevant time points
-
-idxs.start.end.exact <- which(together.seqs$start.exact & together.seqs$end.exact)
-idxs.start.exact <- which(together.seqs$start.exact)
-idxs.end.exact <- which(together.seqs$end.exact)
-
-#####i
-# start exact
-positions$x.before.i[idxs.start.exact] <- xs[cbind(together.seqs$i, together.seqs$t.before.i)[idxs.start.exact,]]
-positions$y.before.i[idxs.start.exact] <- ys[cbind(together.seqs$i, together.seqs$t.before.i)[idxs.start.exact,]]
-positions$x.start.i[idxs.start.exact] <- xs[cbind(together.seqs$i, together.seqs$t.start)[idxs.start.exact,]]
-positions$y.start.i[idxs.start.exact] <- ys[cbind(together.seqs$i, together.seqs$t.start)[idxs.start.exact,]]
-
-#both exact
-positions$x.b1.i[idxs.start.end.exact] <- xs[cbind(together.seqs$i, together.seqs$b1)[idxs.start.end.exact,]]
-positions$y.b1.i[idxs.start.end.exact] <- ys[cbind(together.seqs$i, together.seqs$b1)[idxs.start.end.exact,]]
-positions$x.b2.i[idxs.start.end.exact] <- xs[cbind(together.seqs$i, together.seqs$b2)[idxs.start.end.exact,]]
-positions$y.b2.i[idxs.start.end.exact] <- ys[cbind(together.seqs$i, together.seqs$b2)[idxs.start.end.exact,]]
-
-#end exact
-positions$x.end.i[idxs.end.exact] <- xs[cbind(together.seqs$i, together.seqs$t.end)[idxs.end.exact,]]
-positions$y.end.i[idxs.end.exact] <- ys[cbind(together.seqs$i, together.seqs$t.end)[idxs.end.exact,]]
-positions$x.after.i[idxs.end.exact] <- xs[cbind(together.seqs$i, together.seqs$t.after.i)[idxs.end.exact,]]
-positions$y.after.i[idxs.end.exact] <- ys[cbind(together.seqs$i, together.seqs$t.after.i)[idxs.end.exact,]]
-
-positions$x.closest.i <- xs[cbind(together.seqs$i, together.seqs$t.closest)]
-positions$y.closest.i <- ys[cbind(together.seqs$i, together.seqs$t.closest)]
-
-#####j
-# start exact
-positions$x.before.j[idxs.start.exact] <- xs[cbind(together.seqs$j, together.seqs$t.before.j)[idxs.start.exact,]]
-positions$y.before.j[idxs.start.exact] <- ys[cbind(together.seqs$j, together.seqs$t.before.j)[idxs.start.exact,]]
-positions$x.start.j[idxs.start.exact] <- xs[cbind(together.seqs$j, together.seqs$t.start)[idxs.start.exact,]]
-positions$y.start.j[idxs.start.exact] <- ys[cbind(together.seqs$j, together.seqs$t.start)[idxs.start.exact,]]
-
-#both exact
-positions$x.b1.j[idxs.start.end.exact] <- xs[cbind(together.seqs$j, together.seqs$b1)[idxs.start.end.exact,]]
-positions$y.b1.j[idxs.start.end.exact] <- ys[cbind(together.seqs$j, together.seqs$b1)[idxs.start.end.exact,]]
-positions$x.b2.j[idxs.start.end.exact] <- xs[cbind(together.seqs$j, together.seqs$b2)[idxs.start.end.exact,]]
-positions$y.b2.j[idxs.start.end.exact] <- ys[cbind(together.seqs$j, together.seqs$b2)[idxs.start.end.exact,]]
-
-#end exact
-positions$x.end.j[idxs.end.exact] <- xs[cbind(together.seqs$j, together.seqs$t.end)[idxs.end.exact,]]
-positions$y.end.j[idxs.end.exact] <- ys[cbind(together.seqs$j, together.seqs$t.end)[idxs.end.exact,]]
-positions$x.after.j[idxs.end.exact] <- xs[cbind(together.seqs$j, together.seqs$t.after.j)[idxs.end.exact,]]
-positions$y.after.j[idxs.end.exact] <- ys[cbind(together.seqs$j, together.seqs$t.after.j)[idxs.end.exact,]]
-
-positions$x.closest.j <- xs[cbind(together.seqs$j, together.seqs$t.closest)]
-positions$y.closest.j <- ys[cbind(together.seqs$j, together.seqs$t.closest)]
+#get "place" locations (mean location for the time they were in the place)
+visits$east <- visits$north <- NA
+for(i in 1:nrow(visits)){
+  xp <- xs[visits$i[i], visits$t0[i]:visits$tf[i]]
+  yp <- ys[visits$i[i], visits$t0[i]:visits$tf[i]]
+  visits$east[i] <- mean(xp, na.rm=T)
+  visits$north[i] <- mean(yp, na.rm=T)
+  
+}
 
 
-##### Extract features
-### Displacement - no before or after because they are defined a priori as 100m
-
-together.seqs$disp.fusion.i <- sqrt((positions$x.start.i-positions$x.b1.i)^2 + (positions$y.start.i-positions$y.b1.i)^2)
-together.seqs$disp.together.i <- sqrt((positions$x.b2.i-positions$x.b1.i)^2 + (positions$y.b2.i-positions$y.b1.i)^2)
-together.seqs$disp.fission.i <- sqrt((positions$x.end.i-positions$x.b2.i)^2 + (positions$y.end.i-positions$y.b2.i)^2)
-
-together.seqs$disp.fusion.j <- sqrt((positions$x.start.j-positions$x.b1.j)^2 + (positions$y.start.j-positions$y.b1.j)^2)
-together.seqs$disp.together.j <- sqrt((positions$x.b2.j-positions$x.b1.j)^2 + (positions$y.b2.j-positions$y.b1.j)^2)
-together.seqs$disp.fission.j <- sqrt((positions$x.end.j-positions$x.b2.j)^2 + (positions$y.end.j-positions$y.b2.j)^2)
-
-
-### Time
-together.seqs$duration.before.i <- together.seqs$t.start - together.seqs$t.before.i
-together.seqs$duration.after.i <- together.seqs$t.after.i - together.seqs$t.end
-
-together.seqs$duration.fusion <- together.seqs$b1 - together.seqs$t.start
-together.seqs$duration.together <- together.seqs$b2 - together.seqs$b1
-together.seqs$duration.fission <- together.seqs$t.end - together.seqs$b2
-
-together.seqs$duration.before.j <- together.seqs$t.start - together.seqs$t.before.j
-together.seqs$duration.after.j <- together.seqs$t.after.j - together.seqs$t.end
-
-# ### Speed
-# together.seqs.speed.before.i <- together.seqs$disp.before.i / together.seqs$duration.before.i
-# together.seqs$speed.fusion.i <- together.seqs$disp.fusion.i / together.seqs$duration.fusion
-# together.seqs$speed.together.i <- together.seqs$disp.together.i / together.seqs$duration.together
-# together.seqs$speed.fission.i <- together.seqs$disp.fission.i / together.seqs$duration.fission
-# together.seqs$speed.after.i <- together.seqs$disp.after.i / together.seqs$duration.after.i
+# #NEW: Find clusters using DBSCAN (testing out)
 # 
-# together.seqs.speed.before.j <- together.seqs$disp.before.j / together.seqs$duration.before.j
-# together.seqs$speed.fusion.j <- together.seqs$disp.fusion.j / together.seqs$duration.fusion
-# together.seqs$speed.together.j <- together.seqs$disp.together.j / together.seqs$duration.together
-# together.seqs$speed.fission.j <- together.seqs$disp.fission.j / together.seqs$duration.fission
-# together.seqs$speed.after.j <- together.seqs$disp.after.j / together.seqs$duration.after.j
+# cl <- dbscan(cbind(visits$east,visits$north),eps=min.separation.distance)
+# cols <- rainbow(max(cl$cluster))
+# cols <- c('black',cols)
+# #plot(visits$east,visits$north,col=cols[cl$cluster+1],pch=19,cex=0.1,asp=1, )
+# 
+# #get x and y coordinates associated with each place
+# visits$place.id <- cl$cluster
+# 
+# #cluster 0 is the 'noise' cluster but in this case these should be considered as separate places
+# max.cluster.label <- max(visits$place.id)
+# single.point.clusts <- which(visits$place.id==0)
+# visits$place.id[single.point.clusts] <- seq(max.cluster.label+1,max.cluster.label + length(single.point.clusts))
+# places <- data.frame(place.id = unique(visits$place.id))
+# places$hull <- NA
+# places$area <- NA
+# for(p in 1:nrow(places)){
+#   place <- places$place.id[p]
+#   place.visit.idxs <- which(visits$place.id==place)
+#   if(length(place.visit.idxs) >= 3){
+#     place.points <- as.matrix(visits[place.visit.idxs,c('east','north')])
+#     shape <- ashape(place.points, alpha = min.separation.distance)
+#     edges <- shape$edges
+#     places$hull[p] <- list(shape)
+#   }
+# }
+# 
+# #PLOT PLACES
+# quartz(width = 26, height = 10)
+# par(mfrow=c(2,3))
+# for(i in 1:nrow(hyena.ids)){
+# plot(NULL, asp=1, xlim = c(742000,758000),ylim=c(9830000,9843000))
+# cols <- sample(rainbow(nrow(places)))
+# for(p in 1:nrow(places)){
+#   if(!is.na(places$hull[p])){
+#     plot(places$hull[p][[1]], add = T, col='black',pch=19,cex=0.01, lwd = 2)
+#   }
+# }
+# ind.idxs <- which(visits$i==i)
+# points(visits$east[ind.idxs],visits$north[ind.idxs],col=hyena.ids$color[i],pch=19,cex=0.1)
+# }
+# 
 
-### Angle
-together.seqs$angle.before <- get_angle(x1.i = positions$x.before.i, x2.i = positions$x.start.i, y1.i = positions$y.before.i, y2.i = positions$y.start.i,
-                                        x1.j = positions$x.before.j, x2.j = positions$x.start.j, y1.j = positions$y.before.j, y2.j = positions$y.start.j)
+#cluster places with x distance of one another
+visits$place.id <- NA
+chain.clusts <- chain.cluster.groups(x = visits$east, y = visits$north, R = min.separation.distance)
+visits$place.id <- chain.clusts
 
-together.seqs$angle.fusion <- get_angle(x1.i = positions$x.start.i, x2.i = positions$x.b1.i, y1.i = positions$y.start.i, y2.i = positions$y.b1.i,
-                                        x1.j = positions$x.start.j, x2.j = positions$x.b1.j, y1.j = positions$y.start.j, y2.j = positions$y.b1.j)
+#for each cluster of "sub-places" find the mean location, define this as the center of the overall "place"
+#also get the minimum and maximum of the x and y values to potentially create a bounding box around the place later
+place.ids <- unique(visits$place.id)
+visits$place.mean.east <- visits$place.mean.north <- NA
+visits$place.min.east <- visits$place.min.north <- NA
+visits$place.max.east <- visits$place.max.north <- NA
+for(i in place.ids){
+  rows <- which(visits$place.id == i)
+  xp <- visits$east[rows]
+  yp <- visits$north[rows]
 
-together.seqs$angle.together <- get_angle(x1.i = positions$x.b1.i, x2.i = positions$x.b2.i, y1.i = positions$y.b1.i, y2.i = positions$y.b2.i,
-                                          x1.j = positions$x.b1.j, x2.j = positions$x.b2.j, y1.j = positions$y.b1.j, y2.j = positions$y.b2.j)
+  visits$place.mean.east[rows] <- mean(xp, na.rm=T)
+  visits$place.mean.north[rows] <- mean(yp, na.rm=T)
 
-together.seqs$angle.fission <- get_angle(x1.i = positions$x.b2.i, x2.i = positions$x.end.i, y1.i = positions$y.b2.i, y2.i = positions$y.end.i,
-                                         x1.j = positions$x.b2.j, x2.j = positions$x.end.j, y1.j = positions$y.b2.j, y2.j = positions$y.end.j)
+  visits$place.min.east[rows] <- min(xp, na.rm=T)
+  visits$place.min.north[rows] <- min(yp, na.rm=T)
 
-together.seqs$angle.after <- get_angle(x1.i = positions$x.end.i, x2.i = positions$x.after.i, y1.i = positions$y.end.i, y2.i = positions$y.after.i,
-                                       x1.j = positions$x.end.j, x2.j = positions$x.after.j, y1.j = positions$y.end.j, y2.j = positions$y.after.j)
+  visits$place.max.east[rows] <- max(xp, na.rm=T)
+  visits$place.max.north[rows] <- max(yp, na.rm=T)
 
-### VEDBA
-
-for(i in 1:nrow(together.seqs)){
-  together.seqs$vedba.before.i <- mean(vedbas[together.seqs$i[i], together.seqs$t.before.i[i]:together.seqs$t.start[i]], na.rm = TRUE)
 }
 
+#plot all the places on one plot
+#size = number of times place was visited
+#color = number of unique hyenas visiting the place
+if(make.plots){
+  quartz(width = 12, height = 12)
+  plot(NULL, xlim = range(visits$place.mean.east,na.rm=T), ylim = range(visits$place.mean.north,na.rm=T), asp = 1, xlab = 'Easting (m)', ylab = 'Northing (m)')
+  cols <- c('black','blue','dark green','orange','red')
+  for(i in place.ids){
+    rows <- which(visits$place.id == i)
+    x <- visits$place.mean.east[rows[1]]
+    y <- visits$place.mean.north[rows[1]]
+    xleft <- visits$place.min.east[rows[1]]
+    xright <- visits$place.max.east[rows[1]]
+    ybottom <- visits$place.min.north[rows[1]]
+    ytop <- visits$place.max.north[rows[1]]
+    #rect(xleft = xleft, ybottom = ybottom, xright = xright, ytop = ytop, col = '#00000022', border=NA)
+    col <- cols[length(unique(visits$i[rows]))]
+    n.stays <- length(rows)
+    size <- log(n.stays + 1)/3
+    points(x, y, cex = size, col = col, pch = 19)
+  }
+  for(d in 1:nrow(den.locs)){
+    points(den.locs$east[d], den.locs$north[d], cex = 1, col = 'black')
+    text(x = den.locs$east[d], y = den.locs$north[d], den.locs$name[d], col = 'black', pos = 4)
+  }
+  legend('topleft',fill=cols,legend=c('1 hyena', '2 hyenas','3 hyenas','4 hyenas','5 hyenas'))
+  legend('topright',legend=c('1 visit','3 visits','10 visits','30 visits','100 visits','300 visits'), col=rep('black',6),pt.cex = log(c(1,3,10,30,100,300)+1)/3, pch = rep(19,6))
+  
+  #add previous hour trajectories to the map
+  # nsamps <- 200
+  # for(i in sample(1:nrow(visits),nsamps)){
+  #   ind <- visits$i[i]
+  #   tprev <- seq(visits$t0[i] - 60*60, visits$t0[i])
+  #   taft <- seq(visits$tf[i], visits$tf[i] + 10*60)
+  #   if(sum(tprev<1)==0){
+  #     lines(xs[ind,tprev], ys[ind,tprev],col='gray',lwd=.5)
+  #   }
+  # }
+}
 
+#calculate some metrics for the 10 min before getting to the place
+visits$pd.prev10 <- visits$pd.prev60 <- NA
+for(i in 1:nrow(visits)){
+  ind <- visits$i[i]
+  t.arrive <- visits$t0[i]
+  t.leave <- visits$tf[i] + 60*60
+  
+  if(t.arrive > 60*10){
+    visits$pd.prev10[i] <- path.directedness(xs[ind, seq(t.arrive - 60*10, t.arrive)], ys[ind, seq(t.arrive - 60*10, t.arrive)])
+  }
+  if(t.arrive > 60*60){
+    visits$pd.prev60[i] <- path.directedness(xs[ind, seq(t.arrive - 60*60, t.arrive)], ys[ind, seq(t.arrive - 60*60, t.arrive)])
+  }
+  
+  if(t.arrive > 60*10){
+    visits$pd.next10[i] <- path.directedness(xs[ind, seq(t.leave, t.leave + 60*10)], ys[ind, seq(t.leave, t.leave + 60*10)])
+  }
+  if(t.arrive > 60*60){
+    visits$pd.next60[i] <- path.directedness(xs[ind, seq(t.leave, t.leave + 60*60)], ys[ind, seq(t.leave, t.leave + 60*60)])
+  }
+}
 
+#get number of visits each place has had
+place.n.visits <- table(visits$place.id)
+places.sorted <- sort(place.n.visits,decreasing=T)
 
+#NOTE: ASSUMING DENS ARE THE TOP 3 MOST VISITED PLACES - this assumption valid for the current parameters, however it should be checked if anything is changed!
+popular.nondens <- names(places.sorted)[places.sorted >= 10]
+dens <- names(places.sorted)[1:3]
+rest <- names(places.sorted)[places.sorted < 10]
 
-### Save features object
-events <- together.seqs
-setwd(processeddir)
-save(list=c('events'),file='fission_fusion_features.RData')
+visits$type <- NA
+visits$type[which(visits$place.id %in% popular.nondens)] <- 'popular.nonden'
+visits$type[which(visits$place.id %in% dens)] <- 'den'
+visits$type[which(visits$place.id %in% rest)] <- 'nonden'
+
+#make a histogram of path directedness for dens, popular non-dens (>10 visits), and other places (< 10 visits)
+if(make.plots){
+  quartz(width=8,height=8)
+  bandwidth <- .1
+  plot(NULL,xlim=c(0,1),ylim=c(0,2.5),xlab = 'Path directedness',ylab='Probability density',cex.lab=1.5, cex.axis=1.5)
+  kd.dens <- density(visits$pd.next10[which(visits$type=='den')],na.rm=T,from=0,to=1, bw=bandwidth)
+  kd.popular.nondens <- density(visits$pd.next10[which(visits$type=='popular.nonden')],na.rm=T,from=0,to=1, bw=bandwidth)
+  kd.nondens <- density(visits$pd.next10[which(visits$type=='nonden')],na.rm=T,from=0,to=1, bw=bandwidth)
+  lines(kd.dens,col='red',lwd=3)
+  lines(kd.popular.nondens, col='blue',lwd=3)
+  lines(kd.nondens,col='black',lwd=3)
+  legend('topleft',legend=c('Dens','> 10 visits (non-den)','< 10 visits'), col=c('red','blue','black'),lwd=3,cex=1.5)
+}
+
+#save hyena places
+if(save.visits){
+  save(file=visits.savename, list = c('visits'))
+}
