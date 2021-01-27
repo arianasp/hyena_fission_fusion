@@ -287,3 +287,124 @@ get_ff_events_and_phases <- function(xs, ys, R.fusion = 100, R.fission = 200, ma
   return(together.seqs)
 }
 
+#### Extract features
+get_ff_features <- function(xs, ys, together.seqs){
+  
+  empty.vec <- rep(NA, nrow(together.seqs))
+  positions <- data.frame(x.before.i = empty.vec,
+                          x.start.i = empty.vec,
+                          x.b1.i = empty.vec,
+                          x.b2.i = empty.vec,
+                          x.end.i = empty.vec,
+                          x.after.i = empty.vec,
+                          x.closest.i = empty.vec,
+                          y.before.i = empty.vec,
+                          y.start.i = empty.vec,
+                          y.b1.i = empty.vec,
+                          y.b2.i = empty.vec,
+                          y.end.i = empty.vec,
+                          y.after.i = empty.vec,
+                          y.closest.i = empty.vec,
+                          x.before.j = empty.vec,
+                          x.start.j = empty.vec,
+                          x.b1.j = empty.vec,
+                          x.b2.j = empty.vec,
+                          x.end.j = empty.vec,
+                          x.after.j = empty.vec,
+                          x.closest.j = empty.vec,
+                          y.before.j = empty.vec,
+                          y.start.j = empty.vec,
+                          y.b1.j = empty.vec,
+                          y.b2.j = empty.vec,
+                          y.end.j = empty.vec,
+                          y.after.j = empty.vec,
+                          y.closest.j = empty.vec)
+  
+  ### Get locations for relevant time points
+  
+  idxs.start.end.exact <- which(together.seqs$start.exact & together.seqs$end.exact)
+  idxs.start.exact <- which(together.seqs$start.exact)
+  idxs.end.exact <- which(together.seqs$end.exact)
+  
+  #####i
+  # start exact
+  positions$x.start.i[idxs.start.exact] <- xs[cbind(together.seqs$i, together.seqs$t.start)[idxs.start.exact,]]
+  positions$y.start.i[idxs.start.exact] <- ys[cbind(together.seqs$i, together.seqs$t.start)[idxs.start.exact,]]
+  
+  #both exact
+  positions$x.b1.i[idxs.start.end.exact] <- xs[cbind(together.seqs$i, together.seqs$b1)[idxs.start.end.exact,]]
+  positions$y.b1.i[idxs.start.end.exact] <- ys[cbind(together.seqs$i, together.seqs$b1)[idxs.start.end.exact,]]
+  positions$x.b2.i[idxs.start.end.exact] <- xs[cbind(together.seqs$i, together.seqs$b2)[idxs.start.end.exact,]]
+  positions$y.b2.i[idxs.start.end.exact] <- ys[cbind(together.seqs$i, together.seqs$b2)[idxs.start.end.exact,]]
+  
+  #end exact
+  positions$x.end.i[idxs.end.exact] <- xs[cbind(together.seqs$i, together.seqs$t.end)[idxs.end.exact,]]
+  positions$y.end.i[idxs.end.exact] <- ys[cbind(together.seqs$i, together.seqs$t.end)[idxs.end.exact,]]
+  
+  positions$x.closest.i <- xs[cbind(together.seqs$i, together.seqs$t.closest)]
+  positions$y.closest.i <- ys[cbind(together.seqs$i, together.seqs$t.closest)]
+  
+  #####j
+  # start exact
+  positions$x.start.j[idxs.start.exact] <- xs[cbind(together.seqs$j, together.seqs$t.start)[idxs.start.exact,]]
+  positions$y.start.j[idxs.start.exact] <- ys[cbind(together.seqs$j, together.seqs$t.start)[idxs.start.exact,]]
+  
+  #both exact
+  positions$x.b1.j[idxs.start.end.exact] <- xs[cbind(together.seqs$j, together.seqs$b1)[idxs.start.end.exact,]]
+  positions$y.b1.j[idxs.start.end.exact] <- ys[cbind(together.seqs$j, together.seqs$b1)[idxs.start.end.exact,]]
+  positions$x.b2.j[idxs.start.end.exact] <- xs[cbind(together.seqs$j, together.seqs$b2)[idxs.start.end.exact,]]
+  positions$y.b2.j[idxs.start.end.exact] <- ys[cbind(together.seqs$j, together.seqs$b2)[idxs.start.end.exact,]]
+  
+  #end exact
+  positions$x.end.j[idxs.end.exact] <- xs[cbind(together.seqs$j, together.seqs$t.end)[idxs.end.exact,]]
+  positions$y.end.j[idxs.end.exact] <- ys[cbind(together.seqs$j, together.seqs$t.end)[idxs.end.exact,]]
+  
+  positions$x.closest.j <- xs[cbind(together.seqs$j, together.seqs$t.closest)]
+  positions$y.closest.j <- ys[cbind(together.seqs$j, together.seqs$t.closest)]
+  
+  
+  ##### Extract features
+  ### Displacement - no before or after because they are defined a priori as 100m
+  
+  together.seqs$disp.fusion.i <- sqrt((positions$x.start.i-positions$x.b1.i)^2 + (positions$y.start.i-positions$y.b1.i)^2)
+  together.seqs$disp.together.i <- sqrt((positions$x.b2.i-positions$x.b1.i)^2 + (positions$y.b2.i-positions$y.b1.i)^2)
+  together.seqs$disp.fission.i <- sqrt((positions$x.end.i-positions$x.b2.i)^2 + (positions$y.end.i-positions$y.b2.i)^2)
+  
+  together.seqs$disp.fusion.j <- sqrt((positions$x.start.j-positions$x.b1.j)^2 + (positions$y.start.j-positions$y.b1.j)^2)
+  together.seqs$disp.together.j <- sqrt((positions$x.b2.j-positions$x.b1.j)^2 + (positions$y.b2.j-positions$y.b1.j)^2)
+  together.seqs$disp.fission.j <- sqrt((positions$x.end.j-positions$x.b2.j)^2 + (positions$y.end.j-positions$y.b2.j)^2)
+  
+  
+  ### Time
+  together.seqs$duration.fusion <- together.seqs$b1 - together.seqs$t.start
+  together.seqs$duration.together <- together.seqs$b2 - together.seqs$b1
+  together.seqs$duration.fission <- together.seqs$t.end - together.seqs$b2
+  
+  ### Angle
+  together.seqs$angle.fusion <- get_angle_between_vectors(x1.i = positions$x.start.i, x2.i = positions$x.b1.i, y1.i = positions$y.start.i, y2.i = positions$y.b1.i,
+                                          x1.j = positions$x.start.j, x2.j = positions$x.b1.j, y1.j = positions$y.start.j, y2.j = positions$y.b1.j)
+  
+  together.seqs$angle.together <- get_angle_between_vectors(x1.i = positions$x.b1.i, x2.i = positions$x.b2.i, y1.i = positions$y.b1.i, y2.i = positions$y.b2.i,
+                                            x1.j = positions$x.b1.j, x2.j = positions$x.b2.j, y1.j = positions$y.b1.j, y2.j = positions$y.b2.j)
+  
+  together.seqs$angle.fission <- get_angle_between_vectors(x1.i = positions$x.b2.i, x2.i = positions$x.end.i, y1.i = positions$y.b2.i, y2.i = positions$y.end.i,
+                                           x1.j = positions$x.b2.j, x2.j = positions$x.end.j, y1.j = positions$y.b2.j, y2.j = positions$y.end.j)
+  
+  return(together.seqs)
+}
+
+get_angle_between_vectors <- function(x1.i, x2.i, y1.i, y2.i, 
+                      x1.j, x2.j, y1.j, y2.j){
+  dx.i <- x2.i - x1.i
+  dy.i <- y2.i - y1.i
+  
+  dx.j <- x2.j - x1.j
+  dy.j <- y2.j - y1.j
+  
+  s.i <- sqrt((x2.i - x1.i)^2 + (y2.i - y1.i)^2)
+  s.j <- sqrt((x2.j - x1.j)^2 + (y2.j - y1.j)^2)
+  
+  cos.a <- ((dx.i * dx.j) + (dy.i * dy.j))/(s.i * s.j)
+  angle <- acos(cos.a)
+  return(angle)
+}

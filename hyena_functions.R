@@ -225,18 +225,4 @@ plot_events <- function(indices, events, xs, ys, phase.col = TRUE){
 
 
 
-get_angle <- function(x1.i, x2.i, y1.i, y2.i, 
-                      x1.j, x2.j, y1.j, y2.j){
-  dx.i <- x2.i - x1.i
-  dy.i <- y2.i - y1.i
-  
-  dx.j <- x2.j - x1.j
-  dy.j <- y2.j - y1.j
-  
-  s.i <- sqrt((x2.i - x1.i)^2 + (y2.i - y1.i)^2)
-  s.j <- sqrt((x2.j - x1.j)^2 + (y2.j - y1.j)^2)
-  
-  cos.a <- ((dx.i * dx.j) + (dy.i * dy.j))/(s.i * s.j)
-  angle <- acos(cos.a)
-  return(angle)
-}
+
