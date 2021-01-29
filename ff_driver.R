@@ -2,13 +2,13 @@
 
 ################################ SET UP DIRECTORIES ##################################
 
-#directory of where the original movement + acc data is stored
+#directory of where the original (processed) movement + vedba data is stored (+ metadata on IDs and den locations)
 indir <- '/Volumes/EAS_shared/hyena/working/hyena_pilot_2017/processed/'
 
-#directory of where to store extracted data
+#directory of where to store extracted data for fission-fusion project
 outdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/'
 
-#directory where code is stored
+#directory where code for fission-fusion project is stored
 codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
 
 ################################ CHOOSE ANALYSES TO RUN ##################################
@@ -28,6 +28,9 @@ params <- list(R.fusion = 100,
 
 verbose = TRUE
 
+events_filename <- 'fission_fusion_events.RData'
+events_features_filename <- 'fission_fusion_events_features.RData'
+
 ################################# SOURCE FUNCTIONS #######################################
 
 setwd(codedir)
@@ -46,14 +49,16 @@ if(run_extract_ff_events){
   load('hyena_xy_level1.RData')
   
   #extract events
-  events <- get_ff_events_and_phases(xs, ys, 
-                                     R.fusion = params$R.fusion, 
-                                     R.fission = params$R.fission, 
-                                     max.break = params$max.break, 
-                                     verbose = verbose)
+  events <- get_ff_events_and_phases(xs = xs, 
+                                     ys = ys, 
+                                     params = params)
+  
   if(overwrite_extract_ff_events){
     setwd(outdir)
-    save(list = c('events','params'), file = 'fission_fusion_events.RData')
+    if(verbose){
+      print(paste0('Saving events to ', outdir, '/', events_filename))
+    }
+    save(list = c('events','params'), file = events_filename)
   }
   
   
@@ -72,20 +77,26 @@ if(run_get_ff_features){
     load('hyena_xy_level1.RData')
     
     setwd(outdir)
-    load('fission_fusion_events.RData')
+    load(events_filename)
     
   } 
   
   #Run feature extraction
-  events <- get_ff_features(xs, ys, 
+  if(verbose){
+    print('Extracting features')
+  }
+  events <- get_ff_features(xs = xs, 
+                             ys = ys, 
                             together.seqs = events,
-                            move.thresh = params$move.thresh,
-                            together.travel.thresh = params$together.travel.thresh)
+                            params = params)
   
   if(overwrite_extract_ff_features){
     
     setwd(outdir)
-    save(list = c('events','params'), file = 'fission_fusion_events_features.RData')
+    if(verbose){
+      print(paste0('Saving events + features to ', outdir, '/', events_features_filename))
+    }
+    save(list = c('events','params'), file = events_features_filename)
     
   }
   

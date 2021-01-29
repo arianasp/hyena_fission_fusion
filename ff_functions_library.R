@@ -52,7 +52,7 @@ get_angle_between_vectors <- function(x1.i, x2.i, y1.i, y2.i,
 #################################### MAIN FUNCTIONS ####################################
 
 ##### Extract ff events and phases
-get_ff_events_and_phases <- function(xs, ys, R.fusion = 100, R.fission = 200, max.break = 60*30, verbose = TRUE){
+get_ff_events_and_phases <- function(xs, ys, params, verbose = TRUE){
   
   #Get basic parameters
   n.inds <- nrow(xs)
@@ -99,7 +99,7 @@ get_ff_events_and_phases <- function(xs, ys, R.fusion = 100, R.fission = 200, ma
           } else{
             
             #if within R.fusion, start a together sequence
-            if(curr.dist < R.fusion){
+            if(curr.dist < params$R.fusion){
               t0 <- k
               prev.together <- TRUE
               next
@@ -121,7 +121,7 @@ get_ff_events_and_phases <- function(xs, ys, R.fusion = 100, R.fission = 200, ma
           }
           
           #if curr.dist is less than R.fusion, start a sequence
-          if(curr.dist < R.fusion){
+          if(curr.dist < params$R.fusion){
             t0 <- k
             prev.together <- TRUE
             next
@@ -145,7 +145,7 @@ get_ff_events_and_phases <- function(xs, ys, R.fusion = 100, R.fission = 200, ma
           }
           
           #if moved away to > R.fission distance, end sequence, set prev.together to FALSE
-          if(curr.dist > R.fission){
+          if(curr.dist > params$R.fission){
             tf <- k -1
             together.seqs <- rbind(together.seqs, data.frame(i = i, j = j, t0 = t0, tf = tf))
             prev.together <- FALSE
@@ -171,7 +171,7 @@ get_ff_events_and_phases <- function(xs, ys, R.fusion = 100, R.fission = 200, ma
           break.end <- together.seqs$t0[rows[k+1]] - 1
           
           #if two together periods are separated only by NAs and less than max.break seconds, aggregate into one event
-          if((break.end - break.start <= max.break) & 
+          if((break.end - break.start <= params$max.break) & 
              (sum(!is.na(dyad.dists[i,j,break.start:break.end])) == 0)){
             new.seqs <- rbind(new.seqs, data.frame(i = i, j = j, t0 = together.seqs$t0[rows[k]], tf = together.seqs$tf[rows[k+1]]))
             k <- k + 2
@@ -247,7 +247,7 @@ get_ff_events_and_phases <- function(xs, ys, R.fusion = 100, R.fission = 200, ma
     together.seqs$end.exact[i] <- together.seqs[i,'tf.exact']
     
     #Start
-    far.times <- which(prev.dists > R.fission)
+    far.times <- which(prev.dists > params$R.fission)
     
     ## Exclude events that are too early to have prior data where they are apart
     if(!(length(far.times) > 0)){
@@ -309,7 +309,7 @@ get_ff_events_and_phases <- function(xs, ys, R.fusion = 100, R.fission = 200, ma
 }
 
 #### Extract features from fission fusion events
-get_ff_features <- function(xs, ys, together.seqs, move.thresh, together.travel.thresh){
+get_ff_features <- function(xs, ys, together.seqs, params){
   
   empty.vec <- rep(NA, nrow(together.seqs))
   positions <- data.frame(x.before.i = empty.vec,
@@ -414,18 +414,18 @@ get_ff_features <- function(xs, ys, together.seqs, move.thresh, together.travel.
   #### Categorize into types
   
   #defining clusters - fusion
-  fusion.stay.move.idxs <- which(together.seqs$disp.fusion.i <= move.thresh)
-  fusion.move.stay.idxs <- which(together.seqs$disp.fusion.j <= move.thresh)
-  fusion.move.move.idxs <- which(together.seqs$disp.fusion.i > move.thresh & together.seqs$disp.fusion.j > move.thresh)
+  fusion.stay.move.idxs <- which(together.seqs$disp.fusion.i <= params$move.thresh)
+  fusion.move.stay.idxs <- which(together.seqs$disp.fusion.j <= params$move.thresh)
+  fusion.move.move.idxs <- which(together.seqs$disp.fusion.i > params$move.thresh & together.seqs$disp.fusion.j > params$move.thresh)
 
   #defining clusters - together
-  together.local.idxs <- which(together.seqs$disp.together.i <= together.travel.thresh | together.seqs$disp.together.j <= together.travel.thresh)
-  together.travel.idxs <- which(together.seqs$disp.together.i > together.travel.thresh & together.seqs$disp.together.j > together.travel.thresh)
+  together.local.idxs <- which(together.seqs$disp.together.i <= params$together.travel.thresh | together.seqs$disp.together.j <= params$together.travel.thresh)
+  together.travel.idxs <- which(together.seqs$disp.together.i > params$together.travel.thresh & together.seqs$disp.together.j > params$together.travel.thresh)
   
   #defining clusters - fission
-  fission.stay.move.idxs <- which(together.seqs$disp.fission.i <= move.thresh)
-  fission.move.stay.idxs <- which(together.seqs$disp.fission.j <= move.thresh)
-  fission.move.move.idxs <- which(together.seqs$disp.fission.i > move.thresh & together.seqs$disp.fission.j > move.thresh)
+  fission.stay.move.idxs <- which(together.seqs$disp.fission.i <= params$move.thresh)
+  fission.move.stay.idxs <- which(together.seqs$disp.fission.j <= params$move.thresh)
+  fission.move.move.idxs <- which(together.seqs$disp.fission.i > params$move.thresh & together.seqs$disp.fission.j > params$move.thresh)
   
   #store clusters in events data frame
   together.seqs$fusion.type <- together.seqs$together.type <- together.seqs$fission.type <- NA
@@ -440,6 +440,26 @@ get_ff_features <- function(xs, ys, together.seqs, move.thresh, together.travel.
   
   #combine into event types
   together.seqs$event.type <- paste(together.seqs$fusion.type, together.seqs$together.type, together.seqs$fission.type, sep = '__')
+  
+  #create a column for the collapsed event type (collapsing the symmetry of move.stay and stay.move)
+  together.seqs$event.type.sym <- together.seqs$event.type
+  
+  #fusion move.stay --> fusion.stay.move in cases where fission has a mover and a stayer
+  fusion.move.stay.idxs <- which(together.seqs$fusion.type == 'fusion.move.stay') #get indexes where fusion type is move.stay
+  fission.asymmetric.idxs <- which(grepl('move',together.seqs$fission.type) & grepl('stay', together.seqs$fission.type)) #get indexes where fusion type is stay.move or move.stay
+  idxs.to.swap <- intersect(fusion.move.stay.idxs, fission.asymmetric.idxs)
+  together.seqs$event.type.sym[idxs.to.swap] <- textclean::swap(together.seqs$event.type[idxs.to.swap], 'move','stay')
+  
+  #fusion.move.stay --> fusion.stay.move in cases where fission has only movers
+  fission.move.move.idxs <- which(!grepl('stay', together.seqs$fission.type))
+  idxs.to.change <- intersect(fusion.move.stay.idxs, fission.move.move.idxs)
+  together.seqs$event.type.sym[idxs.to.change] <- sub('fusion.move.stay', 'fusion.stay.move', together.seqs$event.type[idxs.to.change])
+  
+  #fission.move.stay --> fission.stay.move in cases where fusion has only movers
+  fission.move.stay.idxs <- which(together.seqs$fission.type == 'fission.move.stay') #get indexes where fission type is move.stay
+  fusion.move.move.idxs <- which(!grepl('stay', together.seqs$fusion.type))
+  idxs.to.change <- intersect(fission.move.stay.idxs, fusion.move.move.idxs)
+  together.seqs$event.type.sym[idxs.to.change] <- sub('fission.move.stay', 'fission.stay.move', together.seqs$event.type[idxs.to.change])
   
   return(together.seqs)
 }
