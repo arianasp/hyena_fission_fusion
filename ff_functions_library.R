@@ -1,3 +1,4 @@
+#################################### HELPER FUNCTIONS ####################################
 
 ### Find parameters defining the 'canonical shape' that best matches data for a fission-fusion event
 fission_fusion_function <- function(x, b1, b2, b.y.intercept, fixed.parameters){
@@ -30,9 +31,29 @@ ls_error <- function(params, fixed.parameters, x, y){
   return(error)
 }
 
+#Calculate the angle between two vectors using law of cosines
+get_angle_between_vectors <- function(x1.i, x2.i, y1.i, y2.i, 
+                                      x1.j, x2.j, y1.j, y2.j){
+  dx.i <- x2.i - x1.i
+  dy.i <- y2.i - y1.i
+  
+  dx.j <- x2.j - x1.j
+  dy.j <- y2.j - y1.j
+  
+  s.i <- sqrt((x2.i - x1.i)^2 + (y2.i - y1.i)^2)
+  s.j <- sqrt((x2.j - x1.j)^2 + (y2.j - y1.j)^2)
+  
+  cos.a <- ((dx.i * dx.j) + (dy.i * dy.j))/(s.i * s.j)
+  angle <- acos(cos.a)
+  return(angle)
+}
+
+
+#################################### MAIN FUNCTIONS ####################################
 
 ##### Extract ff events and phases
 get_ff_events_and_phases <- function(xs, ys, R.fusion = 100, R.fission = 200, max.break = 60*30, verbose = TRUE){
+  
   #Get basic parameters
   n.inds <- nrow(xs)
   n.times <- ncol(xs)
@@ -287,8 +308,8 @@ get_ff_events_and_phases <- function(xs, ys, R.fusion = 100, R.fission = 200, ma
   return(together.seqs)
 }
 
-#### Extract features
-get_ff_features <- function(xs, ys, together.seqs){
+#### Extract features from fission fusion events
+get_ff_features <- function(xs, ys, together.seqs, move.thresh, together.travel.thresh){
   
   empty.vec <- rep(NA, nrow(together.seqs))
   positions <- data.frame(x.before.i = empty.vec,
@@ -390,21 +411,35 @@ get_ff_features <- function(xs, ys, together.seqs){
   together.seqs$angle.fission <- get_angle_between_vectors(x1.i = positions$x.b2.i, x2.i = positions$x.end.i, y1.i = positions$y.b2.i, y2.i = positions$y.end.i,
                                            x1.j = positions$x.b2.j, x2.j = positions$x.end.j, y1.j = positions$y.b2.j, y2.j = positions$y.end.j)
   
-  return(together.seqs)
-}
+  #### Categorize into types
+  
+  #defining clusters - fusion
+  fusion.stay.move.idxs <- which(together.seqs$disp.fusion.i <= move.thresh)
+  fusion.move.stay.idxs <- which(together.seqs$disp.fusion.j <= move.thresh)
+  fusion.move.move.idxs <- which(together.seqs$disp.fusion.i > move.thresh & together.seqs$disp.fusion.j > move.thresh)
 
-get_angle_between_vectors <- function(x1.i, x2.i, y1.i, y2.i, 
-                      x1.j, x2.j, y1.j, y2.j){
-  dx.i <- x2.i - x1.i
-  dy.i <- y2.i - y1.i
+  #defining clusters - together
+  together.local.idxs <- which(together.seqs$disp.together.i <= together.travel.thresh | together.seqs$disp.together.j <= together.travel.thresh)
+  together.travel.idxs <- which(together.seqs$disp.together.i > together.travel.thresh & together.seqs$disp.together.j > together.travel.thresh)
   
-  dx.j <- x2.j - x1.j
-  dy.j <- y2.j - y1.j
+  #defining clusters - fission
+  fission.stay.move.idxs <- which(together.seqs$disp.fission.i <= move.thresh)
+  fission.move.stay.idxs <- which(together.seqs$disp.fission.j <= move.thresh)
+  fission.move.move.idxs <- which(together.seqs$disp.fission.i > move.thresh & together.seqs$disp.fission.j > move.thresh)
   
-  s.i <- sqrt((x2.i - x1.i)^2 + (y2.i - y1.i)^2)
-  s.j <- sqrt((x2.j - x1.j)^2 + (y2.j - y1.j)^2)
+  #store clusters in events data frame
+  together.seqs$fusion.type <- together.seqs$together.type <- together.seqs$fission.type <- NA
+  together.seqs$fusion.type[fusion.stay.move.idxs] <- 'fusion.stay.move'
+  together.seqs$fusion.type[fusion.move.stay.idxs] <- 'fusion.move.stay'
+  together.seqs$fusion.type[fusion.move.move.idxs] <- 'fusion.move.move'
+  together.seqs$together.type[together.local.idxs] <- 'together.local'
+  together.seqs$together.type[together.travel.idxs] <- 'together.travel'
+  together.seqs$fission.type[fission.stay.move.idxs] <- 'fission.stay.move'
+  together.seqs$fission.type[fission.move.stay.idxs] <- 'fission.move.stay'
+  together.seqs$fission.type[fission.move.move.idxs] <- 'fission.move.move'
   
-  cos.a <- ((dx.i * dx.j) + (dy.i * dy.j))/(s.i * s.j)
-  angle <- acos(cos.a)
-  return(angle)
+  #combine into event types
+  together.seqs$event.type <- paste(together.seqs$fusion.type, together.seqs$together.type, together.seqs$fission.type, sep = '__')
+  
+  return(together.seqs)
 }
