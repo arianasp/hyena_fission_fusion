@@ -3,7 +3,7 @@
 ################################ SET UP DIRECTORIES ##################################
 
 #directory of where the original (processed) movement + vedba data is stored (+ metadata on IDs and den locations)
-indir <- '/Volumes/EAS_shared/hyena/working/hyena_pilot_2017/processed/'
+indir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps'
 
 #directory of where to store extracted data for fission-fusion project
 outdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/'
@@ -13,13 +13,11 @@ codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
 
 ################################ CHOOSE ANALYSES TO RUN ##################################
 
-run_get_day_start_idxs <- F
-overwrite_get_day_start_idxs <- F
-run_extract_ff_events <- F
-overwrite_extract_ff_events <- F 
-run_get_ff_features <- F
-overwrite_extract_ff_features <- F
-generate_day_randomization_plan <- F
+run_extract_ff_events <- T
+overwrite_extract_ff_events <- T
+run_get_ff_features <- T
+overwrite_extract_ff_features <- T
+generate_day_randomization_plan <- T
 overwrite_day_randomization_plan <- T
 execute_day_randomization_plan <- T
 overwrite_day_randomization_output <- T
@@ -31,7 +29,7 @@ params <- list(R.fusion = 100,
                max.break = 60*30, #max time between events to merge events connected by NAs
                move.thresh = 5, #minimum amount moved to be considered 'moving' during a phase
                together.travel.thresh = 200, #minimum amount to be considered 'moving' during the together phase
-               last.day.used = 35) #last day to use in the randomizations
+               last.day.used = 35) #last day to use in the randomizations (and real data)
 
 verbose <- TRUE
 n.rands <- 3
@@ -49,26 +47,6 @@ setwd(codedir)
 source('ff_functions_library.R')
 
 ################################# MAIN #######################################
-
-if(run_get_day_start_idxs){
-  
-  setwd(indir)
-  load('hyena_timestamps.RData')
-  
-  day.start.idxs <- get_day_start_idxs(timestamps, local.time.diff = local.time.diff)
-  
-  if(overwrite_get_day_start_idxs){
-    
-    setwd(outdir)
-    save(file = day_start_idxs_filename, list = c('day.start.idxs'))
-    
-  }
-  
-} else{
-  
-  load(day_start_idxs_filename)
-  
-}
 
 if(run_extract_ff_events){
   
@@ -137,8 +115,6 @@ if(generate_day_randomization_plan){
   
   setwd(indir)
   load('hyena_ids.RData')
-  
-  setwd(outdir)
   load('hyena_day_start_idxs.RData')
   
   n.inds <- nrow(hyena.ids)
@@ -169,11 +145,11 @@ if(execute_day_randomization_plan){
   setwd(indir)
   load('hyena_xy_level1.RData')
   load('hyena_timestamps.RData')
+  load('hyena_day_start_idxs.RData')
   timestamps.local <- timestamps + local.time.diff*60*60
   
   setwd(outdir)
   load(day_randomization_plan_filename)
-  load('hyena_day_start_idxs.RData')
   
   n.inds <- nrow(xs)
   
@@ -199,20 +175,6 @@ if(execute_day_randomization_plan){
         #time indexes to swap in for this randomization
         t0.swap <- day.start.idxs[rand.plan[i,d,r]]
         tf.swap <- day.start.idxs[rand.plan[i,d,r]+1] - 1
-        
-        t0.dt.daystart <- as.numeric(timestamps.local[t0] - floor_date(timestamps.local[t0], 'day'), units = 'secs')
-        #tf.dt.dayend <- as.numeric(ceiling_date(timestamps.local[tf], 'day') - timestamps.local[tf], units = 'secs')
-        t0.swap.dt.daystart <- as.numeric(timestamps.local[t0.swap] - floor_date(timestamps.local[t0.swap], 'day'), units = 'secs')
-        #tf.swap.dt.dayend <- as.numeric(ceiling_date(timestamps.local[tf.swap], 'day') - timestamps.local[tf.swap], units = 'secs')
-        
-        if(t0.dt.daystart > 0){
-          shift <- t0.dt.daystart - t0.swap.dt.daystart
-          t0.swap <- t0.swap + shift
-        }
-        if(t0.swap.dt.daystart > 0){
-          shift <- t0.swap.dt.daystart - t0.dt.daystart
-          t0 <- t0 + shift
-        }
         
         ts.orig <- seq(t0, tf)
         ts.swap <- seq(t0.swap, tf.swap)

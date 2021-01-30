@@ -51,21 +51,21 @@ get_angle_between_vectors <- function(x1.i, x2.i, y1.i, y2.i,
   return(angle)
 }
 
-#get day start indexes
-get_day_start_idxs <- function(timestamps, local.time.diff = 3){
-  
-  ts.local <- timestamps + local.time.diff * 60 * 60
-  dates <- as.Date(ts.local)
-  dates.uniq <- sort(unique(dates))
-  day.start.idxs <- rep(NA, length(dates.uniq) + 1)
-  for(i in 1:length(dates.uniq)){
-    day.start.idxs[i] <- min(which(dates == dates.uniq[i]))
-  }
-  day.start.idxs[length(day.start.idxs)] <- length(dates)
-  
-  return(day.start.idxs)
-  
-}
+# #get day start indexes
+# get_day_start_idxs <- function(timestamps, local.time.diff = 3){
+#   
+#   ts.local <- timestamps + local.time.diff * 60 * 60
+#   dates <- as.Date(ts.local)
+#   dates.uniq <- sort(unique(dates))
+#   day.start.idxs <- rep(NA, length(dates.uniq) + 1)
+#   for(i in 1:length(dates.uniq)){
+#     day.start.idxs[i] <- min(which(dates == dates.uniq[i]))
+#   }
+#   day.start.idxs[length(day.start.idxs)] <- length(dates)
+#   
+#   return(day.start.idxs)
+#   
+# }
 
 
 #################################### MAIN FUNCTIONS ####################################
