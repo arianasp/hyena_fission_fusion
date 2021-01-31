@@ -273,8 +273,17 @@ get_ff_events_and_phases <- function(xs, ys, params, verbose = TRUE){
   }
   
   #add columns for whether start and end time are exact (whether there is an NA before or after the event)
-  befores <- dyad.dists[cbind(together.seqs$i, together.seqs$j, together.seqs$t0-1)]
-  afters <- dyad.dists[cbind(together.seqs$i, together.seqs$j, together.seqs$tf+1)]
+  befores <- afters <- rep(NA, nrow(together.seqs))
+  for(j in 1:nrow(together.seqs)){
+    if(together.seqs$t0[j] > 1){
+      befores[j] <- dyad.dists[together.seqs$i[j], together.seqs$j[j], together.seqs$t0[j]-1]
+    } 
+    if(together.seqs$tf[j] < ncol(xs)){
+      afters[j] <- dyad.dists[together.seqs$i[j], together.seqs$j[j], together.seqs$tf[j]+1]
+    } 
+  }
+  #befores <- dyad.dists[cbind(together.seqs$i, together.seqs$j, together.seqs$t0-1)]
+  #afters <- dyad.dists[cbind(together.seqs$i, together.seqs$j, together.seqs$tf+1)]
   together.seqs$t0.exact <- !is.na(befores)
   together.seqs$tf.exact <- !is.na(afters)
   

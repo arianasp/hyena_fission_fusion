@@ -13,14 +13,14 @@ codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
 
 ################################ CHOOSE ANALYSES TO RUN ##################################
 
-run_extract_ff_events <- F
-overwrite_extract_ff_events <- F
+run_extract_ff_events <- T
+overwrite_extract_ff_events <- T
 run_get_ff_features <- T
-overwrite_extract_ff_features <- F
-generate_day_randomization_plan <- F
-overwrite_day_randomization_plan <- F
-execute_day_randomization_plan <- F
-overwrite_day_randomization_output <- F
+overwrite_extract_ff_features <- T
+generate_day_randomization_plan <- T
+overwrite_day_randomization_plan <- T
+execute_day_randomization_plan <- T
+overwrite_day_randomization_output <- T
 
 ################################ PARAMETERS ##########################################
 
@@ -34,6 +34,7 @@ params <- list(R.fusion = 100,
 verbose <- TRUE
 n.rands <- 100
 
+#Don't change (probably)
 local.time.diff <- 3 #difference in hours from local time
 den.file.path <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv'
 den.names <- c('DAVE D','RBEND D','RES M D1','DICK D')
@@ -199,7 +200,12 @@ if(execute_day_randomization_plan){
       print('Extracting events and getting features')
     }
     events.rand <- get_ff_events_and_phases(xs = xs.rand, ys = ys.rand, params = params)
-    events.rand <- get_ff_features(xs = xs.rand, ys = ys.rand, together.seqs = events.rand, params = params)
+    events.rand <- get_ff_features(xs = xs.rand, 
+                                   ys = ys.rand, 
+                                   together.seqs = events.rand, 
+                                   params = params,
+                                   den.file.path = den.file.path,
+                                   den.names = den.names)
     events.rand.list[[r]] <- events.rand
     
     if(overwrite_day_randomization_output){
