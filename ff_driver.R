@@ -13,14 +13,14 @@ codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
 
 ################################ CHOOSE ANALYSES TO RUN ##################################
 
-run_extract_ff_events <- T
-overwrite_extract_ff_events <- T
+run_extract_ff_events <- F
+overwrite_extract_ff_events <- F
 run_get_ff_features <- T
-overwrite_extract_ff_features <- T
-generate_day_randomization_plan <- T
-overwrite_day_randomization_plan <- T
-execute_day_randomization_plan <- T
-overwrite_day_randomization_output <- T
+overwrite_extract_ff_features <- F
+generate_day_randomization_plan <- F
+overwrite_day_randomization_plan <- F
+execute_day_randomization_plan <- F
+overwrite_day_randomization_output <- F
 
 ################################ PARAMETERS ##########################################
 
@@ -32,8 +32,12 @@ params <- list(R.fusion = 100,
                last.day.used = 35) #last day to use in the randomizations (and real data)
 
 verbose <- TRUE
-n.rands <- 3
+n.rands <- 100
+
 local.time.diff <- 3 #difference in hours from local time
+den.file.path <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv'
+den.names <- c('DAVE D','RBEND D','RES M D1','DICK D')
+
 
 events_filename <- 'fission_fusion_events.RData'
 events_features_filename <- 'fission_fusion_events_features.RData'
@@ -97,7 +101,9 @@ if(run_get_ff_features){
   events <- get_ff_features(xs = xs, 
                              ys = ys, 
                             together.seqs = events,
-                            params = params)
+                            params = params,
+                            den.file.path = den.file.path,
+                            den.names = den.names)
   
   if(overwrite_extract_ff_features){
     
@@ -136,6 +142,8 @@ if(generate_day_randomization_plan){
 }
 
 if(execute_day_randomization_plan){
+  
+  complete <- F
   
   if(verbose){
     print("Executing day randomization plan")
@@ -194,10 +202,16 @@ if(execute_day_randomization_plan){
     events.rand <- get_ff_features(xs = xs.rand, ys = ys.rand, together.seqs = events.rand, params = params)
     events.rand.list[[r]] <- events.rand
     
+    if(overwrite_day_randomization_output){
+      save(list = c('events.rand.list','params','complete'), file = day_randomization_output_filename)
+    }
+    
   }
   
+  complete <- T
+  
   if(overwrite_day_randomization_output){
-    save(list = c('events.rand.list','params'), file = day_randomization_output_filename)
+    save(list = c('events.rand.list','params','complete'), file = day_randomization_output_filename)
   }
   
 }

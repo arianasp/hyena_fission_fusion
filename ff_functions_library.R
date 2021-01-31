@@ -3,6 +3,38 @@ library(lubridate)
 
 #################################### HELPER FUNCTIONS ####################################
 
+#LAT/LON TO UTM CONVERSIONS (AND VICE VERSA)
+#Converts a matrix of lons and lats (lons first column, lats second column) to UTM
+#Inputs:
+#	LonsLats: [N x 2 matrix] of lons (col 1) and lats (col2)
+#	utm.zone: [numeric or string], by default 34 (this is where the KRR is)
+#	southern_hemisphere: [boolean], by default TRUE
+#	EastingsCol1: whether eastings should be given in first column of output (default) or not
+#Outputs:
+#	EastNorths or NorthEasts: [N x 2 matrix] of Eastings and Northings - eastings are first column by default
+latlon.to.utm <- function(LonsLats,EastingsCol1 = TRUE,utm.zone='34',southern_hemisphere=TRUE){
+  latlons <- data.frame(X=LonsLats[,2],Y=LonsLats[,1])
+  non.na.idxs <- which(!is.na(latlons$X) & !is.na(latlons$Y))
+  len <- nrow(latlons)
+  non.na.latlons <- latlons[non.na.idxs,]
+  coordinates(non.na.latlons) <- ~Y + X
+  proj4string(non.na.latlons) <- CRS('+proj=longlat +ellps=WGS84 +datum=WGS84')
+  if(southern_hemisphere){
+    projection.string <- paste('+proj=utm +zone=',utm.zone, '+ellps=WGS84 +south',sep='')
+  } else{
+    projection.string <- paste('+proj=utm +zone=',utm.zone, '+ellps=WGS84 +north',sep='')
+  }
+  utm <- spTransform(non.na.latlons,CRS(projection.string))
+  EastNorths <- matrix(NA,nrow=len,ncol=2)
+  EastNorths[non.na.idxs,] <- utm@coords
+  if(!EastingsCol1){
+    NorthEasts <- EastNorths[,c(2,1)]
+    return(NorthEasts)
+  } else{
+    return(EastNorths)
+  }
+}
+
 ### Find parameters defining the 'canonical shape' that best matches data for a fission-fusion event
 fission_fusion_function <- function(x, b1, b2, b.y.intercept, fixed.parameters){
   x0 <- fixed.parameters$x0
@@ -66,6 +98,18 @@ get_angle_between_vectors <- function(x1.i, x2.i, y1.i, y2.i,
 #   return(day.start.idxs)
 #   
 # }
+
+#read in den locations
+get_dens <- function(den.file.path = '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv',
+                     den.names = c('DAVE D','RBEND D','RES M D1','DICK D')){
+  known.locs <- read.csv(den.file.path,stringsAsFactors=F)
+  eastsNorths <- latlon.to.utm(cbind(known.locs$lon,known.locs$lat),southern_hemisphere=T,utm.zone=36)
+  known.locs$east <- eastsNorths[,1]
+  known.locs$north <- eastsNorths[,2]
+  den.locs <- known.locs[which(known.locs$name %in% den.names),]
+  den.locs$name <- as.character(den.locs$name)
+  return(den.locs)
+}
 
 
 #################################### MAIN FUNCTIONS ####################################
@@ -328,7 +372,7 @@ get_ff_events_and_phases <- function(xs, ys, params, verbose = TRUE){
 }
 
 #### Extract features from fission fusion events
-get_ff_features <- function(xs, ys, together.seqs, params){
+get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.names){
   
   empty.vec <- rep(NA, nrow(together.seqs))
   positions <- data.frame(x.before.i = empty.vec,
@@ -480,5 +524,123 @@ get_ff_features <- function(xs, ys, together.seqs, params){
   idxs.to.change <- intersect(fission.move.stay.idxs, fusion.move.move.idxs)
   together.seqs$event.type.sym[idxs.to.change] <- sub('fission.move.stay', 'fission.stay.move', together.seqs$event.type[idxs.to.change])
   
+  #distance from nearest den
+  den.locs <- get_dens(den.file.path, den.names)
+  dist.to.den.start <- dist.to.den.end <- matrix(nrow = nrow(together.seqs), ncol = nrow(den.locs))
+  for(i in 1:nrow(den.locs)){
+    x.d <- den.locs$east[i]
+    y.d <- den.locs$north[i]
+    
+    #start of event
+    dxi <- xs[cbind(together.seqs$i, together.seqs$t.start)] - x.d
+    dyi <- ys[cbind(together.seqs$i, together.seqs$t.start)] - y.d
+    ddi <- sqrt(dxi^2 + dyi^2)
+    dxj <- xs[cbind(together.seqs$j, together.seqs$t.start)] - x.d
+    dyj <- ys[cbind(together.seqs$j, together.seqs$t.start)] - y.d
+    ddj <- sqrt(dxj^2 + dyj^2)
+    dist.to.den.start[,i] <- apply(X = cbind(ddi,ddj), MARGIN = 1, FUN = min, na.rm=T)
+    
+    #end of event
+    dxi <- xs[cbind(together.seqs$i, together.seqs$t.end)] - x.d
+    dyi <- ys[cbind(together.seqs$i, together.seqs$t.end)] - y.d
+    ddi <- sqrt(dxi^2 + dyi^2)
+    dxj <- xs[cbind(together.seqs$j, together.seqs$t.end)] - x.d
+    dyj <- ys[cbind(together.seqs$j, together.seqs$t.end)] - y.d
+    ddj <- sqrt(dxj^2 + dyj^2)
+    dist.to.den.end[,i] <- apply(X = cbind(ddi,ddj), MARGIN = 1, FUN = min, na.rm=T)
+  
+  }
+  
+  #min dist to den at start and end of events
+  together.seqs$dist.den.start <- apply(dist.to.den.start, 1, min, na.rm=T)
+  together.seqs$dist.den.end <- apply(dist.to.den.end, 1, min, na.rm=T)
+  
   return(together.seqs)
+}
+
+#get distributions of phase types
+get_phase_type_distributions <- function(together.seqs){
+  
+  fusion.types <- c('fusion.stay.move','fusion.move.move')
+  together.types <- c('together.local','together.travel')
+  fission.types <- c('fission.stay.move','fission.move.move')
+  
+  complete.events <- which(!grepl('NA',together.seqs$event.type))
+  
+  events.fusion <- together.seqs$fusion.type[complete.events]
+  events.fusion[which(events.fusion=='fusion.move.stay')] <- 'fusion.stay.move'
+  events.together <- together.seqs$together.type[complete.events]
+  events.fission <- together.seqs$fission.type[complete.events]
+  events.fission[which(events.fission=='fission.move.stay')] <- 'fission.stay.move'
+  
+  out <- list()
+  
+  fusion.table <- table(events.fusion)
+  out$fusion <- fusion.table[match(names(fusion.table), fusion.types)]
+  together.table <- table(events.together)
+  out$together <- together.table[match(names(together.table), together.types)]
+  fission.table <- table(events.fission)
+  out$fission <- fission.table[match(names(fission.table), fission.types)]
+  
+  return(out)
+  
+}
+
+visualize_phase_type_distributions <- function(events, events.rand.list){
+  
+  n.rands <- length(events.rand.list)
+  distribs.rand <- matrix(NA, nrow = 6, ncol = n.rands)
+  distribs.dat <- rep(NA, 6)
+  
+  for(i in 1:n.rands){
+    
+    freqs.rand <- get_phase_type_distributions(events.rand.list[[i]])
+    distribs.rand[1,i] <- freqs.rand$fusion[1] 
+    distribs.rand[2,i] <- freqs.rand$fusion[2]
+    distribs.rand[3,i] <- freqs.rand$together[1] 
+    distribs.rand[4,i] <- freqs.rand$together[2] 
+    distribs.rand[5,i] <- freqs.rand$fission[1] 
+    distribs.rand[6,i] <- freqs.rand$fission[2] 
+    
+  }
+  
+  freqs.dat <- get_phase_type_distributions(events)
+  distribs.dat[1] <- freqs.dat$fusion[1] 
+  distribs.dat[2] <- freqs.dat$fusion[2] 
+  distribs.dat[3] <- freqs.dat$together[1]
+  distribs.dat[4] <- freqs.dat$together[2] 
+  distribs.dat[5] <- freqs.dat$fission[1] 
+  distribs.dat[6] <- freqs.dat$fission[2] 
+  
+  par(mar = c(6,4,1,4))
+  max.freq <- max(max(distribs.rand), max(distribs.dat))
+  plot(NULL, xlim = c(.8, 6.2), ylim = c(0, max.freq+50), xlab = '', ylab = 'Frequency', xaxt='n')
+  abline(v=4.5)
+  abline(v=2.5)
+  for(i in 1:n.rands){
+    points(c(1,2), distribs.rand[1:2,i], col = 'black', cex = .8)
+    points(c(3,4), distribs.rand[3:4,i], col = 'black', cex = .8)
+    points(c(5,6), distribs.rand[5:6,i], col = 'black', cex = .8)
+  }
+  points(c(1,2), distribs.dat[1:2], col = 'black',pch = 19, cex = 2)
+  points(c(3,4), distribs.dat[3:4], col = 'black',pch = 19, cex = 2)
+  points(c(5,6), distribs.dat[5:6], col = 'black',pch = 19, cex = 2)
+  
+  par(new=T)
+  plot(NULL, ylim = c(0, 1.2), xlim = c(.8,6.2), ylab = '', xlab = '', xaxt='n', yaxt = 'n', las =2)
+  text(1.5, 1.2, labels='Fusion', adj = c(.5,.5))
+  text(3.5, 1.2, labels='Together', adj = c(.5,.5))
+  text(5.5, 1.2, labels='Fission', adj = c(.5,.5))
+  for(i in 1:n.rands){
+    lines(c(1,2), distribs.rand[1:2,i]/sum(distribs.rand[1:2,i]), col = 'red', lty = 2)
+    lines(c(3,4), distribs.rand[3:4,i]/sum(distribs.rand[3:4,i]), col = 'red', lty = 2)
+    lines(c(5,6), distribs.rand[5:6,i]/sum(distribs.rand[5:6,i]), col = 'red', lty = 2)
+  }
+  lines(c(1,2), distribs.dat[1:2]/sum(distribs.dat[1:2]), col = 'red',lwd=3)
+  lines(c(3,4), distribs.dat[3:4]/sum(distribs.dat[3:4]), col = 'red',lwd=3)
+  lines(c(5,6), distribs.dat[5:6]/sum(distribs.dat[5:6]), col = 'red',lwd=3)
+  axis(side = 1, at = seq(1,6), labels = c('stay/move','move/move','local','travel','stay/move','move/move'), las =2)
+  axis(side = 4, at = seq(0,1,.2), labels = seq(0,1,.2), col.axis = 'red', col = 'red')
+  mtext(text = 'Fraction', side = 4, line=2.5, col = 'red')
+  
 }
