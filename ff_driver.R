@@ -13,14 +13,16 @@ codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
 
 ################################ CHOOSE ANALYSES TO RUN ##################################
 
-run_extract_ff_events <- T
-overwrite_extract_ff_events <- T
-run_get_ff_features <- T
-overwrite_extract_ff_features <- T
-generate_day_randomization_plan <- T
-overwrite_day_randomization_plan <- T
-execute_day_randomization_plan <- T
-overwrite_day_randomization_output <- T
+run_extract_ff_events <- F
+overwrite_extract_ff_events <- F
+run_get_ff_features <- F
+overwrite_extract_ff_features <- F
+generate_day_randomization_plan <- F
+overwrite_day_randomization_plan <- F
+execute_day_randomization_plan <- F
+overwrite_day_randomization_output <- F
+output_day_randomization_plots <- T
+
 
 ################################ PARAMETERS ##########################################
 
@@ -219,5 +221,17 @@ if(execute_day_randomization_plan){
   if(overwrite_day_randomization_output){
     save(list = c('events.rand.list','params','complete'), file = day_randomization_output_filename)
   }
+  
+}
+
+if(output_day_randomization_plots){
+  
+  setwd(outdir)
+  load(day_randomization_output_filename)
+  quartz()
+  visualize_event_type_distributions(events, events.rand.list, normalize=F)
+  quartz()
+  visualize_event_type_distributions(events, events.rand.list, normalize=T)
+  
   
 }

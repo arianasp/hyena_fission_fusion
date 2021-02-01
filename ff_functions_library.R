@@ -1,5 +1,6 @@
 #################################### LIBRARIES ####################################
 library(lubridate)
+library(utf8)
 
 #################################### HELPER FUNCTIONS ####################################
 
@@ -567,6 +568,8 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
   return(together.seqs)
 }
 
+########################## ANALYSIS + PLOTTING #################################
+
 #get distributions of phase types
 get_phase_type_distributions <- function(together.seqs){
   
@@ -582,14 +585,48 @@ get_phase_type_distributions <- function(together.seqs){
   events.fission <- together.seqs$fission.type[complete.events]
   events.fission[which(events.fission=='fission.move.stay')] <- 'fission.stay.move'
   
-  out <- list()
+  events.all <- c(events.fusion, events.together, events.fission)
+  event.types.all <- c(fusion.types, together.types, fission.types)
   
-  fusion.table <- table(events.fusion)
-  out$fusion <- fusion.table[match(names(fusion.table), fusion.types)]
-  together.table <- table(events.together)
-  out$together <- together.table[match(names(together.table), together.types)]
-  fission.table <- table(events.fission)
-  out$fission <- fission.table[match(names(fission.table), fission.types)]
+  out <- rep(NA, length(event.types.all))
+  
+  for(i in 1:length(event.types.all)){
+    
+    out[i] <- sum(events.all == event.types.all[i])
+    
+  }
+  
+  names(out) <- event.types.all
+  
+  return(out)
+  
+}
+
+#get distributions of phase types
+get_event_type_distributions <- function(together.seqs){
+  
+  event.types.all <- c('fusion.stay.move__together.local__fission.stay.move',
+                   'fusion.stay.move__together.local__fission.move.stay',
+                   'fusion.stay.move__together.local__fission.move.move',
+                   'fusion.move.move__together.local__fission.stay.move',
+                   'fusion.move.move__together.local__fission.move.move',
+                   'fusion.stay.move__together.travel__fission.stay.move',
+                   'fusion.stay.move__together.travel__fission.move.stay',
+                   'fusion.stay.move__together.travel__fission.move.move',
+                   'fusion.move.move__together.travel__fission.stay.move',
+                   'fusion.move.move__together.travel__fission.move.move')
+  
+  events.all <- together.seqs$event.type.sym
+  
+  out <- rep(NA, length(event.types.all))
+  
+  for(i in 1:length(event.types.all)){
+    
+    out[i] <- sum(events.all == event.types.all[i])
+    
+  }
+  
+  names(out) <- event.types.all
   
   return(out)
   
@@ -602,54 +639,104 @@ visualize_phase_type_distributions <- function(events, events.rand.list){
   distribs.dat <- rep(NA, 6)
   
   for(i in 1:n.rands){
-    
-    freqs.rand <- get_phase_type_distributions(events.rand.list[[i]])
-    distribs.rand[1,i] <- freqs.rand$fusion[1] 
-    distribs.rand[2,i] <- freqs.rand$fusion[2]
-    distribs.rand[3,i] <- freqs.rand$together[1] 
-    distribs.rand[4,i] <- freqs.rand$together[2] 
-    distribs.rand[5,i] <- freqs.rand$fission[1] 
-    distribs.rand[6,i] <- freqs.rand$fission[2] 
-    
+    distribs.rand[,i] <- get_phase_type_distributions(events.rand.list[[i]])
   }
+  distribs.dat <- get_phase_type_distributions(events)
   
-  freqs.dat <- get_phase_type_distributions(events)
-  distribs.dat[1] <- freqs.dat$fusion[1] 
-  distribs.dat[2] <- freqs.dat$fusion[2] 
-  distribs.dat[3] <- freqs.dat$together[1]
-  distribs.dat[4] <- freqs.dat$together[2] 
-  distribs.dat[5] <- freqs.dat$fission[1] 
-  distribs.dat[6] <- freqs.dat$fission[2] 
-  
-  par(mar = c(6,4,1,4))
+  par(mar = c(6,4,1,1))
   max.freq <- max(max(distribs.rand), max(distribs.dat))
-  plot(NULL, xlim = c(.8, 6.2), ylim = c(0, max.freq+50), xlab = '', ylab = 'Frequency', xaxt='n')
+  plot(NULL, xlim = c(.8, 6.2), ylim = c(0, max.freq*1.1), xlab = '', ylab = 'Frequency', xaxt='n')
   abline(v=4.5)
   abline(v=2.5)
-  for(i in 1:n.rands){
-    points(c(1,2), distribs.rand[1:2,i], col = 'black', cex = .8)
-    points(c(3,4), distribs.rand[3:4,i], col = 'black', cex = .8)
-    points(c(5,6), distribs.rand[5:6,i], col = 'black', cex = .8)
-  }
-  points(c(1,2), distribs.dat[1:2], col = 'black',pch = 19, cex = 2)
-  points(c(3,4), distribs.dat[3:4], col = 'black',pch = 19, cex = 2)
-  points(c(5,6), distribs.dat[5:6], col = 'black',pch = 19, cex = 2)
-  
-  par(new=T)
-  plot(NULL, ylim = c(0, 1.2), xlim = c(.8,6.2), ylab = '', xlab = '', xaxt='n', yaxt = 'n', las =2)
-  text(1.5, 1.2, labels='Fusion', adj = c(.5,.5))
-  text(3.5, 1.2, labels='Together', adj = c(.5,.5))
-  text(5.5, 1.2, labels='Fission', adj = c(.5,.5))
-  for(i in 1:n.rands){
-    lines(c(1,2), distribs.rand[1:2,i]/sum(distribs.rand[1:2,i]), col = 'red', lty = 2)
-    lines(c(3,4), distribs.rand[3:4,i]/sum(distribs.rand[3:4,i]), col = 'red', lty = 2)
-    lines(c(5,6), distribs.rand[5:6,i]/sum(distribs.rand[5:6,i]), col = 'red', lty = 2)
-  }
-  lines(c(1,2), distribs.dat[1:2]/sum(distribs.dat[1:2]), col = 'red',lwd=3)
-  lines(c(3,4), distribs.dat[3:4]/sum(distribs.dat[3:4]), col = 'red',lwd=3)
-  lines(c(5,6), distribs.dat[5:6]/sum(distribs.dat[5:6]), col = 'red',lwd=3)
+  text(1.5, max.freq*1.08, labels='Fusion', adj = c(.5,.5))
+  text(3.5, max.freq*1.08, labels='Together', adj = c(.5,.5))
+  text(5.5, max.freq*1.08, labels='Fission', adj = c(.5,.5))
   axis(side = 1, at = seq(1,6), labels = c('stay/move','move/move','local','travel','stay/move','move/move'), las =2)
-  axis(side = 4, at = seq(0,1,.2), labels = seq(0,1,.2), col.axis = 'red', col = 'red')
-  mtext(text = 'Fraction', side = 4, line=2.5, col = 'red')
+  for(i in 1:n.rands){
+    points(distribs.rand[,i], col = 'black', cex = .8)
+  }
+  means.rand <- rowMeans(distribs.rand)
+  mult.factor <- round(distribs.dat / means.rand, digits=1)
+  points(distribs.dat, col = 'red',pch = 8, cex = 2)
+  text(seq(1,6), rep(max.freq,6), labels = paste(mult.factor, 'x'), col = 'red')
   
 }
+
+visualize_event_type_distributions <- function(events, events.rand.list, normalize=F){
+  
+  n.rands <- length(events.rand.list)
+  event.type.symbols <- get_event_type_symbols()
+  distribs.rand <- matrix(NA, nrow = 10, ncol = n.rands)
+  distribs.dat <- rep(NA, 10)
+  
+  distribs.dat <- get_event_type_distributions(events)
+  for(i in 1:n.rands){
+    if(normalize){
+      distribs.rand[,i] <- get_event_type_distributions(events.rand.list[[i]]) / distribs.dat
+    } else{
+      distribs.rand[,i] <- get_event_type_distributions(events.rand.list[[i]])
+    }
+  }
+
+  if(normalize){
+    distribs.dat <- distribs.dat / distribs.dat
+  }
+  
+  par(mar = c(6,5,1,1))
+  max.freq <- max(max(distribs.rand), max(distribs.dat))
+  ylab <- 'Frequency'
+  if(normalize){
+    ylab <- 'Fraction'
+  }
+  plot(NULL, xlim = c(.8, 10.2), ylim = c(0, max.freq*1.1), xlab = '', ylab = ylab, xaxt='n', cex.lab=1.5, cex.axis = 1.5)
+  axis(side = 1, at = seq(1,10), labels = event.type.symbols[names(distribs.dat)], line = 2.3, tick = F, srt = 180, cex.axis = 1.5)
+  abline(v=5.5, lty = 1)
+  polygon(c(2.5,2.5,4.5,4.5), c(0,max.freq*1.1, max.freq*1.1,0), border='blue', lty = 2)
+  polygon(c(7.5,7.5,9.5,9.5), c(0,max.freq*1.1, max.freq*1.1,0), border='blue', lty = 2)
+  
+  for(i in 1:n.rands){
+    jitter <- rnorm(10, mean=0, sd = .1)
+    points(seq(1,10) + jitter, distribs.rand[,i], col = '#00000044', cex = .8)
+  }
+  points(distribs.dat, col = 'red', cex = 1.5, pch = 8)
+  
+}
+
+get_event_type_symbols <- function(){
+  
+  event.types.all <- c('fusion.stay.move__together.local__fission.stay.move',
+                       'fusion.stay.move__together.local__fission.move.stay',
+                       'fusion.stay.move__together.local__fission.move.move',
+                       'fusion.move.move__together.local__fission.stay.move',
+                       'fusion.move.move__together.local__fission.move.move',
+                       'fusion.stay.move__together.travel__fission.stay.move',
+                       'fusion.stay.move__together.travel__fission.move.stay',
+                       'fusion.stay.move__together.travel__fission.move.move',
+                       'fusion.move.move__together.travel__fission.stay.move',
+                       'fusion.move.move__together.travel__fission.move.move')
+  
+  arrow <- intToUtf8(0x2191)
+  dot <- intToUtf8(0x2022) 
+  travel <- intToUtf8(0x27F9)
+  travel <- intToUtf8(0x21CA)
+  travel <- paste0(arrow, arrow)
+  #travel <-intToUtf8(0x21D1)
+  #local <- intToUtf8(0x235F)
+  local <- paste0(dot, dot)
+  
+  event.type.symbols <- rep('', length(event.types.all))
+  names(event.type.symbols) <- event.types.all
+  event.type.symbols[1] <- paste0(dot, arrow, '\n', local, '\n', dot, arrow)
+  event.type.symbols[2] <- paste0(arrow, dot, '\n', local, '\n', dot, arrow)
+  event.type.symbols[3] <- paste0(arrow, arrow, '\n', local, '\n', dot, arrow)
+  event.type.symbols[4] <- paste0(dot, arrow, '\n', local, '\n', arrow, arrow)
+  event.type.symbols[5] <- paste0(arrow, arrow, '\n', local, '\n', arrow, arrow)
+  event.type.symbols[6] <- paste0(dot, arrow, '\n', travel, '\n', dot, arrow)
+  event.type.symbols[7] <- paste0(arrow, dot, '\n', travel, '\n', dot, arrow)
+  event.type.symbols[8] <- paste0(arrow, arrow, '\n', travel, '\n', dot, arrow)
+  event.type.symbols[9] <- paste0(dot, arrow, '\n', travel, '\n', arrow, arrow)
+  event.type.symbols[10] <- paste0(arrow, arrow, '\n', travel, '\n', arrow, arrow)
+  
+  return(event.type.symbols)
+}
+
