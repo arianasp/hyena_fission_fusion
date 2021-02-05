@@ -13,16 +13,15 @@ codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
 
 ################################ CHOOSE ANALYSES TO RUN ##################################
 
-run_extract_ff_events <- F
-overwrite_extract_ff_events <- F
-run_get_ff_features <- F
-overwrite_extract_ff_features <- F
-generate_day_randomization_plan <- F
-overwrite_day_randomization_plan <- F
-execute_day_randomization_plan <- F
-overwrite_day_randomization_output <- F
+run_extract_ff_events <- T
+overwrite_extract_ff_events <- T
+run_get_ff_features <- T
+overwrite_extract_ff_features <- T
+generate_day_randomization_plan <- T
+overwrite_day_randomization_plan <- T
+execute_day_randomization_plan <- T
+overwrite_day_randomization_output <- T
 output_day_randomization_plots <- T
-
 
 ################################ PARAMETERS ##########################################
 
@@ -31,13 +30,38 @@ params <- list(R.fusion = 100,
                max.break = 60*30, #max time between events to merge events connected by NAs
                move.thresh = 5, #minimum amount moved to be considered 'moving' during a phase
                together.travel.thresh = 200, #minimum amount to be considered 'moving' during the together phase
-               last.day.used = 35) #last day to use in the randomizations (and real data)
+               local.time.diff = 3, # difference in hours from local time
+               den.dist.thresh = 200
+                ) 
+
+randomization.type <- 'denblock' #options: denblock, nightperm
 
 verbose <- TRUE
-n.rands <- 100
 
-#Don't change (probably)
-local.time.diff <- 3 #difference in hours from local time
+######################## FIXED PARAMETERS - DON'T CHANGE ##############################
+
+#parameters for a regular night randomization
+nightperm.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
+                    last.day.used = 35, #last day to use in the randomizations (and real data)
+                    blocks = NULL, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
+                    n.rands = 100 #how many randomizations to do
+                    )
+
+#parameters for a den block permutation
+#this bit is manual (hardcoded), - the boundaries are based on looking at the plot of den attendance
+den.blocks <- list()
+den.blocks[[1]] <- c(12, 22, 30, 33)
+den.blocks[[2]] <- c(13, 26)
+den.blocks[[3]] <- c(14, 35)
+den.blocks[[4]] <- c(15)
+den.blocks[[5]] <- c(12, 31)
+denblock.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
+                              last.day.used = 35, #last day to use in the randomizations (and real data)
+                              blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
+                              n.rands = 100 #how many randomizations to do
+                              )
+
+#den info
 den.file.path <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv'
 den.names <- c('DAVE D','RBEND D','RES M D1','DICK D')
 
@@ -45,8 +69,8 @@ den.names <- c('DAVE D','RBEND D','RES M D1','DICK D')
 events_filename <- 'fission_fusion_events.RData'
 events_features_filename <- 'fission_fusion_events_features.RData'
 day_start_idxs_filename <- 'hyena_day_start_idxs.RData'
-day_randomization_plan_filename <- 'hyena_day_randomization_plan.RData'
-day_randomization_output_filename <- 'hyena_day_randomization_events_features.RData'
+day_randomization_plan_filename <- paste0('hyena_day_randomization_plan_', randomization.type, '.RData')
+day_randomization_output_filename <- paste0('hyena_day_randomization_events_features_',randomization.type,'.RData')
 
 ################################# SOURCE FUNCTIONS #######################################
 
@@ -127,17 +151,44 @@ if(generate_day_randomization_plan){
   load('hyena_day_start_idxs.RData')
   
   n.inds <- nrow(hyena.ids)
-  rand.plan <- array(NA, dim = c(n.inds, params$last.day.used, n.rands))
-  for(r in 1:n.rands){
-    for(i in 1:n.inds){
-      rand.plan[i,,r] <- sample(1:params$last.day.used)
+  
+  if(randomization.type == 'nightperm'){
+    rand.params <- nightperm.rand.params
+    
+    rand.plan <- array(NA, dim = c(n.inds, rand.params$last.day.used, rand.params$n.rands))
+    for(r in 1:rand.params$n.rands){
+      for(i in 1:n.inds){
+        rand.plan[i,,r] <- sample(1:rand.params$last.day.used)
+      }
     }
+  }
+  
+  if(randomization.type == 'denblock'){
+    
+    rand.params <- denblock.rand.params
+    
+    rand.plan <- array(NA, dim = c(n.inds, rand.params$last.day.used, rand.params$n.rands))
+    for(r in 1:rand.params$n.rands){
+      for(i in 1:n.inds){
+        blocks <- rand.params$blocks[[i]]
+        blocks <- blocks[which(blocks < rand.params$last.day.used)] 
+        blocks <- c(1, blocks, rand.params$last.day.used+1)
+        for(j in 1:(length(blocks)-1)){
+          d0 <- blocks[j]
+          df <- blocks[j+1] - 1
+          rand.plan[i,d0:df,r] <- sample(d0:df) #shuffle within block
+        }
+        
+      }
+      
+    }
+    
   }
   
   if(overwrite_day_randomization_plan){
     
     setwd(outdir)
-    save(file = day_randomization_plan_filename, list = c('rand.plan','params','n.rands'))
+    save(file = day_randomization_plan_filename, list = c('rand.plan','rand.params'))
     
   }
   
@@ -157,7 +208,7 @@ if(execute_day_randomization_plan){
   load('hyena_xy_level1.RData')
   load('hyena_timestamps.RData')
   load('hyena_day_start_idxs.RData')
-  timestamps.local <- timestamps + local.time.diff*60*60
+  timestamps.local <- timestamps + params$local.time.diff*60*60
   
   setwd(outdir)
   load(day_randomization_plan_filename)
@@ -166,10 +217,10 @@ if(execute_day_randomization_plan){
   
   events.rand.list <- list()
   
-  for(r in 1:n.rands){
+  for(r in 1:rand.params$n.rands){
     
     if(verbose){
-      print(paste0('Running randomization ', r, ' / ', n.rands))
+      print(paste0('Running randomization ', r, ' / ', rand.params$n.rands))
     }
     
     if(verbose){
@@ -177,15 +228,15 @@ if(execute_day_randomization_plan){
     }
     xs.rand <- ys.rand <- matrix(NA, nrow = nrow(xs), ncol = ncol(xs))
     for(i in 1:n.inds){
-      for(d in 1:params$last.day.used){
+      for(d in 1:rand.params$last.day.used){
         
         #original time indexes
-        t0 <- day.start.idxs[d]
-        tf <- day.start.idxs[d+1] - 1
+        t0 <- day.start.idxs[d] + rand.params$break.hour*60*60 #get initial time (day start, plus break.hour)
+        tf <- day.start.idxs[d+1] - 1 + rand.params$break.hour*60*60 #get final time
         
         #time indexes to swap in for this randomization
-        t0.swap <- day.start.idxs[rand.plan[i,d,r]]
-        tf.swap <- day.start.idxs[rand.plan[i,d,r]+1] - 1
+        t0.swap <- day.start.idxs[rand.plan[i,d,r]] + rand.params$break.hour*60*60
+        tf.swap <- day.start.idxs[rand.plan[i,d,r]+1] - 1 + rand.params$break.hour*60*60
         
         ts.orig <- seq(t0, tf)
         ts.swap <- seq(t0.swap, tf.swap)
@@ -228,10 +279,10 @@ if(output_day_randomization_plots){
   
   setwd(outdir)
   load(day_randomization_output_filename)
+  load(events_features_filename)
   quartz()
-  visualize_event_type_distributions(events, events.rand.list, normalize=F)
+  visualize_event_type_distributions(events, events.rand.list, rand.params, timestamps, remove.events.around.day.breaks = T)
   quartz()
-  visualize_event_type_distributions(events, events.rand.list, normalize=T)
-  
+  visualize_den_association_by_event_type(events, events.rand.list, timestamps, rand.params, params, assess.at.start = T, remove.events.around.day.breaks=T)
   
 }

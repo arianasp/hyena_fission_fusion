@@ -1,6 +1,7 @@
 #################################### LIBRARIES ####################################
 library(lubridate)
 library(utf8)
+library(rgdal)
 
 #################################### HELPER FUNCTIONS ####################################
 
@@ -18,7 +19,7 @@ latlon.to.utm <- function(LonsLats,EastingsCol1 = TRUE,utm.zone='34',southern_he
   non.na.idxs <- which(!is.na(latlons$X) & !is.na(latlons$Y))
   len <- nrow(latlons)
   non.na.latlons <- latlons[non.na.idxs,]
-  coordinates(non.na.latlons) <- ~Y + X
+  coordinates(non.na.latlons) <- ~Y + X ##HERE
   proj4string(non.na.latlons) <- CRS('+proj=longlat +ellps=WGS84 +datum=WGS84')
   if(southern_hemisphere){
     projection.string <- paste('+proj=utm +zone=',utm.zone, '+ellps=WGS84 +south',sep='')
@@ -351,15 +352,16 @@ get_ff_events_and_phases <- function(xs, ys, params, verbose = TRUE){
     if(!together.seqs$start.exact[r] | !together.seqs$end.exact[r])
       next
     
-    y = dyad.dists[together.seqs$i[r], together.seqs$j[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
-    x = together.seqs$t.start[r]:together.seqs$t.end[r]
+    y <- dyad.dists[together.seqs$i[r], together.seqs$j[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
+    x <- together.seqs$t.start[r]:together.seqs$t.end[r]
+    
     fp <- list(x0 = x[1], 
                y0 = y[1],
                xf = x[length(x)],
                yf = y[length(y)])
     
     
-    p <- constrOptim(theta = c(fp$x0+5, fp$xf-5, 1), f = ls_error, fixed.parameters = fp, x = x, y =y,
+    p <- constrOptim(theta = c(fp$x0+5, fp$xf-5, .001), f = ls_error, fixed.parameters = fp, x = x, y =y,
                      ui = matrix(nrow  = 7, ncol = 3, byrow = TRUE,
                                  data = c(1,0,0,
                                           -1,0,0,
@@ -568,6 +570,106 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
   return(together.seqs)
 }
 
+#Compute the datetimes of den attendance at each den by each individual
+#Creates a plot of this if specified
+plot_den_attendance_by_ind <- function(xs, ys, den.file.path, den.names, params, den.blocks = NULL){
+
+  #get number of inds and times
+  n.inds <- dim(xs)[1]
+  n.times <- dim(xs)[2]
+  n.dens <- length(den.names)
+  
+  #hard coded boundaries
+  if(is.null(den.blocks)){
+    den.blocks <- list()
+    den.blocks[[1]] <- c(12, 22, 30, 33)
+    den.blocks[[2]] <- c(13, 26)
+    den.blocks[[3]] <- c(14, 35)
+    den.blocks[[4]] <- c(15)
+    den.blocks[[5]] <- c(12, 31)
+  }
+  
+  #for now set a single threshold or arrival and leaving (= den.dist.thresh) - consider changing this to two threhsolds for less 'flicker'
+  thresh.arrive <- params$den.dist.thresh
+  thresh.leave <- params$den.dist.thresh
+
+  #Get data frame with den locations and names
+  den.locs <- get_dens(den.file.path = den.file.path, den.names = den.names)
+  dens <- den.locs[,c('name','lat','lon','east','north')]
+  dens$col <- c('green','magenta','blue','red')
+
+  #Get distance of each hyena to each den over time
+  dist.dens <- array(NA,dim=c(dim(xs),nrow(den.locs)))
+  for(i in 1:nrow(den.locs)){
+    dist.dens[,,i] <- sqrt((xs - den.locs$east[i])^2 + (ys - den.locs$north[i])^2)
+  }
+  
+  #shift time by 12 hours (or other break.hour time) - shift to the night basically
+  nights.all <- date(timestamps + params$local.time.diff * 60 * 60 + rand.params$break.hour * 60 *60)
+  nights <- unique(nights.all)
+  
+  #for each night compute secs spent at each den
+  den.nights <- array(dim = c(n.inds, length(nights), n.dens))
+  for(i in 1:n.inds){
+    for(j in 1:length(nights)){
+      idxs <- which(nights.all == nights[j])
+      for(k in 1:n.dens){
+        den.nights[i,j,k] <- sum(dist.dens[i,idxs,k] < params$den.dist.thresh, na.rm=T)
+      }
+    }
+  }
+  
+  #find the most used den of that night (or NA if no dens were used for > 1 hr)
+  most.used.dens <- matrix(NA,nrow = n.inds, ncol = length(nights))
+  for(i in 1:n.inds){
+    for(j in 1:length(nights)){
+      if(sum(den.nights[i,j,]) > 60*60){
+        most.used.dens[i,j] <- which.max(den.nights[i,j,])
+      }
+    }
+  }
+  
+
+  #get days and minutes into day for all ts
+  step <- 60 #subsample to one sample per minute
+  dist.dens.sub <- dist.dens[,seq(1,length(timestamps),step),]
+  ts.sub <- timestamps[seq(1,length(timestamps),step)]
+  days <- as.Date(ts.sub)
+  uniq.days <- unique(days)
+  mins <- minute(ts.sub) + hour(ts.sub)*60
+  
+  dist.dens.thresh <- dist.dens.sub < thresh.arrive
+  quartz(width=12,height=6)
+  par(mfrow=c(1,5),mar=c(4,4,1,0))
+  cols <- dens$col
+  for(i in 1:n.inds){
+    plot(NULL,xlim=c(0,24),ylim=c(1,length(uniq.days)),main=hyena.ids$name[i],xlab='hour of day',ylab='day')
+    for(d in 1:dim(dist.dens.thresh)[3]){
+      for(day in 1:length(uniq.days)){
+        idxs.curr <- which(days == uniq.days[day])
+        mins.curr <- mins[idxs.curr]
+        den.presence.curr <- which(dist.dens.thresh[i,idxs.curr,d]==TRUE)
+        mins.at.den <- mins.curr[den.presence.curr]
+        points(mins.at.den/60,rep(day,length(mins.at.den)),col=cols[d],pch=19,cex=0.3)
+        
+      }
+    }
+    
+    #plot boundary marks
+    for(j in 1:length(den.blocks[[i]])){
+      b <- den.blocks[[i]][j]
+      lines(c(0,12,12,24),c(b,b,b-1,b-1)+.5, lty = 2)
+    }
+    if(i==4){
+      legend('topright',legend=c('Rbend Den','Dave Den','Res Den','Dick Den'),fill=c('blue','green','red','magenta'))
+    }
+  }
+  
+  
+}
+
+
+
 ########################## ANALYSIS + PLOTTING #################################
 
 #get distributions of phase types
@@ -632,73 +734,76 @@ get_event_type_distributions <- function(together.seqs){
   
 }
 
-visualize_phase_type_distributions <- function(events, events.rand.list){
+#remove events around day breaks
+remove_events_around_day_breaks <- function(together.seqs, timestamps, rand.params){
   
-  n.rands <- length(events.rand.list)
-  distribs.rand <- matrix(NA, nrow = 6, ncol = n.rands)
-  distribs.dat <- rep(NA, 6)
-  
-  for(i in 1:n.rands){
-    distribs.rand[,i] <- get_phase_type_distributions(events.rand.list[[i]])
+  idx.rem <- c()
+  for(i in 1:nrow(together.seqs)){
+
+    t.interval <- seq.POSIXt(from = timestamps[together.seqs$t0[i]],to = timestamps[together.seqs$tf[i]], by = 'sec')
+    hrs <- hour(t.interval)
+    if(rand.params$break.hour %in% t.interval){
+      idx.rem <- c(idx.rem, i)
+    }
   }
-  distribs.dat <- get_phase_type_distributions(events)
   
-  par(mar = c(6,4,1,1))
-  max.freq <- max(max(distribs.rand), max(distribs.dat))
-  plot(NULL, xlim = c(.8, 6.2), ylim = c(0, max.freq*1.1), xlab = '', ylab = 'Frequency', xaxt='n')
-  abline(v=4.5)
-  abline(v=2.5)
-  text(1.5, max.freq*1.08, labels='Fusion', adj = c(.5,.5))
-  text(3.5, max.freq*1.08, labels='Together', adj = c(.5,.5))
-  text(5.5, max.freq*1.08, labels='Fission', adj = c(.5,.5))
-  axis(side = 1, at = seq(1,6), labels = c('stay/move','move/move','local','travel','stay/move','move/move'), las =2)
-  for(i in 1:n.rands){
-    points(distribs.rand[,i], col = 'black', cex = .8)
+  if(length(idx.rem) > 0){
+    together.seqs <- together.seqs[-idx.rem,]
   }
-  means.rand <- rowMeans(distribs.rand)
-  mult.factor <- round(distribs.dat / means.rand, digits=1)
-  points(distribs.dat, col = 'red',pch = 8, cex = 2)
-  text(seq(1,6), rep(max.freq,6), labels = paste(mult.factor, 'x'), col = 'red')
   
+  return(together.seqs)
 }
 
-visualize_event_type_distributions <- function(events, events.rand.list, normalize=F){
+visualize_event_type_distributions <- function(events, events.rand.list, rand.params, timestamps, remove.events.around.day.breaks = T){
   
   n.rands <- length(events.rand.list)
   event.type.symbols <- get_event_type_symbols()
   distribs.rand <- matrix(NA, nrow = 10, ncol = n.rands)
   distribs.dat <- rep(NA, 10)
   
-  distribs.dat <- get_event_type_distributions(events)
-  for(i in 1:n.rands){
-    if(normalize){
-      distribs.rand[,i] <- get_event_type_distributions(events.rand.list[[i]]) / distribs.dat
-    } else{
-      distribs.rand[,i] <- get_event_type_distributions(events.rand.list[[i]])
-    }
-  }
-
-  if(normalize){
-    distribs.dat <- distribs.dat / distribs.dat
+  #remove events surrounding the 'day break'
+  if(remove.events.around.day.breaks){
+    events <- remove_events_around_day_breaks(events, timestamps, rand.params)
   }
   
-  par(mar = c(6,5,1,1))
-  max.freq <- max(max(distribs.rand), max(distribs.dat))
-  ylab <- 'Frequency'
-  if(normalize){
-    ylab <- 'Fraction'
+  distribs.dat <- get_event_type_distributions(events)
+  for(i in 1:n.rands){
+    
+    #get events associated with that randomization
+    events.rand <- events.rand.list[[i]]
+    
+    #remove events surrounding the 'day break'
+    if(remove.events.around.day.breaks){
+      events.rand <- remove_events_around_day_breaks(events.rand, timestamps, rand.params)
+    }
+    distribs.rand[,i] <- get_event_type_distributions(events.rand)
   }
+  
+  visualize_yvals_vs_event_type(distribs.dat, distribs.rand, 'Frequency')
+  
+}
+
+#general plotting function for plotting event types on x axis and some value on y axis
+#yvals.dat is a vector of length 10 (n event types)
+#yvals.rand is a matrix of 10 x n.rands containing data from randomizations
+visualize_yvals_vs_event_type <- function(yvals.dat, yvals.rand, ylab){
+  
+  n.rands <- ncol(yvals.rand)
+  event.type.symbols <- get_event_type_symbols()
+  
+  par(mar = c(6,5,1,1))
+  max.freq <- max(max(yvals.rand,na.rm=T), max(yvals.dat,na.rm=T))
   plot(NULL, xlim = c(.8, 10.2), ylim = c(0, max.freq*1.1), xlab = '', ylab = ylab, xaxt='n', cex.lab=1.5, cex.axis = 1.5)
-  axis(side = 1, at = seq(1,10), labels = event.type.symbols[names(distribs.dat)], line = 2.3, tick = F, srt = 180, cex.axis = 1.5)
+  axis(side = 1, at = seq(1,10), labels = event.type.symbols, line = 2.3, tick = F, srt = 180, cex.axis = 1.5)
   abline(v=5.5, lty = 1)
-  polygon(c(2.5,2.5,4.5,4.5), c(0,max.freq*1.1, max.freq*1.1,0), border='blue', lty = 2)
-  polygon(c(7.5,7.5,9.5,9.5), c(0,max.freq*1.1, max.freq*1.1,0), border='blue', lty = 2)
+  polygon(c(2.5,2.5,4.5,4.5), c(-max.freq*.03,max.freq*1.1, max.freq*1.1,-max.freq*.03), border='blue', lty = 2)
+  polygon(c(7.5,7.5,9.5,9.5), c(-max.freq*.03,max.freq*1.1, max.freq*1.1,-max.freq*.03), border='blue', lty = 2)
   
   for(i in 1:n.rands){
     jitter <- rnorm(10, mean=0, sd = .1)
-    points(seq(1,10) + jitter, distribs.rand[,i], col = '#00000044', cex = .8)
+    points(seq(1,10) + jitter, yvals.rand[,i], col = '#00000044', cex = .8)
   }
-  points(distribs.dat, col = 'red', cex = 1.5, pch = 8)
+  points(yvals.dat, col = 'red', cex = 1.5, pch = 8)
   
 }
 
@@ -738,5 +843,48 @@ get_event_type_symbols <- function(){
   event.type.symbols[10] <- paste0(arrow, arrow, '\n', travel, '\n', arrow, arrow)
   
   return(event.type.symbols)
+}
+
+#plot fraction of time each event type occurs at den in beginning or end, compare to randomized
+visualize_den_association_by_event_type <- function(events, events.rand.list, timestamps, rand.params, params, assess.at.start = T, remove.events.around.day.breaks=T){
+  
+  n.rands <- length(events.rand.list)
+  event.type.symbols <- get_event_type_symbols()
+  event.types.all <- names(event.type.symbols)
+  den.frac.dat <- rep(NA, length(event.types.all))
+  den.frac.rand <- matrix(NA, nrow = length(event.types.all), ncol = n.rands)
+  
+  if(remove.events.around.day.breaks){
+    events <- remove_events_around_day_breaks(events, timestamps, rand.params)
+  }
+  
+  for(i in 1:length(event.types.all)){
+    if(assess.at.start){
+      den.frac.dat[i] <- mean(events$dist.den.start[which(events$event.type.sym==event.types.all[i])] <= params$den.dist.thresh)
+    } else{
+      den.frac.dat[i] <- mean(events$dist.den.end[which(events$event.type.sym==event.types.all[i])] <= params$den.dist.thresh)
+    }
+    for(j in 1:n.rands){
+      events.rand <- events.rand.list[[j]]
+      #remove events surrounding the 'day break'
+      if(remove.events.around.day.breaks){
+        events.rand <- remove_events_around_day_breaks(events.rand, timestamps, rand.params)
+      }
+      if(assess.at.start){
+        den.frac.rand[i,j] <- mean(events.rand$dist.den.start[which(events.rand$event.type.sym==event.types.all[i])] <= params$den.dist.thresh)
+      } else{
+        den.frac.rand[i,j] <- mean(events.rand$dist.den.end[which(events.rand$event.type.sym==event.types.all[i])] <= params$den.dist.thresh)
+      }
+    }
+  }
+  
+  if(assess.at.start){
+    ylab <- 'Fraction start at den'
+  } else{
+    ylab <- 'Fraction end at den'
+  }
+  visualize_yvals_vs_event_type(den.frac.dat, den.frac.rand, ylab = ylab)
+  
+  
 }
 
