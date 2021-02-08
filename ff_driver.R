@@ -13,14 +13,14 @@ codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
 
 ################################ CHOOSE ANALYSES TO RUN ##################################
 
-run_extract_ff_events <- T
-overwrite_extract_ff_events <- T
-run_get_ff_features <- T
-overwrite_extract_ff_features <- T
-generate_day_randomization_plan <- T
-overwrite_day_randomization_plan <- T
-execute_day_randomization_plan <- T
-overwrite_day_randomization_output <- T
+run_extract_ff_events <- F
+overwrite_extract_ff_events <- F
+run_get_ff_features <- F
+overwrite_extract_ff_features <- F
+generate_day_randomization_plan <- F
+overwrite_day_randomization_plan <- F
+execute_day_randomization_plan <- F
+overwrite_day_randomization_output <- F
 output_day_randomization_plots <- T
 
 ################################ PARAMETERS ##########################################
@@ -58,7 +58,7 @@ den.blocks[[5]] <- c(12, 31)
 denblock.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
                               last.day.used = 35, #last day to use in the randomizations (and real data)
                               blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
-                              n.rands = 100 #how many randomizations to do
+                              n.rands = 500 #how many randomizations to do
                               )
 
 #den info
@@ -262,7 +262,7 @@ if(execute_day_randomization_plan){
     events.rand.list[[r]] <- events.rand
     
     if(overwrite_day_randomization_output){
-      save(list = c('events.rand.list','params','complete'), file = day_randomization_output_filename)
+      save(list = c('events.rand.list','params','rand.params','complete'), file = day_randomization_output_filename)
     }
     
   }
@@ -270,19 +270,29 @@ if(execute_day_randomization_plan){
   complete <- T
   
   if(overwrite_day_randomization_output){
-    save(list = c('events.rand.list','params','complete'), file = day_randomization_output_filename)
+    save(list = c('events.rand.list','params','rand.params','complete'), file = day_randomization_output_filename)
   }
   
 }
 
 if(output_day_randomization_plots){
   
+  #load data
   setwd(outdir)
   load(day_randomization_output_filename)
   load(events_features_filename)
-  quartz()
+  setwd(indir)
+  load('hyena_timestamps.RData')
+
+  #visualizations
+  
+  #event type frequency for all events - real vs permuted
   visualize_event_type_distributions(events, events.rand.list, rand.params, timestamps, remove.events.around.day.breaks = T)
-  quartz()
-  visualize_den_association_by_event_type(events, events.rand.list, timestamps, rand.params, params, assess.at.start = T, remove.events.around.day.breaks=T)
+
+  #event type frequency for den events and non-den events separate - real vs. permuted
+  visualize_event_type_frequency_den_vs_nonden(events, events.rand.list, params, rand.params, timestamps)
+  
+  #some other properties of events such as duration, displacement in together phase, time of day, den vs. nonden fraction
+  visualize_compare_event_properties(events, events.rand.list, params, rand.params, timestamps)
   
 }

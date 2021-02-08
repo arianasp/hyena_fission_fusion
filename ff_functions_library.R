@@ -756,6 +756,8 @@ remove_events_around_day_breaks <- function(together.seqs, timestamps, rand.para
 
 visualize_event_type_distributions <- function(events, events.rand.list, rand.params, timestamps, remove.events.around.day.breaks = T){
   
+  quartz()
+  
   n.rands <- length(events.rand.list)
   event.type.symbols <- get_event_type_symbols()
   distribs.rand <- matrix(NA, nrow = 10, ncol = n.rands)
@@ -848,6 +850,8 @@ get_event_type_symbols <- function(){
 #plot fraction of time each event type occurs at den in beginning or end, compare to randomized
 visualize_den_association_by_event_type <- function(events, events.rand.list, timestamps, rand.params, params, assess.at.start = T, remove.events.around.day.breaks=T){
   
+  quartz()
+  
   n.rands <- length(events.rand.list)
   event.type.symbols <- get_event_type_symbols()
   event.types.all <- names(event.type.symbols)
@@ -886,5 +890,123 @@ visualize_den_association_by_event_type <- function(events, events.rand.list, ti
   visualize_yvals_vs_event_type(den.frac.dat, den.frac.rand, ylab = ylab)
   
   
+}
+
+#plot event type frequencies in real data vs permuted data - separate out den vs non-den events
+visualize_event_type_frequency_den_vs_nonden <- function(events, events.rand.list, params, rand.params, timestamps, remove.events.around.day.breaks = T){
+  
+  quartz()
+  
+  #setup
+  n.rands <- length(events.rand.list)
+  event.type.symbols <- get_event_type_symbols()
+  distribs.rand.den <- distribs.rand.nonden <- matrix(NA, nrow = 10, ncol = n.rands)
+  distribs.dat.den <- distribs.dat.nonden <- rep(NA, 10)
+  
+  #remove events surrounding the 'day break'
+  if(remove.events.around.day.breaks){
+    events <- remove_events_around_day_breaks(events, timestamps, rand.params)
+  }
+  
+  #get indexes to events associated with dens (at either beginning or end) and ones not assoc with dens
+  den.idxs <- which(events$dist.den.start <= params$den.dist.thresh | events$dist.den.end <= params$den.dist.thresh)
+  nonden.idxs <- which(events$dist.den.start > params$den.dist.thresh & events$dist.den.end > params$den.dist.thresh)
+  
+  distribs.dat.den <- get_event_type_distributions(events[den.idxs,])
+  distribs.dat.nonden <- get_event_type_distributions(events[nonden.idxs,])
+  
+  for(i in 1:n.rands){
+    
+    #get events associated with that randomization
+    events.rand <- events.rand.list[[i]]
+    
+    #remove events surrounding the 'day break'
+    if(remove.events.around.day.breaks){
+      events.rand <- remove_events_around_day_breaks(events.rand, timestamps, rand.params)
+    }
+    
+    den.idxs <- which(events.rand$dist.den.start <= params$den.dist.thresh | events.rand$dist.den.end <= params$den.dist.thresh)
+    nonden.idxs <- which(events.rand$dist.den.start > params$den.dist.thresh & events.rand$dist.den.end > params$den.dist.thresh)
+    
+    distribs.rand.den[,i] <- get_event_type_distributions(events.rand[den.idxs,])
+    distribs.rand.nonden[,i] <- get_event_type_distributions(events.rand[nonden.idxs,])
+  }
+  
+  par(mfrow=c(2,1))
+  visualize_yvals_vs_event_type(distribs.dat.den, distribs.rand.den, 'Frequency (at den)')
+  visualize_yvals_vs_event_type(distribs.dat.nonden, distribs.rand.nonden, 'Frequency (not at den)')
+  
+}
+
+visualize_compare_event_properties <- function(events, events.rand.list, params, rand.params, timestamps, property.colname, remove.events.around.day.breaks = T){
+  
+  #concatenate randomized events list of tables into one giant table containing data from all randomizations
+  events.rand.all <- events.rand.list[[1]]
+  events.rand.all$rand <- 1
+  for(i in 2:length(events.rand.list)){
+    tmp <- events.rand.list[[i]]
+    tmp$rand <- i
+    if(remove.events.around.day.breaks){
+      tmp <- remove_events_around_day_breaks(tmp, timestamps, rand.params)
+    }
+    events.rand.all <- rbind(events.rand.all, tmp)
+  }
+  
+  #remove events around day breaks if needed (also done above for randomized data)
+  if(remove.events.around.day.breaks){
+    events <- remove_events_around_day_breaks(events, timestamps, rand.params)
+  }
+  
+  good.idxs.data <- which(events$start.exact & events$end.exact)
+  good.idxs.rand <- which(events.rand.all$start.exact & events.rand.all$end.exact)
+  
+  #duration
+  events.rand.all$duration <- events.rand.all$t.end - events.rand.all$t.start
+  events$duration <- events$t.end - events$t.start
+  compare_histograms(events$duration[good.idxs.data]/60, events.rand.all$duration[good.idxs.rand]/60, events.rand.all$rand[good.idxs.rand], xlab = 'Duration (min)', logaxes = 'x', n.breaks = 100, custom.breaks=NULL)
+  
+  #displacement during together phase (minimum of the 2 individuals used)
+  events$disp.together <- suppressWarnings(apply(cbind(events$disp.together.i, events$disp.together.j), FUN = function(x){return(min(x,na.rm=T))}, 1))
+  events$disp.together[which(is.infinite(events$disp.together))] <- NA
+  events.rand.all$disp.together <- suppressWarnings(apply(cbind(events.rand.all$disp.together.i, events.rand.all$disp.together.j), FUN = function(x){return(min(x,na.rm=T))}, 1))
+  events.rand.all$disp.together[which(is.infinite(events.rand.all$disp.together))] <- NA
+  compare_histograms(events$disp.together[good.idxs.data], events.rand.all$disp.together[good.idxs.rand], events.rand.all$rand[good.idxs.rand],  n.breaks = 500, xlab = 'Displacement together (m)', logaxes = 'x', custom.breaks = c(0,5,10,20,50,100,200,500,1000,2000,5000))
+  
+  #TODO - look at cases of very large displacements together in randomized data - is this real or some weird artifact?
+  
+  #closest approach
+  compare_histograms(events$closest.app[good.idxs.data], events.rand.all$closest.app[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Closest approach (m)', logaxes = 'x')
+  
+  #time of day (use midpoint of event)
+  events$hour <- hour(timestamps[(events$t.start + events$t.end)/2] + params$local.time.diff)
+  events.rand.all$hour <- hour(timestamps[(events.rand.all$t.start + events.rand.all$t.end)/2] + params$local.time.diff)
+  compare_histograms(events$hour[good.idxs.data], events.rand.all$hour[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 23, xlab = 'Hour of day', logaxes='', custom.breaks = seq(0,23,1))
+  
+}
+
+#make a plot of randomized (black) vs data (red) histograms of a given features
+compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.breaks = 100, xlab = '', logaxes = 'x', custom.breaks = NULL){
+  
+  n.rands <- length(unique(randomization.idxs))
+  breaks <- seq(min(c(values.dat, values.rand),na.rm=T),max(c(values.dat, values.rand),na.rm=T), length.out = n.breaks)
+  if(!is.null(custom.breaks)){
+    breaks <- custom.breaks
+  }
+  hist.data <- hist(values.dat, breaks = breaks, plot = F)
+  hists.rand <- matrix(NA, nrow = length(events.rand.list), ncol = length(breaks)-1)
+  for(i in 1:n.rands){
+    values.rand.i <- values.rand[which(randomization.idxs == i)]
+    hists.rand[i,] <- hist(values.rand.i, breaks = breaks, plot = F)$density
+  }
+  
+  #plotting 
+  ymin <- min(min(hists.rand,na.rm=T),min(hist.data$density,na.rm=T))
+  ymax <- max(max(hists.rand,na.rm=T),max(hist.data$density,na.rm=T))
+  quartz()
+  plot(NULL,  xlab = xlab, ylab = 'Density', log = logaxes, xlim = range(hist.data$mids), ylim = c(ymin, ymax))
+  for(i in 1:n.rands){
+    lines(hist.data$mids, hists.rand[i,], lwd = 0.1, col = '#00000033')
+  }
+  lines(hist.data$mids, hist.data$density, col = 'red', lwd = 3)
 }
 
