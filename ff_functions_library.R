@@ -963,29 +963,37 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   #duration
   events.rand.all$duration <- events.rand.all$t.end - events.rand.all$t.start
   events$duration <- events$t.end - events$t.start
-  compare_histograms(events$duration[good.idxs.data]/60, events.rand.all$duration[good.idxs.rand]/60, events.rand.all$rand[good.idxs.rand], xlab = 'Duration (min)', logaxes = 'x', n.breaks = 100, custom.breaks=NULL)
+  compare_histograms(events$duration[good.idxs.data]/60, events.rand.all$duration[good.idxs.rand]/60, events.rand.all$rand[good.idxs.rand], xlab = 'Duration (min)', logaxes = 'x', n.breaks = 100, custom.breaks=NULL, cumulative=T)
   
   #displacement during together phase (minimum of the 2 individuals used)
   events$disp.together <- suppressWarnings(apply(cbind(events$disp.together.i, events$disp.together.j), FUN = function(x){return(min(x,na.rm=T))}, 1))
   events$disp.together[which(is.infinite(events$disp.together))] <- NA
   events.rand.all$disp.together <- suppressWarnings(apply(cbind(events.rand.all$disp.together.i, events.rand.all$disp.together.j), FUN = function(x){return(min(x,na.rm=T))}, 1))
   events.rand.all$disp.together[which(is.infinite(events.rand.all$disp.together))] <- NA
-  compare_histograms(events$disp.together[good.idxs.data], events.rand.all$disp.together[good.idxs.rand], events.rand.all$rand[good.idxs.rand],  n.breaks = 500, xlab = 'Displacement together (m)', logaxes = 'x', custom.breaks = c(0,5,10,20,50,100,200,500,1000,2000,5000))
+  compare_histograms(events$disp.together[good.idxs.data], events.rand.all$disp.together[good.idxs.rand], events.rand.all$rand[good.idxs.rand],  n.breaks = 500, xlab = 'Displacement together (m)', logaxes = 'x',cumulative=T)
   
   #TODO - look at cases of very large displacements together in randomized data - is this real or some weird artifact?
   
   #closest approach
-  compare_histograms(events$closest.app[good.idxs.data], events.rand.all$closest.app[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Closest approach (m)', logaxes = 'x')
+  compare_histograms(events$closest.app[good.idxs.data], events.rand.all$closest.app[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Closest approach (m)', logaxes = 'x', cumulative=T)
   
   #time of day (use midpoint of event)
   events$hour <- hour(timestamps[(events$t.start + events$t.end)/2] + params$local.time.diff)
   events.rand.all$hour <- hour(timestamps[(events.rand.all$t.start + events.rand.all$t.end)/2] + params$local.time.diff)
   compare_histograms(events$hour[good.idxs.data], events.rand.all$hour[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 23, xlab = 'Hour of day', logaxes='', custom.breaks = seq(0,23,1))
   
+  #whether at the den or not
+  events$dist.den.min <- suppressWarnings(apply(cbind(events$dist.den.start, events$dist.den.end), FUN = function(x){return(min(x,na.rm=T))}, 1))
+  events$dis.den.min[which(is.infinite(events$dist.den.min))] <- NA
+  events.rand.all$dist.den.min <- suppressWarnings(apply(cbind(events.rand.all$dist.den.start, events.rand.all$dist.den.end), FUN = function(x){return(min(x,na.rm=T))}, 1))
+  events.rand.all$dis.den.min[which(is.infinite(events.rand.all$dist.den.min))] <- NA
+  compare_histograms(events$dist.den.min[good.idxs.data], events.rand.all$dist.den.min[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Distance from den (m)', logaxes='x', cumulative = T)
+  
+  
 }
 
 #make a plot of randomized (black) vs data (red) histograms of a given features
-compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.breaks = 100, xlab = '', logaxes = 'x', custom.breaks = NULL){
+compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.breaks = 100, xlab = '', logaxes = 'x', custom.breaks = NULL, cumulative=F){
   
   n.rands <- length(unique(randomization.idxs))
   breaks <- seq(min(c(values.dat, values.rand),na.rm=T),max(c(values.dat, values.rand),na.rm=T), length.out = n.breaks)
@@ -993,20 +1001,37 @@ compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.br
     breaks <- custom.breaks
   }
   hist.data <- hist(values.dat, breaks = breaks, plot = F)
+  mids <- hist.data$mids
+  if(cumulative){
+    y.data <- cumsum(hist.data$counts) / sum(hist.data$counts)
+  } else{
+    y.data <- hist.data$density
+  }
+  
   hists.rand <- matrix(NA, nrow = length(events.rand.list), ncol = length(breaks)-1)
   for(i in 1:n.rands){
     values.rand.i <- values.rand[which(randomization.idxs == i)]
-    hists.rand[i,] <- hist(values.rand.i, breaks = breaks, plot = F)$density
+    if(cumulative){
+      tmp <- hist(values.rand.i, breaks = breaks, plot = F)
+      hists.rand[i,] <- cumsum(tmp$counts) / sum(tmp$counts)
+    } else{
+      hists.rand[i,] <- hist(values.rand.i, breaks = breaks, plot = F)$density
+    }
   }
   
   #plotting 
-  ymin <- min(min(hists.rand,na.rm=T),min(hist.data$density,na.rm=T))
-  ymax <- max(max(hists.rand,na.rm=T),max(hist.data$density,na.rm=T))
+  ymin <- min(min(hists.rand,na.rm=T),min(y.data,na.rm=T))
+  ymax <- max(max(hists.rand,na.rm=T),max(y.data,na.rm=T))
   quartz()
-  plot(NULL,  xlab = xlab, ylab = 'Density', log = logaxes, xlim = range(hist.data$mids), ylim = c(ymin, ymax))
+  if(cumulative){
+    ylab <- 'Cumulative probability'
+  } else{
+    ylab <- 'Density'
+  }
+  plot(NULL,  xlab = xlab, ylab = 'Density', log = logaxes, xlim = range(hist.data$mids), ylim = c(ymin, ymax), cex.lab = 1.5, cex.axis = 1.5)
   for(i in 1:n.rands){
     lines(hist.data$mids, hists.rand[i,], lwd = 0.1, col = '#00000033')
   }
-  lines(hist.data$mids, hist.data$density, col = 'red', lwd = 3)
+  lines(hist.data$mids, y.data, col = 'red', lwd = 3)
 }
 
