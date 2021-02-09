@@ -154,36 +154,12 @@ if(generate_day_randomization_plan){
   
   if(randomization.type == 'nightperm'){
     rand.params <- nightperm.rand.params
-    
-    rand.plan <- array(NA, dim = c(n.inds, rand.params$last.day.used, rand.params$n.rands))
-    for(r in 1:rand.params$n.rands){
-      for(i in 1:n.inds){
-        rand.plan[i,,r] <- sample(1:rand.params$last.day.used)
-      }
-    }
+  }
+  if(randomization.type == 'denblock'){
+    rand.params <- denblock.rand.params
   }
   
-  if(randomization.type == 'denblock'){
-    
-    rand.params <- denblock.rand.params
-    
-    rand.plan <- array(NA, dim = c(n.inds, rand.params$last.day.used, rand.params$n.rands))
-    for(r in 1:rand.params$n.rands){
-      for(i in 1:n.inds){
-        blocks <- rand.params$blocks[[i]]
-        blocks <- blocks[which(blocks < rand.params$last.day.used)] 
-        blocks <- c(1, blocks, rand.params$last.day.used+1)
-        for(j in 1:(length(blocks)-1)){
-          d0 <- blocks[j]
-          df <- blocks[j+1] - 1
-          rand.plan[i,d0:df,r] <- sample(d0:df) #shuffle within block
-        }
-        
-      }
-      
-    }
-    
-  }
+  rand.plan <- generate_randomization_plan(rand.params, ensure.no.day.matches = T)
   
   if(overwrite_day_randomization_plan){
     
