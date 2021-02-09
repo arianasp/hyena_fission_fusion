@@ -4,15 +4,12 @@
 
 #directory of where the original (processed) movement + vedba data is stored (+ metadata on IDs and den locations)
 indir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps'
-indir <- 'Z:\\hyena/archive/hyena_pilot_2017/processed/gps/'
 
 #directory of where to store extracted data for fission-fusion project
 outdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/'
-outdir <- 'Z:\\hyena/working/hyena_fission_fusion/data/'
 
 #directory where code for fission-fusion project is stored
 codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
-codedir <- 'C:\\Users/strau/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/'
 
 ################################ CHOOSE ANALYSES TO RUN ##################################
 
