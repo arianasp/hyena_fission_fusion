@@ -113,6 +113,76 @@ get_dens <- function(den.file.path = '/Volumes/EAS_shared/hyena/archive/hyena_pi
   return(den.locs)
 }
 
+#Calculate spatially discretized heading over time using sliding window
+spatial.headings <- function(x,y,R,t.idxs=1:length(x),backward=F, fpt.thresh){
+  
+  #initialize
+  n.times <- length(x)
+  spat.heads <- rep(NA,n.times)
+  fpt <- rep(NA,n.times)
+  
+  #go backwards for backwards vectors
+  if(backward){
+    t.idxs <- rev(t.idxs)
+  }
+  
+  #loop over all times
+  for(t in t.idxs){
+    
+    #get current location
+    x0 <- x[t]
+    y0 <- y[t]
+    
+    if(is.na(x0)){
+      next
+    }
+    
+    #move forward (or backward) until radius reached
+    found <- 0
+    na.found <- 0
+    time.vec <- t:n.times
+    if(backward){
+      time.vec <- seq(t,1,-1)
+    }
+    for(j in 1:length(time.vec)){
+      i <- time.vec[j]
+      
+      if(backward){
+        dx <- x0 - x[i]
+        dy <- y0 - y[i]
+      } else{
+        dx <- x[i] - x0
+        dy <- y[i] - y0
+      }
+      dist <- sqrt(dx^2+dy^2)
+      
+      if(is.na(dist)){
+        spat.heads[t] <- NA
+        found <- 1
+        na.found <- 1
+        break
+      }
+      else{
+        if(dist >= R){
+          found <- 1
+          break
+        }
+      }
+    }
+    
+    #if you reach the end of the trajectory, return (and leave rest as NAs)
+    #also make sure that first passage time is less than fpt.thresh
+    if(found){
+      fpt[t] <- i - t  #<- Eli made this for testing function
+      if(!na.found & (i - t) <= fpt.thresh){
+        spat.heads[t] <- atan2(dy,dx)
+      }
+    } else{
+      return(spat.heads)
+    }
+  }
+  return(spat.heads)
+}
 
 #################################### MAIN FUNCTIONS ####################################
 
@@ -384,7 +454,7 @@ get_ff_events_and_phases <- function(xs, ys, params, verbose = TRUE){
 }
 
 #### Extract features from fission fusion events
-get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.names){
+get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.names, get.sync.measures = FALSE){
   
   empty.vec <- rep(NA, nrow(together.seqs))
   positions <- data.frame(x.before.i = empty.vec,
@@ -566,6 +636,47 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
   #min dist to den at start and end of events
   together.seqs$dist.den.start <- apply(dist.to.den.start, 1, min, na.rm=T)
   together.seqs$dist.den.end <- apply(dist.to.den.end, 1, min, na.rm=T)
+  
+  ## Calculate sync measures
+  if(get.sync.measures == TRUE){
+    
+    ## Heading correlation
+    together.seqs$together.heading.similarity <- NA
+    together.seqs$together.heading.samples <- NA
+    for(r in 1:nrow(together.seqs)){
+      
+      if(is.na(together.seqs$b1[r]) | is.na(together.seqs$b2[r]))
+        next
+      
+      ## Headings of individual i
+      i.heads <- spatial.headings(x = xs[together.seqs$i[r], together.seqs$b1[r]:together.seqs$b2[r]],
+                                  y = ys[together.seqs$i[r], together.seqs$b1[r]:together.seqs$b2[r]],
+                                  R = 5,
+                                  fpt.thresh = 10)
+      
+      ## Headings of individual j
+      j.heads <- spatial.headings(x = xs[together.seqs$j[r], together.seqs$b1[r]:together.seqs$b2[r]],
+                                  y = ys[together.seqs$j[r], together.seqs$b1[r]:together.seqs$b2[r]],
+                                  R = 5,
+                                  fpt.thresh = 10)
+      
+      
+      ## xs and ys of unit vectors of headings
+      x.i <- cos(i.heads)
+      y.i <- sin(i.heads)
+      x.j <- cos(j.heads)
+      y.j <- sin(j.heads)
+      
+      
+      ## Dot product of these two vectors
+      heading.cors <- (x.i*x.j)+(y.i*y.j)
+      
+      
+      ## Save mean of dot products and number of non NA dot products
+      together.seqs$together.heading.similarity[r] <- mean(heading.cors, na.rm = TRUE)
+      together.seqs$together.heading.samples[r] <- sum(!is.na(heading.cors))
+    }
+  }
   
   return(together.seqs)
 }
