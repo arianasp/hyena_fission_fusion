@@ -668,6 +668,61 @@ plot_den_attendance_by_ind <- function(xs, ys, den.file.path, den.names, params,
   
 }
 
+########################## RANDOMIZATION ######################################
+
+#Generate a randomization plan where hyena trajectories from each day will be shuffled
+#If ensure.no.day.matches == T, make sure that the trajectories don't 'align' on any day 
+#(i.e. the hyenas are actually randomized to have the same day represented at the same time in the randomized data)
+generate_randomization_plan <- function(rand.params, ensure.no.day.matches = F){
+
+  rand.plan <- array(NA, dim = c(n.inds, rand.params$last.day.used, rand.params$n.rands))
+  if(is.null(rand.params$blocks)){
+    r <- 1
+    while(r <= rand.params$n.rands){
+      for(i in 1:n.inds){
+        rand.plan[i,,r] <- sample(1:rand.params$last.day.used)
+      }
+      if(ensure.no.day.matches){
+        uniques <- apply(rand.plan[,,r], 2, FUN = function(x){return(length(unique(x)))})
+        if(sum(uniques < n.inds)>0){
+          r <- r #if found a match, redo it
+        } else{
+          r <- r + 1
+          print(r)
+        }
+      } else{
+        r <- r + 1
+      }
+    }
+  } else{
+    r <- 1
+    while(r <= rand.params$n.rands){
+      for(i in 1:n.inds){
+        blocks <- rand.params$blocks[[i]]
+        blocks <- blocks[which(blocks < rand.params$last.day.used)] 
+        blocks <- c(1, blocks, rand.params$last.day.used+1)
+        for(j in 1:(length(blocks)-1)){
+          d0 <- blocks[j]
+          df <- blocks[j+1] - 1
+          rand.plan[i,d0:df,r] <- sample(d0:df) #shuffle within block
+        }
+      }
+      if(ensure.no.day.matches){
+        uniques <- apply(rand.plan[,,r], 2, FUN = function(x){return(length(unique(x)))})
+        if(sum(uniques < n.inds)>0){
+          r <- r #if found a match, redo it
+        } else{
+          r <- r + 1
+          print(r)
+        }
+      } else{
+        r <- r + 1
+      }
+    }
+  }
+  
+}
+
 
 
 ########################## ANALYSIS + PLOTTING #################################
@@ -984,9 +1039,9 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   
   #whether at the den or not
   events$dist.den.min <- suppressWarnings(apply(cbind(events$dist.den.start, events$dist.den.end), FUN = function(x){return(min(x,na.rm=T))}, 1))
-  events$dis.den.min[which(is.infinite(events$dist.den.min))] <- NA
+  events$dist.den.min[which(is.infinite(events$dist.den.min))] <- NA
   events.rand.all$dist.den.min <- suppressWarnings(apply(cbind(events.rand.all$dist.den.start, events.rand.all$dist.den.end), FUN = function(x){return(min(x,na.rm=T))}, 1))
-  events.rand.all$dis.den.min[which(is.infinite(events.rand.all$dist.den.min))] <- NA
+  events.rand.all$dist.den.min[which(is.infinite(events.rand.all$dist.den.min))] <- NA
   compare_histograms(events$dist.den.min[good.idxs.data], events.rand.all$dist.den.min[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Distance from den (m)', logaxes='x', cumulative = T)
   
   
