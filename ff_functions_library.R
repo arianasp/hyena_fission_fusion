@@ -784,54 +784,88 @@ plot_den_attendance_by_ind <- function(xs, ys, den.file.path, den.names, params,
 #Generate a randomization plan where hyena trajectories from each day will be shuffled
 #If ensure.no.day.matches == T, make sure that the trajectories don't 'align' on any day 
 #(i.e. the hyenas are actually randomized to have the same day represented at the same time in the randomized data)
-generate_randomization_plan <- function(rand.params, ensure.no.day.matches = F){
+generate_randomization_plan <- function(rand.params, n.inds, ensure.no.day.matches = F, max.tries = 10000){
 
-  rand.plan <- array(NA, dim = c(n.inds, rand.params$last.day.used, rand.params$n.rands))
+  #initialize array to hold randomization plan
+  n.rands <- rand.params$n.rands
+  rand.plan <- array(NA, dim = c(n.inds, rand.params$last.day.used, n.rands))
+  
+  #get blocks
   if(is.null(rand.params$blocks)){
-    r <- 1
-    while(r <= rand.params$n.rands){
-      for(i in 1:n.inds){
-        rand.plan[i,,r] <- sample(1:rand.params$last.day.used)
-      }
-      if(ensure.no.day.matches){
-        uniques <- apply(rand.plan[,,r], 2, FUN = function(x){return(length(unique(x)))})
-        if(sum(uniques < n.inds)>0){
-          r <- r #if found a match, redo it
-        } else{
-          r <- r + 1
-          print(r)
-        }
-      } else{
-        r <- r + 1
-      }
+    
+    #if no blocks specified, all days are counted as one big block
+    blocks <- list()
+    for(i in 1:n.inds){
+      blocks[[i]] <- c(1, rand.params$last.day.used+1)
     }
+    
   } else{
-    r <- 1
-    while(r <= rand.params$n.rands){
-      for(i in 1:n.inds){
-        blocks <- rand.params$blocks[[i]]
-        blocks <- blocks[which(blocks < rand.params$last.day.used)] 
-        blocks <- c(1, blocks, rand.params$last.day.used+1)
-        for(j in 1:(length(blocks)-1)){
-          d0 <- blocks[j]
-          df <- blocks[j+1] - 1
-          rand.plan[i,d0:df,r] <- sample(d0:df) #shuffle within block
-        }
-      }
-      if(ensure.no.day.matches){
-        uniques <- apply(rand.plan[,,r], 2, FUN = function(x){return(length(unique(x)))})
-        if(sum(uniques < n.inds)>0){
-          r <- r #if found a match, redo it
-        } else{
-          r <- r + 1
-          print(r)
-        }
-      } else{
-        r <- r + 1
-      }
+    
+    #if blocks were specified, use those and add end points at 1 and last.day.used
+    blocks <- rand.params$blocks
+    for(i in 1:n.inds){
+      blocks[[i]] <- rand.params$blocks[[i]]
+      blocks[[i]] <- blocks[[i]][which(blocks[[i]] < rand.params$last.day.used)] 
+      blocks[[i]] <- c(1, blocks[[i]], rand.params$last.day.used+1)
     }
+    
   }
   
+  #generate permutation plans
+  r <- 1
+  while(r < n.rands){
+    print(r)
+    rand.plan.curr <- array(NA, dim = c(n.inds, rand.params$last.day.used))
+    
+    #generate an initial possibility
+    for(i in 1:n.inds){
+      for(j in 1:(length(blocks[[i]])-1)){
+        d0 <- blocks[[i]][j]
+        df <- blocks[[i]][j+1] - 1
+        rand.plan.curr[i,d0:df] <- sample(d0:df, replace=F) #shuffle within block #TODO - fix so don't need to use replace, possible to efficiently find possibilities satisfying constraint?
+      }
+    }
+    
+    converged <- T
+    if(ensure.no.day.matches){
+      converged <- F
+      tries <- 1
+      while(!converged){
+        uniques <- apply(rand.plan.curr, 2, FUN = function(x){return(length(unique(x)))})
+        match.cols <- which(uniques < n.inds)
+        if(length(match.cols)==0){
+          converged <- T
+          break
+        }
+        if(length(match.cols)>1){
+          c <- sample(match.cols,1) #get a column at random from the ones that have duplicates
+        } else{
+          c <- match.cols
+        }
+        dup.inds <- which(duplicated(rand.plan.curr[,c])) #for now this prioritizes keeping the first individual in place and shuffling the next individual
+        dup.ind <- dup.inds[1]
+        block <- max(which(blocks[[dup.ind]] <= c))
+        d0 <- blocks[[dup.ind]][block]
+        df <- blocks[[dup.ind]][block+1] - 1
+        rand.plan.curr[dup.ind,d0:df] <- sample(d0:df, replace = F) #try again
+        tries <- tries + 1
+        
+        #ensure no infinite looping by setting a maximum number of tries before the whole thing is reinitialized
+        if(tries > max.tries){
+          warning('reached maximum number of tries when generating randomization plans - tried again')
+          break
+        }
+      }
+    }
+    
+    #add to the big array storing all plans (unless not converged, then try again for the same randomization index)
+    if(converged){
+      rand.plan[,,r] <- rand.plan.curr
+      r <- r +1
+    } 
+  }
+  
+  return(rand.plan)
 }
 
 

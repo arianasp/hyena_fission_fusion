@@ -34,7 +34,7 @@ params <- list(R.fusion = 100,
                den.dist.thresh = 200
                 ) 
 
-randomization.type <- 'nightperm' #options: denblock, nightperm
+randomization.type <- 'denblock' #options: denblock, nightperm
 
 verbose <- TRUE
 
@@ -44,7 +44,8 @@ verbose <- TRUE
 nightperm.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
                     last.day.used = 35, #last day to use in the randomizations (and real data)
                     blocks = NULL, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
-                    n.rands = 500 #how many randomizations to do
+                    ensure.no.day.matches = T, #whether to ensure that no pair of individuals is randomized to the same day
+                    n.rands = 100 #how many randomizations to do
                     )
 
 #parameters for a den block permutation
@@ -58,7 +59,8 @@ den.blocks[[5]] <- c(12, 31)
 denblock.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
                               last.day.used = 35, #last day to use in the randomizations (and real data)
                               blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
-                              n.rands = 500 #how many randomizations to do
+                              ensure.no.day.matches = T, #whether to ensure that no pair of individuals is randomized to the same day
+                              n.rands = 100 #how many randomizations to do
                               )
 
 #den info
@@ -66,11 +68,18 @@ den.file.path <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/met
 den.names <- c('DAVE D','RBEND D','RES M D1','DICK D')
 
 
+if(randomization.type == 'denblock'){
+  rand.params <- denblock.rand.params
+}
+if(randomization.type == 'nightperm'){
+  rand.params <- nightperm.rand.params
+}
+
 events_filename <- 'fission_fusion_events.RData'
 events_features_filename <- 'fission_fusion_events_features.RData'
 day_start_idxs_filename <- 'hyena_day_start_idxs.RData'
-day_randomization_plan_filename <- paste0('hyena_day_randomization_plan_', randomization.type, '.RData')
-day_randomization_output_filename <- paste0('hyena_day_randomization_events_features_',randomization.type,'.RData')
+day_randomization_plan_filename <- paste0('hyena_day_randomization_plan_', randomization.type, '_avoidmatch', rand.params$ensure.no.day.matches, '.RData')
+day_randomization_output_filename <- paste0('hyena_day_randomization_events_features_',randomization.type,'_avoidmatch', rand.params$ensure.no.day.matches, '.RData')
 
 ################################# SOURCE FUNCTIONS #######################################
 
@@ -159,7 +168,9 @@ if(generate_day_randomization_plan){
     rand.params <- denblock.rand.params
   }
   
-  rand.plan <- generate_randomization_plan(rand.params, ensure.no.day.matches = T)
+  print('Generating randomization plan')
+  
+  rand.plan <- generate_randomization_plan(rand.params, n.inds = n.inds, ensure.no.day.matches = rand.params$ensure.no.day.matches)
   
   if(overwrite_day_randomization_plan){
     
