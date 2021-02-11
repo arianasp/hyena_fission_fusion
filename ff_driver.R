@@ -13,14 +13,14 @@ codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
 
 ################################ CHOOSE ANALYSES TO RUN ##################################
 
-run_extract_ff_events <- T
-overwrite_extract_ff_events <- T
-run_get_ff_features <- T
-overwrite_extract_ff_features <- T
-generate_day_randomization_plan <- T
-overwrite_day_randomization_plan <- T
-execute_day_randomization_plan <- T
-overwrite_day_randomization_output <- T
+run_extract_ff_events <- F
+overwrite_extract_ff_events <- F
+run_get_ff_features <- F
+overwrite_extract_ff_features <- F
+generate_day_randomization_plan <- F
+overwrite_day_randomization_plan <- F
+execute_day_randomization_plan <- F
+overwrite_day_randomization_output <- F
 output_day_randomization_plots <- T
 
 ################################ PARAMETERS ##########################################
@@ -34,7 +34,7 @@ params <- list(R.fusion = 100,
                den.dist.thresh = 200
                 ) 
 
-randomization.type <- 'denblock' #options: denblock, nightperm
+randomization.type <- 'nightperm' #options: denblock, nightperm
 
 verbose <- TRUE
 
