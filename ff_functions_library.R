@@ -1232,22 +1232,24 @@ compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.br
   }
   
   if(!is.null(categories.data)){
-    hists.rand.T <- hists.rand.F <- matrix(NA, nrow = length(events.rand.list), ncol = length(breaks)-1)
+    hists.rand.T <- hists.rand.F <- matrix(NA, nrow = n.rands, ncol = length(breaks)-1)
   } else{
-    hists.rand <- matrix(NA, nrow = length(events.rand.list), ncol = length(breaks)-1)
+    hists.rand <- matrix(NA, nrow = n.rands, ncol = length(breaks)-1)
   }
   
   for(i in 1:n.rands){
-    values.rand.i <- values.rand[which(randomization.idxs == i)]
+    idxs.rand.i <- which(randomization.idxs == i)
+    values.rand.i <- values.rand[idxs.rand.i]
     if(!is.null(categories.data)){
+      categories.rand.i <- categories.rand[idxs.rand.i]
       if(cumulative){
-        tmp.T <- hist(values.rand.i[which(categories.rand)], breaks = breaks, plot = F)
-        tmp.F <- hist(values.rand.i[which(!categories.rand)], breaks = breaks, plot = F)
+        tmp.T <- hist(values.rand.i[which(categories.rand.i)], breaks = breaks, plot = F)
+        tmp.F <- hist(values.rand.i[which(!categories.rand.i)], breaks = breaks, plot = F)
         hists.rand.T[i,] <- cumsum(tmp.T$counts) / sum(tmp.T$counts)
         hists.rand.F[i,] <- cumsum(tmp.F$counts) / sum(tmp.F$counts)
       } else{
-        hists.rand.T[i,] <- hist(values.rand.i[which(categories.rand)], breaks = breaks, plot = F)$density
-        hists.rand.F[i,] <- hist(values.rand.i[which(!categories.rand)], breaks = breaks, plot = F)$density
+        hists.rand.T[i,] <- hist(values.rand.i[which(categories.rand.i)], breaks = breaks, plot = F)$density
+        hists.rand.F[i,] <- hist(values.rand.i[which(!categories.rand.i)], breaks = breaks, plot = F)$density
       }
       
     } else{
