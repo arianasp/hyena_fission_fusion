@@ -662,7 +662,8 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
       j.heads <- spatial.headings(x = xs[together.seqs$j[r], together.seqs$b1[r]:together.seqs$b2[r]],
                                   y = ys[together.seqs$j[r], together.seqs$b1[r]:together.seqs$b2[r]],
                                   R = 5,
-                                  fpt.thresh = 10)
+                                  fpt.thresh = 10,
+                                  subsample = sync.subsample)
       
       
       ## xs and ys of unit vectors of headings
