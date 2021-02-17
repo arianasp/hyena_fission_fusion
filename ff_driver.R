@@ -10,22 +10,23 @@ runall <- function(randomization.type, ensure.no.day.matches){
   outdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/'
   
   #directory where code for fission-fusion project is stored
-  codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
+  #codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
+  codedir <- '~/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/'
   
   #directory to put plots
   plotdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/results'
   
   ################################ CHOOSE ANALYSES TO RUN ##################################
   
-  run_extract_ff_events <- T
-  overwrite_extract_ff_events <- T
+  run_extract_ff_events <- F
+  overwrite_extract_ff_events <- F
   run_get_ff_features <- T
   overwrite_extract_ff_features <- T
-  generate_day_randomization_plan <- T
-  overwrite_day_randomization_plan <- T
-  execute_day_randomization_plan <- T
-  overwrite_day_randomization_output <- T
-  output_day_randomization_plots <- T
+  generate_day_randomization_plan <- F
+  overwrite_day_randomization_plan <- F
+  execute_day_randomization_plan <- F
+  overwrite_day_randomization_output <- F
+  output_day_randomization_plots <- F
   
   ################################ PARAMETERS ##########################################
   
@@ -41,6 +42,7 @@ runall <- function(randomization.type, ensure.no.day.matches){
   #randomization.type <- 'denblock' #options: denblock, nightperm
   
   verbose <- TRUE
+  get.sync.measures <- TRUE
   
   ######################## FIXED PARAMETERS - DON'T CHANGE ##############################
   
@@ -128,6 +130,7 @@ runall <- function(randomization.type, ensure.no.day.matches){
         print('Loading xy data')
       }
       load('hyena_xy_level1.RData')
+      load('../acc/hyena_vedba.RData')
       
       setwd(outdir)
       load(events_filename)
@@ -143,7 +146,9 @@ runall <- function(randomization.type, ensure.no.day.matches){
                               together.seqs = events,
                               params = params,
                               den.file.path = den.file.path,
-                              den.names = den.names)
+                              den.names = den.names,
+                              get.sync.measures = get.sync.measures,
+                              sync.subsample = 10)
     
     if(overwrite_extract_ff_features){
       
@@ -296,6 +301,10 @@ runall <- function(randomization.type, ensure.no.day.matches){
 }
 
 #-----------------------------------MAIN-------------------------------------------------
+
+# Extract features, no randomization
+runall(randomization.type = 'nightperm', ensure.no.day.matches = F)
+
 #print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
 #runall(randomization.type = 'denblock', ensure.no.day.matches = T)
 print('--------------------------- NIGHTPERM / NO MATCH ---------------------------------')

@@ -646,8 +646,10 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
     ## Heading correlation
     together.seqs$together.heading.similarity <- NA
     together.seqs$together.heading.samples <- NA
+    together.seqs$vedba.similarity <- NA
+    together.seqs$vedba.samples <- NA
+    pb <- txtProgressBar(min = 0, max = nrow(together.seqs), char = '..ᕕ(ᐛ)ᕗ..', style = 3)
     for(r in 1:nrow(together.seqs)){
-      pb <- txtProgressBar(min = 0, max = nrow(together.seqs), char = '|', style = 3)
       if(is.na(together.seqs$b1[r]) | is.na(together.seqs$b2[r]))
         next
       
@@ -681,8 +683,18 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
       together.seqs$together.heading.similarity[r] <- mean(heading.cors, na.rm = TRUE)
       together.seqs$together.heading.samples[r] <- sum(!is.na(heading.cors))
       
-      setTxtProgressBar(pb, i)
+      
+      ### Vedba correlation
+      i.vedba <- vedbas[together.seqs$i[r], together.seqs$b1[r]:together.seqs$b2[r]]
+      j.vedba <- vedbas[together.seqs$j[r], together.seqs$b1[r]:together.seqs$b2[r]]
+      if(sum(!is.na(i.vedba + j.vedba)) >= 2){
+        together.seqs$vedba.similarity[r] <- cor(i.vedba, j.vedba, use = 'complete')
+        together.seqs$vedba.samples[r] <- sum(!is.na(i.vedba + j.vedba))
+      }
+      
+      setTxtProgressBar(pb, r)
     }
+    cat('\n')
   }
   
   return(together.seqs)
