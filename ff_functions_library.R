@@ -114,7 +114,7 @@ get_dens <- function(den.file.path = '/Volumes/EAS_shared/hyena/archive/hyena_pi
 }
 
 #Calculate spatially discretized heading over time using sliding window
-spatial.headings <- function(x,y,R,t.idxs=1:length(x),backward=F, fpt.thresh){
+spatial.headings <- function(x,y,R,t.idxs=1:length(x),backward=F, fpt.thresh, subsample = 1){
   
   #initialize
   n.times <- length(x)
@@ -128,6 +128,10 @@ spatial.headings <- function(x,y,R,t.idxs=1:length(x),backward=F, fpt.thresh){
   
   #loop over all times
   for(t in t.idxs){
+    
+    ## Skip time points that aren't a multiple of subsampling unit (start at 0 instead of 1)
+    if((t-1) %% subsample != 0)
+      next
     
     #get current location
     x0 <- x[t]
@@ -173,7 +177,6 @@ spatial.headings <- function(x,y,R,t.idxs=1:length(x),backward=F, fpt.thresh){
     #if you reach the end of the trajectory, return (and leave rest as NAs)
     #also make sure that first passage time is less than fpt.thresh
     if(found){
-      fpt[t] <- i - t  #<- Eli made this for testing function
       if(!na.found & (i - t) <= fpt.thresh){
         spat.heads[t] <- atan2(dy,dx)
       }
@@ -454,7 +457,7 @@ get_ff_events_and_phases <- function(xs, ys, params, verbose = TRUE){
 }
 
 #### Extract features from fission fusion events
-get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.names, get.sync.measures = FALSE){
+get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.names, get.sync.measures = FALSE, sync.subsample = 10){
   
   empty.vec <- rep(NA, nrow(together.seqs))
   positions <- data.frame(x.before.i = empty.vec,
@@ -644,7 +647,7 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
     together.seqs$together.heading.similarity <- NA
     together.seqs$together.heading.samples <- NA
     for(r in 1:nrow(together.seqs)){
-      
+      pb <- txtProgressBar(min = 0, max = nrow(together.seqs), char = '|', style = 3)
       if(is.na(together.seqs$b1[r]) | is.na(together.seqs$b2[r]))
         next
       
@@ -652,7 +655,8 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
       i.heads <- spatial.headings(x = xs[together.seqs$i[r], together.seqs$b1[r]:together.seqs$b2[r]],
                                   y = ys[together.seqs$i[r], together.seqs$b1[r]:together.seqs$b2[r]],
                                   R = 5,
-                                  fpt.thresh = 10)
+                                  fpt.thresh = 10,
+                                  subsample = sync.subsample)
       
       ## Headings of individual j
       j.heads <- spatial.headings(x = xs[together.seqs$j[r], together.seqs$b1[r]:together.seqs$b2[r]],
@@ -675,6 +679,8 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
       ## Save mean of dot products and number of non NA dot products
       together.seqs$together.heading.similarity[r] <- mean(heading.cors, na.rm = TRUE)
       together.seqs$together.heading.samples[r] <- sum(!is.na(heading.cors))
+      
+      setTxtProgressBar(pb, i)
     }
   }
   
