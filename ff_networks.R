@@ -35,7 +35,7 @@ n.inds <- 5
 #because of the way events data frame was constructed, individual i's index is always less than individual j's index.
 #to remove this weird artifact, we first randomize which individual (greater or lesser index is listed first)
 #we then loop through all events (in random order), find a "partner event" for them to swap with, and swap the j individual between the two partner events
-rewire_links <- function(events, n.reps = 10){
+rewire_links <- function(events, n.reps = 100){
   
   perm.events <- events
   
@@ -225,7 +225,7 @@ compare_variances <- function(nets, plot_vars = T){
     netnames <- names(nets)
     minvar <- min(min(vars$real), min(vars$perm))
     maxvar <- max(max(vars$real), max(vars$perm))
-    plot(NULL, xlim = c(0.5, n.net.types + 0.5), ylim = c(minvar, maxvar), xaxt='n', xlab = '', ylab = 'Differentiation')
+    plot(NULL, xlim = c(0.5, n.net.types + 0.5), ylim = c(minvar, maxvar), xaxt='n', xlab = '', ylab = 'Differentiation (edge weight variane)')
     for(i in 1:length(netnames)){
       jitter <- rnorm(0, sd = .1, n = n.perms)
       points(rep(i, n.perms) + jitter, vars$perm[,i], cex = 0.5, col = '#00000055')
