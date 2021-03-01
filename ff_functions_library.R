@@ -37,6 +37,35 @@ latlon.to.utm <- function(LonsLats,EastingsCol1 = TRUE,utm.zone='34',southern_he
   }
 }
 
+#Converts a matrix of eastings and northings (eastings first column, northings second column) to UTM
+#Inputs:
+#	EastNorths: [N x 2 matrix] of eastings (col 1) and northings (col2)
+#	utm.zone: [numeric or string], by default 34 (this is where the KRR is)
+#	southern_hemisphere: [boolean], by default TRUE
+#	LonsCol1: whether lons should be given in first column of output (default) or not
+#Outputs:
+#	LonLats or LatLons: [N x 2 matrix] of longitudes and latitudes - lons are first column by default 
+utm.to.latlon <- function(EastNorths,LonsCol1=TRUE,utm.zone = '34',southern_hemisphere=TRUE){
+  utms <- data.frame(X=EastNorths[,1],Y=EastNorths[,2])
+  non.na.idxs <- which(!is.na(utms$X) & !is.na(utms$Y))
+  len <- nrow(utms)
+  if(southern_hemisphere){
+    projection.string <- paste('+proj=utm +zone=',utm.zone, '+ellps=WGS84 +south',sep='')
+  } else{
+    projection.string <- paste('+proj=utm +zone=',utm.zone, '+ellps=WGS84 +north',sep='')
+  }
+  non.na.utms <- SpatialPoints(utms[non.na.idxs,],proj4string=CRS(projection.string))
+  lonlat <- spTransform(non.na.utms,CRS('+proj=longlat +ellps=WGS84 +datum=WGS84'))
+  LonLats <- matrix(NA,nrow=len,ncol=2)
+  LonLats[non.na.idxs,] <- lonlat@coords
+  if(!LonsCol1){
+    LatLons <- LonLats[,c(2,1)]
+    return(LatLons)
+  } else{
+    return(LonLats)
+  }	
+}
+
 ### Find parameters defining the 'canonical shape' that best matches data for a fission-fusion event
 fission_fusion_function <- function(x, b1, b2, b.y.intercept, fixed.parameters){
   x0 <- fixed.parameters$x0
@@ -185,6 +214,24 @@ spatial.headings <- function(x,y,R,t.idxs=1:length(x),backward=F, fpt.thresh, su
     }
   }
   return(spat.heads)
+}
+
+count_events_per_dyad <- function(events, symmetrize = T){
+  
+  n.inds <- length(unique(c(events$i, events$j)))
+  net <- matrix(NA, nrow = n.inds, ncol = n.inds)
+  
+  for(i in 1:(n.inds-1)){
+    for(j in (i+1):n.inds){
+      net[i,j] <- length(which((events$i==i & events$j==j) | (events$i==j & events$j==i)))
+      if(symmetrize){
+        net[j,i] <- net[i,j]
+      }
+    }
+  }
+  
+  return(net)
+  
 }
 
 #################################### MAIN FUNCTIONS ####################################
