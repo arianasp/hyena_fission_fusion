@@ -457,7 +457,7 @@ get_ff_events_and_phases <- function(xs, ys, params, verbose = TRUE){
 }
 
 #### Extract features from fission fusion events
-get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.names, get.sync.measures = FALSE, sync.subsample = 10){
+get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.names, vedbas = vedbas, get.sync.measures = FALSE, sync.subsample = 10){
   
   empty.vec <- rep(NA, nrow(together.seqs))
   positions <- data.frame(x.before.i = empty.vec,
@@ -1156,7 +1156,7 @@ visualize_event_type_frequency_den_vs_nonden <- function(events, events.rand.lis
   
 }
 
-visualize_compare_event_properties <- function(events, events.rand.list, params, rand.params, timestamps, property.colname, remove.events.around.day.breaks = T){
+visualize_compare_event_properties <- function(events, events.rand.list, params, rand.params, timestamps, remove.events.around.day.breaks = T){
   
   #concatenate randomized events list of tables into one giant table containing data from all randomizations
   events.rand.all <- events.rand.list[[1]]
@@ -1181,8 +1181,8 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   den.cat.data <- events$dist.den.start <= params$den.dist.thresh | events$dist.den.end <= params$den.dist.thresh
   den.cat.rand <- events.rand.all$dist.den.start <= params$den.dist.thresh | events.rand.all$dist.den.end <= params$den.dist.thresh
   
-  quartz(height = 6, width = 20)
-  par(mfrow = c(1,5), mar = c(5,6,1,1))
+  quartz(height = 12, width = 10)
+  par(mfrow = c(4,2), mar = c(5,6,1,1))
   #duration
   events.rand.all$duration <- events.rand.all$t.end - events.rand.all$t.start
   events$duration <- events$t.end - events$t.start
@@ -1205,13 +1205,29 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   events$dist.den.min[which(is.infinite(events$dist.den.min))] <- NA
   events.rand.all$dist.den.min <- suppressWarnings(apply(cbind(events.rand.all$dist.den.start, events.rand.all$dist.den.end), FUN = function(x){return(min(x,na.rm=T))}, 1))
   events.rand.all$dist.den.min[which(is.infinite(events.rand.all$dist.den.min))] <- NA
-  compare_histograms(events$dist.den.min[good.idxs.data], events.rand.all$dist.den.min[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  #compare_histograms(events$dist.den.min[good.idxs.data], events.rand.all$dist.den.min[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
   
   #time of day (use midpoint of event)
   events$hour <- hour(timestamps[(events$t.start + events$t.end)/2] + params$local.time.diff)
   events.rand.all$hour <- hour(timestamps[(events.rand.all$t.start + events.rand.all$t.end)/2] + params$local.time.diff)
   compare_histograms(events$hour[good.idxs.data], events.rand.all$hour[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 23, xlab = 'Hour of day', logaxes='', custom.breaks = seq(0,23,1), categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
   legend('topright',legend = c('Den','Non-Den'), col = c('blue','magenta'), lwd = c(2,2), lty = c(1,1),cex = 2)
+  
+  #heading similarity
+  events$heading.similarity.filt <- events$together.heading.similarity
+  events$heading.similarity.filt[which(events$together.heading.samples==0)] <- NA
+  events.rand.all$heading.similarity.filt <- events.rand.all$together.heading.similarity
+  events.rand.all$heading.similarity.filt[which(events.rand.all$together.heading.samples==0)] <- NA
+  compare_histograms(events$heading.similarity.filt[good.idxs.data], events.rand.all$heading.similarity.filt[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Heading similarity', logaxes = '', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  
+  #vedba similarity
+  compare_histograms(events$vedba.similarity[good.idxs.data], events.rand.all$vedba.similarity[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Activity similarity', logaxes = '', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  
+  #distance from den at start
+  compare_histograms(events$dist.den.start[good.idxs.data], events.rand.all$dist.den.start[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Starting distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  
+  #distance from den at end
+  compare_histograms(events$dist.den.end[good.idxs.data], events.rand.all$dist.den.end[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Ending distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
   
 }
 

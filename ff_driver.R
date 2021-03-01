@@ -10,8 +10,8 @@ runall <- function(randomization.type, ensure.no.day.matches){
   outdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/'
   
   #directory where code for fission-fusion project is stored
-  #codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
-  codedir <- '~/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/'
+  codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
+  #codedir <- '~/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/'
   
   #directory to put plots
   plotdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/results'
@@ -20,8 +20,8 @@ runall <- function(randomization.type, ensure.no.day.matches){
   
   run_extract_ff_events <- F
   overwrite_extract_ff_events <- F
-  run_get_ff_features <- T
-  overwrite_extract_ff_features <- T
+  run_get_ff_features <- F
+  overwrite_extract_ff_features <- F
   generate_day_randomization_plan <- F
   overwrite_day_randomization_plan <- F
   execute_day_randomization_plan <- F
@@ -51,7 +51,7 @@ runall <- function(randomization.type, ensure.no.day.matches){
                       last.day.used = 35, #last day to use in the randomizations (and real data)
                       blocks = NULL, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
                       ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
-                      n.rands = 1000 #how many randomizations to do
+                      n.rands = 100 #how many randomizations to do
                       )
   
   #parameters for a den block permutation
@@ -66,7 +66,7 @@ runall <- function(randomization.type, ensure.no.day.matches){
                                 last.day.used = 35, #last day to use in the randomizations (and real data)
                                 blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
                                 ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
-                                n.rands = 1000 #how many randomizations to do
+                                n.rands = 100 #how many randomizations to do
                                 )
   
   #den info
@@ -103,6 +103,11 @@ runall <- function(randomization.type, ensure.no.day.matches){
     }
     load('hyena_xy_level1.RData')
     
+    #since vedba file also has something called params, first save the correct params and then replace it 
+    params2 <- params
+    load('../acc/hyena_vedba.RData')
+    params <- params2
+    
     #extract events
     events <- get_ff_events_and_phases(xs = xs, 
                                        ys = ys, 
@@ -130,7 +135,11 @@ runall <- function(randomization.type, ensure.no.day.matches){
         print('Loading xy data')
       }
       load('hyena_xy_level1.RData')
+      
+      #since vedba file also has something called params, first save the correct params and then replace it 
+      params2 <- params
       load('../acc/hyena_vedba.RData')
+      params <- params2
       
       setwd(outdir)
       load(events_filename)
@@ -147,6 +156,7 @@ runall <- function(randomization.type, ensure.no.day.matches){
                               params = params,
                               den.file.path = den.file.path,
                               den.names = den.names,
+                              vedbas = vedbas,
                               get.sync.measures = get.sync.measures,
                               sync.subsample = 10)
     
@@ -204,6 +214,12 @@ runall <- function(randomization.type, ensure.no.day.matches){
     load('hyena_xy_level1.RData')
     load('hyena_timestamps.RData')
     load('hyena_day_start_idxs.RData')
+    
+    #since vedba file also has something called params, first save the correct params and then replace it 
+    params2 <- params
+    load('../acc/hyena_vedba.RData')
+    params <- params2
+    
     timestamps.local <- timestamps + params$local.time.diff*60*60
     
     setwd(outdir)
@@ -254,7 +270,10 @@ runall <- function(randomization.type, ensure.no.day.matches){
                                      together.seqs = events.rand, 
                                      params = params,
                                      den.file.path = den.file.path,
-                                     den.names = den.names)
+                                     vedbas = vedbas,
+                                     get.sync.measures = get.sync.measures,
+                                     den.names = den.names,
+                                     sync.subsample = 10)
       events.rand.list[[r]] <- events.rand
       
       if(overwrite_day_randomization_output){
@@ -282,6 +301,9 @@ runall <- function(randomization.type, ensure.no.day.matches){
   
     #visualizations
     
+    #plot total number of events in real vs permuted, and events per dyad in real vs permuted
+    
+    
     #event type frequency for all events - real vs permuted
     visualize_event_type_distributions(events, events.rand.list, rand.params, timestamps, remove.events.around.day.breaks = T)
     dev.copy2pdf(file = paste0(plotdir, '/eventfreq_', randomization.type, '_avoiddups', ensure.no.day.matches, '.pdf', sep = ''))
@@ -302,13 +324,10 @@ runall <- function(randomization.type, ensure.no.day.matches){
 
 #-----------------------------------MAIN-------------------------------------------------
 
-# Extract features, no randomization
-runall(randomization.type = 'nightperm', ensure.no.day.matches = F)
-
 #print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
 #runall(randomization.type = 'denblock', ensure.no.day.matches = T)
-print('--------------------------- NIGHTPERM / NO MATCH ---------------------------------')
-runall(randomization.type = 'nightperm', ensure.no.day.matches = T)
+#print('--------------------------- NIGHTPERM / NO MATCH ---------------------------------')
+#runall(randomization.type = 'nightperm', ensure.no.day.matches = T)
 print('--------------------------- DENBLOCK / MATCH ALLOWED ---------------------------------')
 runall(randomization.type = 'denblock', ensure.no.day.matches = F)
 print('--------------------------- DENBLOCK / MATCH ALLOWED ---------------------------------')
