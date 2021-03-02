@@ -1005,7 +1005,7 @@ remove_events_around_day_breaks <- function(together.seqs, timestamps, rand.para
   idx.rem <- c()
   for(i in 1:nrow(together.seqs)){
 
-    t.interval <- seq.POSIXt(from = timestamps[together.seqs$t0[i]],to = timestamps[together.seqs$tf[i]], by = 'sec')
+    t.interval <- seq.POSIXt(from = timestamps[together.seqs$t.start[i]],to = timestamps[together.seqs$t.end[i]], by = 'sec')
     hrs <- hour(t.interval)
     if(rand.params$break.hour %in% t.interval){
       idx.rem <- c(idx.rem, i)
