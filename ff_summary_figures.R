@@ -3,7 +3,12 @@
 #-----------LIBRARIES-------------
 library(ggplot2)
 library(gridExtra)
-library(RgoogleMaps)
+library(ggmap)
+library(RColorBrewer)
+library(ggspatial)
+library(lubridate)
+library(viridis)
+
 
 #------------DIRECTORIES------------
 
@@ -12,6 +17,10 @@ indir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps'
 
 #directory of where to store extracted data for fission-fusion project
 outdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/no_synchrony_measures'
+
+#directory where the satelite map is stored
+#Load pre-downloaded map
+mapdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/'
 
 #directory to put plots
 plotdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/results'
@@ -24,6 +33,7 @@ codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
 data_output_file <- 'fission_fusion_events_features.RData'
 nightperm_output_file <- 'hyena_day_randomization_events_features_nightperm_avoidmatchTRUE.RData'
 denblock_output_file <- 'hyena_day_randomization_events_features_denblock_avoidmatchTRUE.RData'
+map_file <- 'hyena_satellite_map.RData'
 
 #----------FUNCTIONS---------------
 setwd(codedir)
@@ -36,6 +46,7 @@ setwd(indir)
 load('hyena_timestamps.RData')
 load('hyena_ids.RData')
 load('hyena_xy_level1.RData')
+load('hyena_latlon_level0.RData')
 
 setwd(outdir)
 
@@ -53,6 +64,10 @@ rm('events.rand.list')
 load(denblock_output_file)
 events.rand.list.denblock <- events.rand.list
 rm('events.rand.list')
+
+#load the map
+setwd(mapdir)
+load(map_file)
 
 #------------PROCESS-----------------
 print("Preprocessing")
@@ -166,6 +181,25 @@ pnonden <- ggplot(plotdat, aes(x = type, y = nondenevents)) +
 
 quartz(width = 16, height = 8)
 grid.arrange(ptot, pden, pnonden, nrow = 1)
+
+#---PLOT 1 version 2 (for paper)--------
+plotdat.denblock <- plotdat[which(plotdat$type=='denblock'),]
+plotdat.denblock$lab.all <- 'All'
+plotdat.denblock$lab.den <- 'Den'
+plotdat.denblock$lab.nonden <- 'Non-den'
+p_nevents <- ggplot(plotdat.denblock) + 
+  geom_violin(mapping = aes(x = lab.all, y = nevents), fill = 'gray') + 
+  geom_point(aes(x = lab.all, y = events.tot.data), pch = 8, size = 5, color = 'black') +
+  geom_violin(mapping = aes(x = lab.den, y = denevents), fill = 'blue') + 
+  geom_point(aes(x = lab.den, y = events.tot.den.data), pch = 8, size = 5, color = 'blue') + 
+  geom_violin(mapping = aes(x = lab.nonden, y = nondenevents), fill = 'magenta') + 
+  geom_point(aes(x = lab.nonden, y = events.tot.nonden.data), pch = 8, size = 5, color = 'magenta') + 
+  labs(title="",x="", y = "Number of fission-fusion events", size = 2) +
+  ylim(0, 800) + 
+  theme_minimal(base_size = 24) + 
+  theme(legend.position="none")  
+quartz(width = 6, height = 8)
+p_nevents
 
 #---PLOT 2 Comparing social networks generated from the data to the equivalent ones in permuted data
 #get netork data into ggplot form (also use SRI here)
@@ -282,6 +316,47 @@ psrinonden <- ggplot(networkdat, aes(x = dyad, y = sri.nonden)) +
 quartz(width = 16, height = 8)
 grid.arrange(psri, psriden, psrinonden, nrow = 1)
 
+#-----PLOT 2 - version 2 (simplified)-----
+#create the plot - all
+networkdat.denblock <- networkdat[which(networkdat$type %in% c('denblock','real')),]
+psri2 <- ggplot(networkdat.denblock, aes(x = dyad, y = sri)) + 
+  geom_violin(fill = 'yellow') + 
+  geom_point(aes(x = dyad, y = sri), data = networkdat.denblock[which(networkdat.denblock$type=='real'),], shape = 8, fill = 'black', size = 5) +
+  coord_flip() +
+  theme_minimal(base_size = 18) +
+  theme_minimal(base_size = 24) +
+  theme(legend.position = 'none') +
+  ylab('Edge weight') + 
+  xlab('')
+quartz(width = 8, height = 8)
+psri2
+
+#create the plot - den
+psriden <- ggplot(networkdat, aes(x = dyad, y = sri.den)) + 
+  geom_violin(aes(fill = type)) + 
+  geom_point(aes(x = dyad, y = sri.den), data = networkdat[which(networkdat$type=='real'),], shape = 23, fill = 'black', size = 4) +
+  coord_flip() +
+  theme_minimal(base_size = 18) +
+  theme(legend.position="top") +
+  scale_fill_manual(values=c("yellow", "light green")) +
+  ylab('Edge weight') + 
+  xlab('')
+
+#create the plot - den
+psrinonden <- ggplot(networkdat, aes(x = dyad, y = sri.nonden)) + 
+  geom_violin(aes(fill = type)) + 
+  geom_point(aes(x = dyad, y = sri.nonden), data = networkdat[which(networkdat$type=='real'),], shape = 23, fill = 'black', size = 4) +
+  coord_flip() +
+  theme_minimal(base_size = 18) +
+  theme(legend.position="top") +
+  scale_fill_manual(values=c("yellow", "light green")) +
+  ylab('Edge weight') + 
+  xlab('')
+
+quartz(width = 16, height = 8)
+grid.arrange(psri, psriden, psrinonden, nrow = 1)
+
+
 
 #---------PLOT 3------- FF locations
 #Where do ff events take place?
@@ -296,6 +371,10 @@ lonlat.fusion <- utm.to.latlon(cbind(events.data.exact$x.fusion, events.data.exa
 lonlat.fission <- utm.to.latlon(cbind(events.data.exact$x.fission, events.data.exact$y.fission), southern_hemisphere = T, utm.zone = '36')
 events.data.exact$lon.fusion <- lonlat.fusion[,1]
 events.data.exact$lat.fusion <- lonlat.fusion[,2]
+events.data.exact$lon.fission <- lonlat.fission[,1]
+events.data.exact$lat.fission <- lonlat.fission[,2]
+events.data.exact$at.den.start <- events.data.exact$dist.den.start <= params$den.dist.thresh
+events.data.exact$at.end <- events.data.exact$dist.den.end <= params$den.dist.thresh
 
 #get den locations
 den.locs <- get_dens()
@@ -304,13 +383,69 @@ den.locs <- get_dens()
 cols <- rep('#FF00FF66', nrow(events.data.exact))
 cols[which(events.data.exact$dist.den.start <= params$den.dist.thresh)] <- '#0000FF66'
 
-#get google map
-map <- GetMap(center=c(-1.469269, 35.22431), zoom = 13, maptype = 'satellite')
+#make background slightly transparent
+map_attr <- attributes(hyena_map13)
+hyena_map_transparent <- matrix(adjustcolor(hyena_map13, 
+                                                alpha.f = 0.6), 
+                                    nrow = nrow(hyena_map13))
+attributes(hyena_map_transparent) <- map_attr
 
-#plot it
-quartz()
-PlotOnStaticMap(lat = events.data.exact$lat.fusion, lon = events.data.exact$lon.fusion, MyMap = map, col = cols, pch = 3, add = F)
-PlotOnStaticMap(lat = den.locs$lat, lon = den.locs$lon, MyMap = map, col = 'blue', pch = 1, add = T, cex = 4, lwd = 3)
+#create the plot (for fusions, in this case)
+quartz(height = 8, width = 8)
+mapplot <- ggmap(hyena_map_transparent, alpha = 0.5) + 
+  geom_point(aes(x = lon.fusion, y = lat.fusion, color = at.den.start), data = events.data.exact, size = 2, shape = 3, alpha = 0.8, stroke = 1) +
+  scale_color_manual(values=c("magenta", "blue")) + 
+  theme(legend.position="bottom") + 
+  geom_point(aes(x = lon, y = lat), data = den.locs, size = 10, shape = 21, color = 'blue', stroke = 1.5) 
+  #annotation_scale(location = "bl", height = unit(1.5, "mm"), width_hint = 0.3, text_cex = 0.7, style = "ticks", line_col = "white", text_col = "white") +
+  #annotation_north_arrow(location = "tr", height = unit(8, "mm"), width = unit(5, "mm"), style = north_arrow_fancy_orienteering(line_col = "white", text_size = 0.7))
+mapplot
 
+#scale bar
 
+                    
+#-------PLOT 4 overall ranging patterns -------
+step <- 300
+n.inds <- dim(xs)[1]
+n.times <- dim(xs)[2]
+movedat <- data.frame()
+for(i in 1:n.inds){
+  t.sub <- seq(from = 1, to = n.times, by = step)
+  movedat <- rbind(movedat, data.frame(id = rep(hyena.ids$name[i], length(t.sub)), lon = lons[i, t.sub], lat = lats[i, t.sub]))
+}
+quartz(height = 8, width = 16)
+mapplot2 <- ggmap(hyena_map_transparent, alpha = 0.5) + 
+  geom_point(aes(x = lon, y = lat, color= id), data = movedat, size = 1, shape = 19, alpha = 0.3) +
+  scale_color_brewer(palette="Set1") + 
+  geom_point(aes(x = lon, y = lat), data = den.locs, size = 10, shape = 21, color = 'blue', stroke = 1.2)  +
+  theme(legend.position = 'bottom')
+mapplot2
+
+grid.arrange(mapplot2, mapplot, nrow = 1)
+
+#-------PLOT 5 time of fusions ----------
+events.data.exact$hour.start <- hour(timestamps[events.data.exact$t.start] + params$local.time.diff*60*60) 
+events.data.exact$hour.end <- hour(timestamps[events.data.exact$t.end] + params$local.time.diff*60*60)
+pal <- colorRampPalette(colors = c('#292965','#6696ba','#e2e38b','#e7a553','#7e4b68','#292965'))
+breaks <- seq(0,24,1)
+timeplot <- ggplot(aes(x = hour.start), data = events.data.exact, size = 2) +
+  geom_histogram(binwidth = 1, fill = c(viridis(12), rev(viridis(12))), na.rm=T) + 
+  theme_classic(base_size = 18) + 
+  ylab('Number of fusions') + 
+  xlab('Hour of day')
+
+quartz(width = 8, height = 8)
+timeplot
+
+#check amount of time two inds tracked (to make sure this isn't driving time of day pattern - it is not)
+hours.ts <- hour(timestamps + params$local.time.diff*60*60)
+all.hrs <- c()
+for(i in 1:(n.inds-1)){
+  for(j in (i:n.inds)){
+    both.tracked <- which(!is.na(xs[i,] &!is.na(xs[j,])))
+    all.hrs <- c(all.hrs, hours.ts[both.tracked])
+  }
+}
+
+hist(all.hrs)
 
