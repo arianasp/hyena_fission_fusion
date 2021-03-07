@@ -136,6 +136,23 @@ for(r in 1:n.rands){
   
 }
 
+#-------------DESCRIPTIVE STATS---------
+#Compute some basic stats mentioned in the paper and print the results
+print(paste0('The total number of events is ', nrow(events.data)))
+print(paste0('The total number of events with exact start and end times is ', sum(events.data$start.exact==T & events.data$end.exact==T)))
+
+print(paste0('The number of events starting at the den is ', sum(events.data$dist.den.start <= params$den.dist.thresh)))
+print(paste0('The number of events ending at the den is ', sum(events.data$dist.den.end <= params$den.dist.thresh)))
+print(paste0('The number of events either starting or ending at a den is ', sum(events.data$dist.den.start <= params$den.dist.thresh | events.data$dist.den.end <= params$den.dist.thresh)))
+
+
+print(paste0('The mean and 95% range of predicted number of events in denblock model is ', median(events.tot.denblock), ' (', quantile(events.tot.denblock, 0.025), ' to ', quantile(events.tot.denblock, 0.975), ')'))
+print(paste0('The mean and 95% range of predicted number of events in denblock model is ', median(events.tot.den.denblock), ' (', quantile(events.tot.den.denblock, 0.025), ' to ', quantile(events.tot.den.denblock, 0.975), ')'))
+print(paste0('The mean and 95% range of predicted number of events in denblock model is ', median(events.tot.nonden.denblock), ' (', quantile(events.tot.nonden.denblock, 0.025), ' to ', quantile(events.tot.nonden.denblock, 0.975), ')'))
+
+print(paste0('The number of traveling events during the together phase is ', sum(events.data$together.type=='together.travel', na.rm=T)))
+print(paste0('The number of stationary events during the together phase is ', sum(events.data$together.type=='together.local', na.rm=T)))
+
 #--------------PLOTS----------------
 
 print("Creating plots")
@@ -390,19 +407,31 @@ hyena_map_transparent <- matrix(adjustcolor(hyena_map13,
                                     nrow = nrow(hyena_map13))
 attributes(hyena_map_transparent) <- map_attr
 
+#create data for a scale bar in lower left corner
+low <- attributes(hyena_map13)$bb$ur.lat
+left <- attributes(hyena_map13)$bb$ur.lon
+ur.utm <- latlon.to.utm(cbind(left, low), utm.zone = '36', southern_hemisphere = T)
+scale.min.x <- ur.utm[1,1] - 2000
+scale.min.y <- ur.utm[1,2] - 1000
+scale.max.x <- scale.min.x + 1000
+scale.max.y <- scale.min.y
+scalemin.lonlat <- utm.to.latlon(cbind(scale.min.x, scale.min.y), utm.zone = '36', southern_hemisphere = T)
+scalemax.lonlat <- utm.to.latlon(cbind(scale.max.x, scale.max.y), utm.zone = '36', southern_hemisphere = T)
+scale.lons <- c(scalemin.lonlat[,1], scalemax.lonlat[,1])
+scale.lats <- c(scalemin.lonlat[,2], scalemax.lonlat[,2])
+scalebar <- data.frame(lon = scale.lons, lat = scale.lats)
+scalebar2 <- data.frame(lon = mean(scale.lons), lat = mean(scale.lats))
+
 #create the plot (for fusions, in this case)
 quartz(height = 8, width = 8)
 mapplot <- ggmap(hyena_map_transparent, alpha = 0.5) + 
   geom_point(aes(x = lon.fusion, y = lat.fusion, color = at.den.start), data = events.data.exact, size = 2, shape = 3, alpha = 0.8, stroke = 1) +
   scale_color_manual(values=c("magenta", "blue")) + 
-  theme(legend.position="bottom") + 
-  geom_point(aes(x = lon, y = lat), data = den.locs, size = 10, shape = 21, color = 'blue', stroke = 1.5) 
-  #annotation_scale(location = "bl", height = unit(1.5, "mm"), width_hint = 0.3, text_cex = 0.7, style = "ticks", line_col = "white", text_col = "white") +
-  #annotation_north_arrow(location = "tr", height = unit(8, "mm"), width = unit(5, "mm"), style = north_arrow_fancy_orienteering(line_col = "white", text_size = 0.7))
+  theme(legend.position="none", axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank()) + 
+  geom_point(aes(x = lon, y = lat), data = den.locs, size = 10, shape = 21, color = 'blue', stroke = 1.5) +
+  geom_line(aes(x = lon, y = lat), data = scalebar, color = 'black', lwd = 1.2) +
+  geom_text(aes(x = lon, y = lat), data = scalebar2, label = '1 km', nudge_y = .003, size = 6)
 mapplot
-
-#scale bar
-
                     
 #-------PLOT 4 overall ranging patterns -------
 step <- 300
@@ -418,6 +447,8 @@ mapplot2 <- ggmap(hyena_map_transparent, alpha = 0.5) +
   geom_point(aes(x = lon, y = lat, color= id), data = movedat, size = 1, shape = 19, alpha = 0.3) +
   scale_color_brewer(palette="Set1") + 
   geom_point(aes(x = lon, y = lat), data = den.locs, size = 10, shape = 21, color = 'blue', stroke = 1.2)  +
+  geom_line(aes(x = lon, y = lat), data = scalebar, color = 'black', lwd = 1.2) +
+  geom_text(aes(x = lon, y = lat), data = scalebar2, label = '1 km', nudge_y = .003) +
   theme(legend.position = 'bottom')
 mapplot2
 
