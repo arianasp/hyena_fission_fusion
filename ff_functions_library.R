@@ -1006,7 +1006,7 @@ remove_events_around_day_breaks <- function(together.seqs, timestamps, rand.para
   idx.rem <- c()
   for(i in 1:nrow(together.seqs)){
 
-    t.interval <- seq.POSIXt(from = timestamps[together.seqs$t.start[i]],to = timestamps[together.seqs$t.end[i]], by = 'sec')
+    t.interval <- seq.POSIXt(from = timestamps[together.seqs$t.start[i]],to = timestamps[together.seqs$t.start[i]], by = 'sec')
     hrs <- hour(t.interval)
     if(rand.params$break.hour %in% t.interval){
       idx.rem <- c(idx.rem, i)
@@ -1447,11 +1447,4 @@ plot_canonical_shape <- function(rows, together.seqs, xs, ys){
     text(x = mean(c(together.seqs$t.end[r]- together.seqs$t.start[r],
                     together.seqs$b2[r]- together.seqs$t.start[r])), y = -30, labels = 'fission')
   }
-}
-
-#Compute dyadic distance over time
-dyad.dists <- array(NA, dim=c(n.inds, n.inds, n.times))
-for (i in 1:n.inds) {
-  dyad.dists[i,,] <- sqrt( (sweep(xs,2,xs[i,],FUN='-'))^2 + (sweep(ys,2,ys[i,],FUN='-'))^2 )
-  dyad.dists[i,i,] <- NA
 }
