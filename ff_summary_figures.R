@@ -8,6 +8,8 @@ library(RColorBrewer)
 library(ggspatial)
 library(lubridate)
 library(viridis)
+library(alluvial)
+library(dplyr)
 
 
 #------------DIRECTORIES------------
@@ -480,3 +482,32 @@ for(i in 1:(n.inds-1)){
 
 hist(all.hrs)
 
+#------ PLOT 6 alluvial plot phase transitions------
+alluv.data <- data.frame(full.type = events.data.exact[,c('event.type.sym')])
+splittypes <- strsplit(as.character(alluv.data$full.type), split = '__')
+alluv.data$fusion.word <- alluv.data$together.word <- alluv.data$fission.word <- alluv.data$Fusion <- alluv.data$Together <- alluv.data$Fission <- NA
+symbols <- get_event_type_symbols()
+for(i in 1:nrow(alluv.data)){
+  sym <- symbols[match(alluv.data$full.type[i], names(symbols))]
+  symsplit <- strsplit(sym, split = '\n')
+  alluv.data$fusion.word[i] <- splittypes[[i]][1]
+  alluv.data$together.word[i] <- splittypes[[i]][2]
+  alluv.data$fission.word[i] <- splittypes[[i]][3]
+  
+  alluv.data$Fusion[i] <- symsplit[[1]][3] #note: this is because the symbols are listed backwards to read from bottom to top
+  alluv.data$Together[i] <- symsplit[[1]][2]
+  alluv.data$Fission[i] <- symsplit[[1]][1]
+  
+}
+alluv.data <- na.omit(alluv.data)
+
+alluv.plot.data <- alluv.data %>% 
+  group_by(Fusion, Together, Fission) %>%
+  summarize(count = length(full.type))
+
+fusion.symbols <- unique(alluv.plot.data$Fusion)
+quartz(width = 8, height = 8)
+alluvp <- alluvial(alluv.plot.data[,c('Fusion','Together','Fission')], freq = alluv.plot.data$count, col = ifelse(alluv.plot.data$Fusion == fusion.symbols[1], '#111111','goldenrod'), blocks = T)
+
+
+alluvp
