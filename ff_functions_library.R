@@ -2,6 +2,7 @@
 library(lubridate)
 library(utf8)
 library(rgdal)
+library(pBrackets)
 
 #################################### HELPER FUNCTIONS ####################################
 
@@ -1378,3 +1379,79 @@ compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.br
   }
 }
 
+plot_events <- function(indices, events, xs, ys, phase.col = TRUE, ...){
+  for(r in indices){
+    x.i <- xs[events$i[r], events$t.start[r]:events$t.end[r]]
+    x.i <- x.i - mean(x.i, na.rm = TRUE)
+    y.i <- ys[events$i[r], events$t.start[r]:events$t.end[r]]
+    y.i <- y.i - mean(y.i, na.rm = TRUE)
+    x.j <- xs[events$j[r], events$t.start[r]:events$t.end[r]]
+    x.j <- x.j - mean(x.j, na.rm = TRUE)
+    y.j <- ys[events$j[r], events$t.start[r]:events$t.end[r]]
+    y.j <- y.j - mean(y.j, na.rm = TRUE)
+    
+    b1.idx <- events$b1[r] - events$t.start[r] + 1
+    b2.idx <- events$b2[r] - events$t.start[r] + 1
+    col1 <- rep('darkblue', length(x.i))
+    if(phase.col){
+      col1[b1.idx:b2.idx] <- 'blue'
+      col1[b2.idx:length(x.i)] <- 'cyan'
+    }
+    col2 <- rep('darkred', length(x.j))
+    if(phase.col){
+      col2[b1.idx:b2.idx] <- 'red'
+      col2[b2.idx:length(x.j)] <- 'orange'
+    }
+    plot(x.i, y.i,asp=1, ylim = c(min(c(y.i, y.j), na.rm =TRUE), max(c(y.i, y.j), na.rm = TRUE)),
+         xlim = c(min(c(x.i, x.j), na.rm =TRUE), max(c(x.i, x.j), na.rm = TRUE)), col = scales::alpha(col1, 0.5),
+         cex = seq(0.1, 1, length.out = length(x.i)), ...)
+    points(x.j, y.j, col = scales::alpha(col2, 0.5), cex = seq(0.1, 1, length.out = length(x.i)))
+    x.lims <- par()$usr[1:2]
+    y.lims <- par()$usr[3:4]
+  }
+}
+
+plot_canonical_shape <- function(rows, together.seqs, xs, ys){
+  for(r in rows){
+    
+    y <- sqrt( (xs[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - xs[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2 +
+                          (ys[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - ys[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2)
+    #y <- dyad.dists[together.seqs$i[r], together.seqs$j[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
+    x <- together.seqs$t.start[r]:together.seqs$t.end[r]
+    
+    plot(y = y, type = 'l',
+         x = x- together.seqs$t.start[r],
+         xlab = 'Time (s)', ylab = 'Distance between individuals (m)',
+         lwd = 2, ylim = c(-50, 200),
+         yaxp  = c(0, 200, 2),
+         xlim = c(- (range(x)[2] - range(x)[1])*0.1, max( x- together.seqs$t.start[r])+ (range(x)[2] - range(x)[1])*0.1))
+    
+    
+    
+    fp <- list(x0 = x[1], 
+               y0 = y[1],
+               xf = x[length(x)],
+               yf = y[length(y)]) 
+    
+    # lines(x =x, y = fission_fusion_function(x, p$par[1], p$par[2], p$par[3], fp), col = 'red')
+    y.fit <- fission_fusion_function(x = x, b1 = together.seqs$b1[r], b2 = together.seqs$b2[r],
+                                     b.y.intercept = together.seqs$y.intercept[r], fixed.parameters = fp)
+    lines(x = x - together.seqs$t.start[r], y = y.fit, col = alpha('darkred', 0.75), lwd = 2)
+    brackets(x1 = 0, x2 = together.seqs$b1[r]- together.seqs$t.start[r] - 5, y1 = 0, y2 = 0, h = -20, type = 4)
+    brackets(x1 = together.seqs$b1[r]- together.seqs$t.start[r]+5, x2 = together.seqs$b2[r]- together.seqs$t.start[r]-5, y1 = 0, y2 = 0, h = -20, type = 4)
+    brackets(x1 = together.seqs$b2[r]- together.seqs$t.start[r]+5, x2 = together.seqs$t.end[r]- together.seqs$t.start[r], y1 = 0, y2 = 0, h = -20, type = 4)
+    
+    text(x = (together.seqs$b1[r]- together.seqs$t.start[r])/2, y = -30, labels = 'fusion')
+    text(x = mean(c(together.seqs$b1[r]- together.seqs$t.start[r],
+                    together.seqs$b2[r]- together.seqs$t.start[r])), y = -30, labels = 'together')
+    text(x = mean(c(together.seqs$t.end[r]- together.seqs$t.start[r],
+                    together.seqs$b2[r]- together.seqs$t.start[r])), y = -30, labels = 'fission')
+  }
+}
+
+#Compute dyadic distance over time
+dyad.dists <- array(NA, dim=c(n.inds, n.inds, n.times))
+for (i in 1:n.inds) {
+  dyad.dists[i,,] <- sqrt( (sweep(xs,2,xs[i,],FUN='-'))^2 + (sweep(ys,2,ys[i,],FUN='-'))^2 )
+  dyad.dists[i,i,] <- NA
+}

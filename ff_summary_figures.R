@@ -491,3 +491,12 @@ for(i in 1:(n.inds-1)){
 
 hist(all.hrs)
 
+
+#-------PLOT 5 example of fission-fusion events ----------
+png(filename = paste0(plotdir, '/ff_example.png'), width = 4, height = 6, units = 'in', res = 300)
+regular.margin <- c(5.1, 4.1, 2.1, 2.1)
+par(mfrow = c(2,1), mar = c(0,0,0,0))
+plot_events(indices = 70, events = events.data.exact, xs = xs, ys = ys, phase.col = FALSE, axes = FALSE, xlab = '', ylab = '')
+par(mar = regular.margin)
+plot_canonical_shape(70, together.seqs = events.data.exact, xs = xs, ys = ys)
+dev.off()
