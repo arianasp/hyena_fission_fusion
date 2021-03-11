@@ -14,22 +14,33 @@ library(dplyr)
 
 #------------DIRECTORIES------------
 
+user <- Sys.info()['user']
+if(user == 'strau'){
+  remote.stem <- 'Z:\\'
+  code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
+}else if(user == 'straussed'){
+  remote.stem <- '/Volumes/'
+  code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
+}else{
+  remote.stem <- '/Volumes/'
+  code.stem <- '~/Dropbox/code_ari/'
+}
+
 #directory of where the original (processed) movement + vedba data is stored (+ metadata on IDs and den locations)
-indir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps'
+indir <- paste0(remote.stem, 'hyena/archive/hyena_pilot_2017/processed/gps')
 
 #directory of where to store extracted data for fission-fusion project
-outdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/no_synchrony_measures'
+outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/no_synchrony_measures')
 
 #directory where the satelite map is stored
 #Load pre-downloaded map
-mapdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/'
+mapdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/')
 
 #directory to put plots
-plotdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/results'
+plotdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/results')
 
 #directory where code for fission-fusion project is stored
-codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
-#codedir <- '~/Dropbox/Documents/Research/Partial_projects/hyena_fission_fusion/'
+codedir <- paste0(code.stem, 'hyena_fission_fusion/')
 
 #-----------FILENAMES---------------
 data_output_file <- 'fission_fusion_events_features.RData'
