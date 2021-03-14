@@ -1,6 +1,6 @@
 #Driver script to run fission-fusion analyses
 
-runall <- function(randomization.type, ensure.no.day.matches){
+runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.fission = 200){
   ################################ SET UP DIRECTORIES ##################################
   
   user <- Sys.info()['user']
@@ -8,10 +8,10 @@ runall <- function(randomization.type, ensure.no.day.matches){
     remote.stem <- 'Z:\\'
     code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
   }else if(user == 'straussed'){
-    remote.stem <- '/Volumes/'
+    remote.stem <- '/Volumes/EAS_shared/'
     code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
   }else{
-    remote.stem <- '/Volumes/'
+    remote.stem <- '/Volumes/EAS_shared/'
     code.stem <- '~/Dropbox/code_ari/'
   }
   
@@ -20,6 +20,11 @@ runall <- function(randomization.type, ensure.no.day.matches){
   
   #directory of where to store extracted data for fission-fusion project
   outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/no_synchrony_measures')
+  if(R.fusion == 50){
+    outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/robustness_checks/R50_100')
+  } else if(R.fusion == 200){
+    outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/robustness_checks/R200_300')
+  }
   
   #directory to put plots
   plotdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/results')
@@ -30,20 +35,20 @@ runall <- function(randomization.type, ensure.no.day.matches){
   
   ################################ CHOOSE ANALYSES TO RUN ##################################
   
-  run_extract_ff_events <- F
-  overwrite_extract_ff_events <- F
-  run_get_ff_features <- F
-  overwrite_extract_ff_features <- F
-  generate_day_randomization_plan <- F
-  overwrite_day_randomization_plan <- F
-  execute_day_randomization_plan <- F
-  overwrite_day_randomization_output <- F
+  run_extract_ff_events <- T
+  overwrite_extract_ff_events <- T
+  run_get_ff_features <- T
+  overwrite_extract_ff_features <- T
+  generate_day_randomization_plan <- T
+  overwrite_day_randomization_plan <- T
+  execute_day_randomization_plan <- T
+  overwrite_day_randomization_output <- T
   output_day_randomization_plots <- F
   
   ################################ PARAMETERS ##########################################
   
-  params <- list(R.fusion = 100, 
-                 R.fission = 200, 
+  params <- list(R.fusion = R.fusion,  #default 100
+                 R.fission = R.fission, #default 200 
                  max.break = 60*30, #max time between events to merge events connected by NAs
                  move.thresh = 5, #minimum amount moved to be considered 'moving' during a phase
                  together.travel.thresh = 200, #minimum amount to be considered 'moving' during the together phase
@@ -336,11 +341,7 @@ runall <- function(randomization.type, ensure.no.day.matches){
 
 #-----------------------------------MAIN-------------------------------------------------
 
-#print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
-#runall(randomization.type = 'denblock', ensure.no.day.matches = T)
-#print('--------------------------- NIGHTPERM / NO MATCH ---------------------------------')
-#runall(randomization.type = 'nightperm', ensure.no.day.matches = T)
-print('--------------------------- DENBLOCK / MATCH ALLOWED ---------------------------------')
-runall(randomization.type = 'denblock', ensure.no.day.matches = F)
-print('--------------------------- DENBLOCK / MATCH ALLOWED ---------------------------------')
-runall(randomization.type = 'nightperm', ensure.no.day.matches = F)
+print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
+runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 50, R.fission = 100)
+print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
+runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 200, R.fission = 300)
