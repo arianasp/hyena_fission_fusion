@@ -5,7 +5,6 @@ library(ggplot2)
 library(gridExtra)
 library(ggmap)
 library(RColorBrewer)
-library(ggspatial)
 library(lubridate)
 library(viridis)
 library(alluvial)
@@ -22,7 +21,7 @@ if(user == 'strau'){
   remote.stem <- '/Volumes/'
   code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
 }else{
-  remote.stem <- '/Volumes/'
+  remote.stem <- '/Volumes/EAS_shared/'
   code.stem <- '~/Dropbox/code_ari/'
 }
 
@@ -30,7 +29,7 @@ if(user == 'strau'){
 indir <- paste0(remote.stem, 'hyena/archive/hyena_pilot_2017/processed/gps')
 
 #directory of where to store extracted data for fission-fusion project
-outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/no_synchrony_measures')
+outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/robustness_checks/R200_300')
 
 #directory where the satelite map is stored
 #Load pre-downloaded map
@@ -113,37 +112,51 @@ events.net.nightperm.nonden <- events.net.denblock.nonden <- array(NA, dim = c(n
 
 for(r in 1:n.rands){
   
-  #get events associated with that randomization
-  events.rand.nightperm <- events.rand.list.nightperm[[r]]
+  #get events associated with that randomization\
+  if(exists('events.rand.list.nightperm')){
+    events.rand.nightperm <- events.rand.list.nightperm[[r]]
+  }
   events.rand.denblock <- events.rand.list.denblock[[r]]
   
   #remove events surrounding the 'day break'
-  events.rand.nightperm <- remove_events_around_day_breaks(events.rand.nightperm, timestamps, rand.params)
+  if(exists('events.rand.list.nightperm')){
+    events.rand.nightperm <- remove_events_around_day_breaks(events.rand.nightperm, timestamps, rand.params)
+  }
   events.rand.denblock <- remove_events_around_day_breaks(events.rand.denblock, timestamps, rand.params)
   
   #total number of events
-  events.tot.nightperm[r] <- nrow(events.rand.nightperm)
+  if(exists('events.rand.list.nightperm')){
+    events.tot.nightperm[r] <- nrow(events.rand.nightperm)
+  }
   events.tot.denblock[r] <- nrow(events.rand.denblock)
   
-  #den vs nonden
-  events.tot.den.nightperm[r] <- sum(events.rand.nightperm$dist.den.start <= params$den.dist.thresh | events.rand.nightperm$dist.den.end <= params$den.dist.thresh)
-  events.tot.nonden.nightperm[r] <- sum(events.rand.nightperm$dist.den.start > params$den.dist.thresh & events.rand.nightperm$dist.den.end > params$den.dist.thresh)
+  #den vs nonden 
+  if(exists('events.rand.list.nightperm')){
+    events.tot.den.nightperm[r] <- sum(events.rand.nightperm$dist.den.start <= params$den.dist.thresh | events.rand.nightperm$dist.den.end <= params$den.dist.thresh)
+    events.tot.nonden.nightperm[r] <- sum(events.rand.nightperm$dist.den.start > params$den.dist.thresh & events.rand.nightperm$dist.den.end > params$den.dist.thresh)
+  }
   events.tot.den.denblock[r] <- sum(events.rand.denblock$dist.den.start <= params$den.dist.thresh | events.rand.denblock$dist.den.end <= params$den.dist.thresh)
   events.tot.nonden.denblock[r] <- sum(events.rand.denblock$dist.den.start > params$den.dist.thresh & events.rand.denblock$dist.den.end > params$den.dist.thresh)
   
   #den indexes
-  nightperm.den.idxs <- which(events.rand.nightperm$dist.den.start <= params$den.dist.thresh | events.rand.nightperm$dist.den.end <= params$den.dist.thresh)
+  if(exists('events.rand.list.nightperm')){
+    nightperm.den.idxs <- which(events.rand.nightperm$dist.den.start <= params$den.dist.thresh | events.rand.nightperm$dist.den.end <= params$den.dist.thresh)
+    nightperm.nonden.idxs <- which(events.rand.nightperm$dist.den.start > params$den.dist.thresh & events.rand.nightperm$dist.den.end > params$den.dist.thresh)
+  }  
   denblock.den.idxs <- which(events.rand.denblock$dist.den.start <= params$den.dist.thresh | events.rand.denblock$dist.den.end <= params$den.dist.thresh)
-  nightperm.nonden.idxs <- which(events.rand.nightperm$dist.den.start > params$den.dist.thresh & events.rand.nightperm$dist.den.end > params$den.dist.thresh)
   denblock.nonden.idxs <- which(events.rand.denblock$dist.den.start > params$den.dist.thresh & events.rand.denblock$dist.den.end > params$den.dist.thresh)
   
   #networks - all
-  events.net.nightperm[,,r] <- count_events_per_dyad(events.rand.nightperm)
+  if(exists('events.rand.list.nightperm')){
+    events.net.nightperm[,,r] <- count_events_per_dyad(events.rand.nightperm)
+  }
   events.net.denblock[,,r] <- count_events_per_dyad(events.rand.denblock)
   
   #networks - den vs nonden
-  events.net.nightperm.den[,,r] <- count_events_per_dyad(events.rand.nightperm[nightperm.den.idxs,])
-  events.net.nightperm.nonden[,,r] <- count_events_per_dyad(events.rand.nightperm[nightperm.nonden.idxs,])
+  if(exists('events.rand.list.nightperm')){
+    events.net.nightperm.den[,,r] <- count_events_per_dyad(events.rand.nightperm[nightperm.den.idxs,])
+    events.net.nightperm.nonden[,,r] <- count_events_per_dyad(events.rand.nightperm[nightperm.nonden.idxs,])
+  }
   events.net.denblock.den[,,r] <- count_events_per_dyad(events.rand.denblock[denblock.den.idxs,])
   events.net.denblock.nonden[,,r] <- count_events_per_dyad(events.rand.denblock[denblock.nonden.idxs,])
   
@@ -160,8 +173,8 @@ print(paste0('The number of events either starting or ending at a den is ', sum(
 
 
 print(paste0('The mean and 95% range of predicted number of events in denblock model is ', median(events.tot.denblock), ' (', quantile(events.tot.denblock, 0.025), ' to ', quantile(events.tot.denblock, 0.975), ')'))
-print(paste0('The mean and 95% range of predicted number of events in denblock model is ', median(events.tot.den.denblock), ' (', quantile(events.tot.den.denblock, 0.025), ' to ', quantile(events.tot.den.denblock, 0.975), ')'))
-print(paste0('The mean and 95% range of predicted number of events in denblock model is ', median(events.tot.nonden.denblock), ' (', quantile(events.tot.nonden.denblock, 0.025), ' to ', quantile(events.tot.nonden.denblock, 0.975), ')'))
+print(paste0('The mean and 95% range of predicted number of den events in denblock model is ', median(events.tot.den.denblock), ' (', quantile(events.tot.den.denblock, 0.025), ' to ', quantile(events.tot.den.denblock, 0.975), ')'))
+print(paste0('The mean and 95% range of predicted number of nonden events in denblock model is ', median(events.tot.nonden.denblock), ' (', quantile(events.tot.nonden.denblock, 0.025), ' to ', quantile(events.tot.nonden.denblock, 0.975), ')'))
 
 print(paste0('The number of traveling events during the together phase is ', sum(events.data$together.type=='together.travel', na.rm=T)))
 print(paste0('The number of stationary events during the together phase is ', sum(events.data$together.type=='together.local', na.rm=T)))
@@ -180,7 +193,7 @@ plotdat$type <- factor(plotdat$type,
 ptot <- ggplot(plotdat, aes(x = type, y = nevents)) + 
   geom_violin(aes(fill = type)) + 
   labs(title="",x="", y = "Number of events") +
-  ylim(0, 800) + 
+  ylim(0, events.tot.data + 50) + 
   theme_minimal(base_size = 18) + 
   geom_hline(yintercept = events.tot.data, color = 'black', size = 1) + 
   theme(legend.position="none") + 
@@ -191,7 +204,7 @@ ptot <- ggplot(plotdat, aes(x = type, y = nevents)) +
 pden <- ggplot(plotdat, aes(x = type, y = denevents)) + 
   geom_violin(aes(fill = type)) + 
   labs(title="",x="", y = "Number of events") +
-  ylim(0, 800) + 
+  ylim(0, events.tot.data + 50) + 
   theme_minimal(base_size = 18) + 
   geom_hline(yintercept = events.tot.den.data, color = 'blue', size = 1) + 
   theme(legend.position="none") + 
@@ -202,7 +215,7 @@ pden <- ggplot(plotdat, aes(x = type, y = denevents)) +
 pnonden <- ggplot(plotdat, aes(x = type, y = nondenevents)) + 
   geom_violin(aes(fill = type)) + 
   labs(title="",x="", y = "Number of events") +
-  ylim(0, 800) + 
+  ylim(0, events.tot.data + 50) + 
   theme_minimal(base_size = 18) + 
   geom_hline(yintercept = events.tot.nonden.data, color = 'magenta', size = 1) + 
   theme(legend.position="none") + 
@@ -225,7 +238,7 @@ p_nevents <- ggplot(plotdat.denblock) +
   geom_violin(mapping = aes(x = lab.nonden, y = nondenevents), fill = 'magenta') + 
   geom_point(aes(x = lab.nonden, y = events.tot.nonden.data), pch = 8, size = 5, color = 'magenta') + 
   labs(title="",x="", y = "Number of fission-fusion events", size = 2) +
-  ylim(0, 800) + 
+  ylim(0, events.tot.data +) + 
   theme_minimal(base_size = 24) + 
   theme(legend.position="none")  
 quartz(width = 6, height = 8)
@@ -491,6 +504,7 @@ for(i in 1:(n.inds-1)){
   }
 }
 
+quartz()
 hist(all.hrs)
 
 
