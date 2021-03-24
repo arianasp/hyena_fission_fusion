@@ -16,7 +16,7 @@ library(dplyr)
 user <- Sys.info()['user']
 if(user == 'strau'){
   remote.stem <- 'Z:\\'
-  code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
+  code.stem <- '~/code/'
 }else if(user == 'straussed'){
   remote.stem <- '/Volumes/'
   code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
@@ -29,7 +29,7 @@ if(user == 'strau'){
 indir <- paste0(remote.stem, 'hyena/archive/hyena_pilot_2017/processed/gps')
 
 #directory of where to store extracted data for fission-fusion project
-outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/robustness_checks/R200_300')
+outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/main_output')
 
 #directory where the satelite map is stored
 #Load pre-downloaded map
@@ -198,7 +198,8 @@ ptot <- ggplot(plotdat, aes(x = type, y = nevents)) +
   geom_hline(yintercept = events.tot.data, color = 'black', size = 1) + 
   theme(legend.position="none") + 
   scale_x_discrete(breaks=c("nightperm","denblock"), labels=c("Complete shuffle", "Den-blocked shuffle")) + 
-  scale_fill_manual(values=c("gray", "gray"))
+  scale_fill_manual(values=c("gray", "gray"))+
+  theme_classic(base_size = 14)
 
 #Subplot 2: Den events
 pden <- ggplot(plotdat, aes(x = type, y = denevents)) + 
@@ -209,7 +210,8 @@ pden <- ggplot(plotdat, aes(x = type, y = denevents)) +
   geom_hline(yintercept = events.tot.den.data, color = 'blue', size = 1) + 
   theme(legend.position="none") + 
   scale_x_discrete(breaks=c("nightperm","denblock"), labels=c("Complete shuffle", "Den-blocked shuffle")) + 
-  scale_fill_manual(values=c("blue", "blue"))
+  scale_fill_manual(values=c("blue", "blue"))+
+  theme_classic(base_size = 14)
 
 #Subplot 3: Non den events
 pnonden <- ggplot(plotdat, aes(x = type, y = nondenevents)) + 
@@ -220,32 +222,33 @@ pnonden <- ggplot(plotdat, aes(x = type, y = nondenevents)) +
   geom_hline(yintercept = events.tot.nonden.data, color = 'magenta', size = 1) + 
   theme(legend.position="none") + 
   scale_x_discrete(breaks=c("nightperm","denblock"), labels=c("Complete shuffle", "Den-blocked shuffle")) + 
-  scale_fill_manual(values=c("magenta", "magenta"))
+  scale_fill_manual(values=c("magenta", "magenta"))+
+  theme_classic(base_size = 14)
 
 quartz(width = 16, height = 8)
 grid.arrange(ptot, pden, pnonden, nrow = 1)
 
-#---PLOT 1 version 2 (for paper)--------
+#---Figure 3a--------
 plotdat.denblock <- plotdat[which(plotdat$type=='denblock'),]
 plotdat.denblock$lab.all <- 'All'
 plotdat.denblock$lab.den <- 'Den'
 plotdat.denblock$lab.nonden <- 'Non-den'
-p_nevents <- ggplot(plotdat.denblock) + 
+p_nevents <- ggplot(data = plotdat.denblock) + 
   geom_violin(mapping = aes(x = lab.all, y = nevents), fill = 'gray') + 
-  geom_point(aes(x = lab.all, y = events.tot.data), pch = 8, size = 5, color = 'black') +
+  geom_line(aes(x = x, y = y), data = data.frame(x = c(0.5,1.5), y = rep(events.tot.data, 2)), col = 'gray', size = 2) +
   geom_violin(mapping = aes(x = lab.den, y = denevents), fill = 'blue') + 
-  geom_point(aes(x = lab.den, y = events.tot.den.data), pch = 8, size = 5, color = 'blue') + 
+  geom_line(aes(x = x, y = y), data = data.frame(x = c(1.5,2.5), y = rep(events.tot.den.data, 2)), col = 'blue', size = 2) +
   geom_violin(mapping = aes(x = lab.nonden, y = nondenevents), fill = 'magenta') + 
-  geom_point(aes(x = lab.nonden, y = events.tot.nonden.data), pch = 8, size = 5, color = 'magenta') + 
+  geom_line(aes(x = x, y = y), data = data.frame(x = c(2.5,3.5), y = rep(events.tot.nonden.data, 2)), col = 'magenta', size = 2) +
   labs(title="",x="", y = "Number of fission-fusion events", size = 2) +
-  ylim(0, events.tot.data +) + 
-  theme_minimal(base_size = 24) + 
+  ylim(0, events.tot.data) + 
+  theme_classic(base_size = 24) + 
   theme(legend.position="none")  
 quartz(width = 6, height = 8)
 p_nevents
 
 #---PLOT 2 Comparing social networks generated from the data to the equivalent ones in permuted data
-#get netork data into ggplot form (also use SRI here)
+#get network data into ggplot form (also use SRI here)
 
 print('Edge weights plot')
 
