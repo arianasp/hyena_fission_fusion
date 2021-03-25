@@ -465,7 +465,6 @@ psri2 <- ggplot(networkdat.denblock, aes(x = dyad, y = sri)) +
   theme(legend.position = 'none') +
   ylab('Edge weight') + 
   xlab('')
-quartz(width = 8, height = 8)
 psri2
 
 ###############################################################################
