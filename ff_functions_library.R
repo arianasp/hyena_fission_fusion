@@ -1020,7 +1020,7 @@ remove_events_around_day_breaks <- function(together.seqs, timestamps, rand.para
   return(together.seqs)
 }
 
-visualize_event_type_distributions <- function(events, events.rand.list, rand.params, timestamps, remove.events.around.day.breaks = T){
+visualize_event_type_distributions <- function(events, events.rand.list, rand.params, timestamps, remove.events.around.day.breaks = T, col){
   
   #quartz()
   
@@ -1078,7 +1078,7 @@ visualize_event_type_distributions <- function(events, events.rand.list, rand.pa
   
   
   ggplot(data = plot.df, aes(x = condition, y = freq))+
-    geom_violin(scale = 'width', fill = 'gray', col = 'gray')+
+    geom_violin(scale = 'width', fill = col, col = col)+
     geom_point(data = plot.df.obs, shape = '_', size = 7)+
     theme_classic(base_size = 12)+
     geom_vline(aes(xintercept = 5.5))+
@@ -1264,7 +1264,7 @@ visualize_event_type_frequency_den_vs_nonden <- function(events, events.rand.lis
   
 }
 
-visualize_compare_event_properties <- function(events, events.rand.list, params, rand.params, timestamps, remove.events.around.day.breaks = T){
+visualize_compare_event_properties <- function(events, events.rand.list, params, rand.params, timestamps, remove.events.around.day.breaks = T, cols){
   
   #concatenate randomized events list of tables into one giant table containing data from all randomizations
   events.rand.all <- events.rand.list[[1]]
@@ -1296,7 +1296,7 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   events$duration <- events$t.end - events$t.start
   compare_histograms(events$duration[good.idxs.data]/60, events.rand.all$duration[good.idxs.rand]/60, events.rand.all$rand[good.idxs.rand],
                      xlab = 'Duration (min)', logaxes = 'x', n.breaks = 100, custom.breaks=NULL, cumulative=T, 
-                     categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+                     categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols)
   mtext(text = 'A', side = 3, line = 0, adj = 0, font = 2)
   
   #displacement during together phase (minimum of the 2 individuals used)
@@ -1304,13 +1304,13 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   events$disp.together[which(is.infinite(events$disp.together))] <- NA
   events.rand.all$disp.together <- suppressWarnings(apply(cbind(events.rand.all$disp.together.i, events.rand.all$disp.together.j), FUN = function(x){return(min(x,na.rm=T))}, 1))
   events.rand.all$disp.together[which(is.infinite(events.rand.all$disp.together))] <- NA
-  compare_histograms(events$disp.together[good.idxs.data], events.rand.all$disp.together[good.idxs.rand], events.rand.all$rand[good.idxs.rand],  n.breaks = 500, xlab = 'Displacement together (m)', logaxes = 'x',cumulative=T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$disp.together[good.idxs.data], events.rand.all$disp.together[good.idxs.rand], events.rand.all$rand[good.idxs.rand],  n.breaks = 500, xlab = 'Displacement together (m)', logaxes = 'x',cumulative=T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
   mtext(text = 'B', side = 3, line = 0, adj = 0, font = 2)
   
   #TODO - look at cases of very large displacements together in randomized data - is this real or some weird artifact?
   
   #closest approach
-  compare_histograms(events$closest.app[good.idxs.data], events.rand.all$closest.app[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Closest approach (m)', logaxes = 'x', cumulative=T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$closest.app[good.idxs.data], events.rand.all$closest.app[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Closest approach (m)', logaxes = 'x', cumulative=T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
   mtext(text = 'C', side = 3, line = 0, adj = 0, font = 2)
   
   #whether at the den or not
@@ -1323,7 +1323,7 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   #time of day (use midpoint of event)
   events$hour <- hour(timestamps[(events$t.start + events$t.end)/2] + params$local.time.diff)
   events.rand.all$hour <- hour(timestamps[(events.rand.all$t.start + events.rand.all$t.end)/2] + params$local.time.diff)
-  compare_histograms(events$hour[good.idxs.data], events.rand.all$hour[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 23, xlab = 'Hour of day', logaxes='', custom.breaks = seq(0,23,1), categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$hour[good.idxs.data], events.rand.all$hour[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 23, xlab = 'Hour of day', logaxes='', custom.breaks = seq(0,23,1), categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
   legend('topright',legend = c('Den','Non-Den'), col = c('blue','magenta'), lwd = c(1.5,1.5), lty = c(1,1),cex = 1, bty='n')
   mtext(text = 'D', side = 3, line = 0, adj = 0, font = 2)
   
@@ -1332,25 +1332,25 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   events$heading.similarity.filt[which(events$together.heading.samples==0)] <- NA
   events.rand.all$heading.similarity.filt <- events.rand.all$together.heading.similarity
   events.rand.all$heading.similarity.filt[which(events.rand.all$together.heading.samples==0)] <- NA
-  compare_histograms(events$heading.similarity.filt[good.idxs.data], events.rand.all$heading.similarity.filt[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Heading similarity', logaxes = '', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$heading.similarity.filt[good.idxs.data], events.rand.all$heading.similarity.filt[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Heading similarity', logaxes = '', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
   mtext(text = 'E', side = 3, line = 0, adj = 0, font = 2)
   
   #vedba similarity
-  compare_histograms(events$vedba.similarity[good.idxs.data], events.rand.all$vedba.similarity[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Activity similarity', logaxes = '', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$vedba.similarity[good.idxs.data], events.rand.all$vedba.similarity[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Activity similarity', logaxes = '', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
   mtext(text = 'F', side = 3, line = 0, adj = 0, font= 2)
   
   #distance from den at start
-  compare_histograms(events$dist.den.start[good.idxs.data], events.rand.all$dist.den.start[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Starting distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$dist.den.start[good.idxs.data], events.rand.all$dist.den.start[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Starting distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
   mtext(text = 'G', side = 3, line = 0, adj = 0, font = 2)
   
   #distance from den at end
-  compare_histograms(events$dist.den.end[good.idxs.data], events.rand.all$dist.den.end[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Ending distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$dist.den.end[good.idxs.data], events.rand.all$dist.den.end[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Ending distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
   mtext(text = 'H', side = 3, line = 0, adj = 0, font = 2)
   
 }
 
 #make a plot of randomized (black) vs data (red) histograms of a given features
-compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.breaks = 100, xlab = '', logaxes = 'x', custom.breaks = NULL, cumulative=F, categories.data = NULL, categories.rand = NULL){
+compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.breaks = 100, xlab = '', logaxes = 'x', custom.breaks = NULL, cumulative=F, categories.data = NULL, categories.rand = NULL, cols = cols){
   
   n.rands <- length(unique(randomization.idxs))
   breaks <- seq(min(c(values.dat, values.rand),na.rm=T),max(c(values.dat, values.rand),na.rm=T), length.out = n.breaks)
@@ -1426,11 +1426,11 @@ compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.br
     }
     plot(NULL,  xlab = '', ylab = '', log = logaxes, xlim = range(mids), ylim = c(ymin, ymax), cex.lab = 1, cex.axis = 1)
     for(i in 1:n.rands){
-      lines(hist.data.T$mids, hists.rand.T[i,], lwd = 0.4, col = '#0000FF33')
-      lines(hist.data.F$mids, hists.rand.F[i,], lwd = 0.4, col = '#FF00FF33')
+      lines(hist.data.T$mids, hists.rand.T[i,], lwd = 0.4, col = alpha(cols[2], 0.2))
+      lines(hist.data.F$mids, hists.rand.F[i,], lwd = 0.4, col = alpha(cols[1], 0.2))
     }
-    lines(mids, y.data.T, col = 'blue', lwd = 1.5)
-    lines(mids, y.data.F, col = 'magenta', lwd = 1.5)
+    lines(mids, y.data.T, col = cols[2], lwd = 1.5)
+    lines(mids, y.data.F, col = cols[1], lwd = 1.5)
     title(ylab = ylab, line = 2)
     title(xlab = xlab, line = 2)
     
@@ -1445,7 +1445,7 @@ compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.br
     }
     plot(NULL,  xlab = '', ylab = '', log = logaxes, xlim = range(hist.data$mids), ylim = c(ymin, ymax), cex.lab = 1.5, cex.axis = 1.5)
     for(i in 1:n.rands){
-      lines(hist.data$mids, hists.rand[i,], lwd = 0.4, col = '#00000033')
+      lines(hist.data$mids, hists.rand[i,], lwd = 0.4, col = alpha(cols[2], 0.2))
     }
     lines(hist.data$mids, y.data, col = 'red', lwd = 1.5)
     title(ylab = ylab, line = 2)
@@ -1453,8 +1453,7 @@ compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.br
   }
 }
 
-plot_events <- function(indices, events, xs, ys, phase.col = TRUE, ...){
-  for(r in indices){
+plot_events <- function(r, events, xs, ys, cols, ...){
     x.i <- xs[events$i[r], events$t.start[r]:events$t.end[r]]
     x.i <- x.i - mean(x.i, na.rm = TRUE)
     y.i <- ys[events$i[r], events$t.start[r]:events$t.end[r]]
@@ -1466,59 +1465,46 @@ plot_events <- function(indices, events, xs, ys, phase.col = TRUE, ...){
     
     b1.idx <- events$b1[r] - events$t.start[r] + 1
     b2.idx <- events$b2[r] - events$t.start[r] + 1
-    col1 <- rep('darkblue', length(x.i))
-    if(phase.col){
-      col1[b1.idx:b2.idx] <- 'blue'
-      col1[b2.idx:length(x.i)] <- 'cyan'
-    }
-    col2 <- rep('darkred', length(x.j))
-    if(phase.col){
-      col2[b1.idx:b2.idx] <- 'red'
-      col2[b2.idx:length(x.j)] <- 'orange'
-    }
-    plot(x.i, y.i,asp=1, ylim = c(min(c(y.i, y.j), na.rm =TRUE), max(c(y.i, y.j), na.rm = TRUE)),
-         xlim = c(min(c(x.i, x.j), na.rm =TRUE), max(c(x.i, x.j), na.rm = TRUE)), col = scales::alpha(col1, 0.5),
-         cex = seq(0.1, 1, length.out = length(x.i)), ...)
-    points(x.j, y.j, col = scales::alpha(col2, 0.5), cex = seq(0.1, 1, length.out = length(x.i)))
-    x.lims <- par()$usr[1:2]
-    y.lims <- par()$usr[3:4]
-  }
+
+    plot.df <- data.frame(x = c(x.i, x.j), y = c(y.i, y.j), id = factor(c(rep(i, length(x.i)), rep(j, length(x.j)))), time = rep(1:length(x.i), 2), 
+                          phase = NA)
+    plot.df[plot.df$time < b1.idx,'phase'] <- 'fusion'
+    plot.df[plot.df$time >= b1.idx & plot.df$time <= b2.idx,'phase'] <- 'together'
+    plot.df[plot.df$time > b2.idx,'phase'] <- 'fission'
+    
+    ggplot(plot.df, aes(x =x ,y=y, col = id))+
+      geom_path(size = 0.5)+
+      geom_line(aes(x = x, y= y, group = time), inherit.aes = F, lty = 1, size = 0.5, 
+                data = plot.df[plot.df$phase == 'together',], alpha = 0.2, col = 'gray30')+
+      geom_point(data = plot.df[plot.df$time == 1,], shape = 'S', size = 2)+
+      geom_point(data = plot.df[plot.df$time == max(plot.df$time),], shape = 'E', size = 2, position = position_dodge(width = 1))+
+      theme_classic()+
+      theme(legend.position = 'none', axis.title = element_blank())+
+      scale_color_manual(values = cols)
 }
 
-plot_canonical_shape <- function(rows, together.seqs, xs, ys){
-  for(r in rows){
-    
+plot_canonical_shape <- function(r, together.seqs, xs, ys){
+
     y <- sqrt( (xs[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - xs[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2 +
                           (ys[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - ys[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2)
-    #y <- dyad.dists[together.seqs$i[r], together.seqs$j[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
+    
     x <- together.seqs$t.start[r]:together.seqs$t.end[r]
     
-    plot(y = y, type = 'l',
-         x = x- together.seqs$t.start[r],
-         xlab = 'Time (s)', ylab = 'Distance between individuals (m)',
-         lwd = 2, ylim = c(-50, 200),
-         yaxp  = c(0, 200, 2),
-         xlim = c(- (range(x)[2] - range(x)[1])*0.1, max( x- together.seqs$t.start[r])+ (range(x)[2] - range(x)[1])*0.1))
     
-    
-    
-    fp <- list(x0 = x[1], 
+    fp <- list(x0 = x[1],
                y0 = y[1],
                xf = x[length(x)],
-               yf = y[length(y)]) 
-    
-    # lines(x =x, y = fission_fusion_function(x, p$par[1], p$par[2], p$par[3], fp), col = 'red')
+               yf = y[length(y)])
+   
     y.fit <- fission_fusion_function(x = x, b1 = together.seqs$b1[r], b2 = together.seqs$b2[r],
                                      b.y.intercept = together.seqs$y.intercept[r], fixed.parameters = fp)
-    lines(x = x - together.seqs$t.start[r], y = y.fit, col = alpha('darkred', 0.75), lwd = 2)
-    brackets(x1 = 0, x2 = together.seqs$b1[r]- together.seqs$t.start[r] - 5, y1 = 0, y2 = 0, h = -20, type = 4)
-    brackets(x1 = together.seqs$b1[r]- together.seqs$t.start[r]+5, x2 = together.seqs$b2[r]- together.seqs$t.start[r]-5, y1 = 0, y2 = 0, h = -20, type = 4)
-    brackets(x1 = together.seqs$b2[r]- together.seqs$t.start[r]+5, x2 = together.seqs$t.end[r]- together.seqs$t.start[r], y1 = 0, y2 = 0, h = -20, type = 4)
     
-    text(x = (together.seqs$b1[r]- together.seqs$t.start[r])/2, y = -30, labels = 'fusion')
-    text(x = mean(c(together.seqs$b1[r]- together.seqs$t.start[r],
-                    together.seqs$b2[r]- together.seqs$t.start[r])), y = -30, labels = 'together')
-    text(x = mean(c(together.seqs$t.end[r]- together.seqs$t.start[r],
-                    together.seqs$b2[r]- together.seqs$t.start[r])), y = -30, labels = 'fission')
-  }
+    ggplot(data = data.frame(x = x-together.seqs$t.start[r], y, y.fit), aes(x,y))+
+      geom_line(size = 0.5)+
+      geom_line(aes(y = y.fit), col = '#ba0c2f', size = 0.5)+
+      theme_classic(base_size = 12)+
+      xlab('Time (s)')+
+      ylab('Distance between individuals (m)')
+
 }
+

@@ -170,13 +170,13 @@ for(r in 1:n.rands){
   
 }
 
-#------ Pre-processing for PLOT 1 and FIGURE 3a ------
+# Pre-processing for PLOT 1 and FIGURE 3a ------
 #prep for ggplot
 plotdat <- data.frame(type = c(rep('nightperm',n.rands),rep('denblock',n.rands)), nevents = c(events.tot.nightperm, events.tot.denblock), denevents = c(events.tot.den.nightperm, events.tot.den.denblock), nondenevents = c(events.tot.nonden.nightperm, events.tot.nonden.denblock))
 plotdat$type <- factor(plotdat$type,
                        levels = c('nightperm','denblock'),ordered = TRUE)
 
-#------ Pre-processing for FIGURE 5 ------
+# Pre-processing for FIGURE 5 ------
 #data frame of dyads
 dyads <- data.frame()
 for(i in 1:(n.inds-1)){
@@ -293,6 +293,7 @@ print(paste0('The number of stationary events during the together phase is ', su
 print("Creating plots")
 print('# Events plot')
 
+colors <- c("#F72585", "#3f37c9", "#21054C", "#4895EF", "#ba0c2f",'gray30')
 
 #-------FIGURE 1b time of fusions ----------
 events.data.exact$hour.start <- hour(timestamps[events.data.exact$t.start] + params$local.time.diff*60*60) 
@@ -304,7 +305,7 @@ timeplot <- ggplot(aes(x = hour.start, fill = as.logical(at.den.start-1)), data 
   theme_classic(base_size = 12) + 
   ylab('Number of fusions') + 
   xlab('Hour of day')+
-  scale_fill_manual(values = c('blue', 'magenta'), labels = c('Den', 'Non-Den'))+
+  scale_fill_manual(values = c(colors[2], colors[1]), labels = c('Den', 'Non-Den'))+
   theme(legend.position = c(.75,.75), legend.title = element_blank())+
   labs(tag='B')
 
@@ -327,12 +328,12 @@ hist(all.hrs)
 ################################################################################
 
 
-#---------FIGURE 1c------- FF locations
+#----------------------------------FIGURE 1-------------------------------------
 #Where do ff events take place?
 
 #colors
-cols <- rep('#FF00FF66', nrow(events.data.exact))
-cols[which(events.data.exact$dist.den.start <= params$den.dist.thresh)] <- '#0000FF66'
+cols <- rep(alpha(colors[1], 0.5), nrow(events.data.exact))
+cols[which(events.data.exact$dist.den.start <= params$den.dist.thresh)] <- alpha(colors[2], 0.5)
 
 #make background slightly transparent
 map_attr <- attributes(hyena_map13)
@@ -360,9 +361,9 @@ scalebar2 <- data.frame(lon = mean(scale.lons), lat = mean(scale.lats))
 #quartz(height = 8, width = 8)
 mapplot <- ggmap(hyena_map_transparent, alpha = 0.5) + 
   geom_point(aes(x = lon.fusion, y = lat.fusion, color = at.den.start), data = events.data.exact, size = 1, shape = 3, alpha = 0.8) +
-  scale_color_manual(values=c("magenta", "blue")) + 
+  scale_color_manual(values=c(colors[1], colors[2])) + 
   theme(legend.position="none", axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank()) + 
-  geom_point(aes(x = lon, y = lat), data = den.locs, size = 7, shape = 21, color = 'blue', stroke = 1.5) +
+  geom_point(aes(x = lon, y = lat), data = den.locs, size = 7, shape = 21, color = colors[2], stroke = 1) +
   geom_line(aes(x = lon, y = lat), data = scalebar, color = 'black') +
   geom_text(aes(x = lon, y = lat), data = scalebar2, label = '1 km', nudge_y = .003)+
   labs(tag = 'C')
@@ -381,16 +382,18 @@ hyena.plot + timeplot + mapplot + plot_layout(design = layout)
 dev.off()
 
 
-#-------FIGURE 2 example of fission-fusion events + alluvial plot ----------
-png(filename = paste0(plotdir, '/ff_example.png'), width = 4, height = 6, units = 'in', res = 300)
-regular.margin <- c(5.1, 4.1, 2.1, 2.1)
-par(mfrow = c(2,1), mar = c(0,0,0,0))
-plot_events(indices = 70, events = events.data.exact, xs = xs, ys = ys, phase.col = FALSE, axes = FALSE, xlab = '', ylab = '')
-par(mar = c(4, 4, 0,0))
-plot_canonical_shape(70, together.seqs = events.data.exact, xs = xs, ys = ys)
-dev.off()
+#-----------FIGURE 2 example of fission-fusion events + alluvial plot ----------
 
-#------alluvial plot phase transitions------
+
+ev <- plot_events(r = 393, events = events.data.exact, xs = xs, ys = ys,
+                  phase.col = FALSE, axes = FALSE, xlab = '', ylab = '', cols = colors[c(3,5)])+
+  labs(tag= 'A')
+
+canonical.shape <- plot_canonical_shape(393, together.seqs = events.data.exact, xs = xs, ys = ys) +
+  labs(tag = 'B')
+
+
+# --alluvial plot phase transitions --
 alluv.data <- data.frame(full.type = events.data.exact[,c('event.type.sym')])
 splittypes <- strsplit(as.character(alluv.data$full.type), split = '__')
 alluv.data$fusion.word <- alluv.data$together.word <- alluv.data$fission.word <- alluv.data$Fusion <- alluv.data$Together <- alluv.data$Fission <- NA
@@ -414,26 +417,46 @@ alluv.plot.data <- alluv.data %>%
   summarize(count = length(full.type))
 
 fusion.symbols <- unique(alluv.plot.data$Fusion)
-quartz(width = 8, height = 8)
-alluvp <- alluvial(alluv.plot.data[,c('Fusion','Together','Fission')], freq = alluv.plot.data$count, col = ifelse(alluv.plot.data$Fusion == fusion.symbols[1], '#111111','goldenrod'), blocks = T)
+#alluvp <- alluvial(alluv.plot.data[,c('Fusion','Together','Fission')], freq = alluv.plot.data$count, col = ifelse(alluv.plot.data$Fusion == fusion.symbols[1], colors[7], colors[5]), blocks = T)
 
 
-alluvp
+ap <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Together, axis3 = Fission))+
+  scale_x_continuous(breaks = c(1,2,3), labels = c('Fusion', 'Together', 'Fission'), expand = c(0.01,0.01))+
+  scale_y_continuous(expand = c(0,0))+
+  theme(axis.text.y = element_blank(), axis.line = element_blank(), rect = element_blank(), axis.ticks = element_blank(),
+        axis.title = element_blank(), legend.position = 'none', axis.text.x = element_text(size = 12))+
+  geom_alluvium(aes(fill = Fusion), col = 'black', curve_type = 'sine', width = 1/12, reverse = FALSE) + 
+  geom_stratum(width = 1/8, alpha = 1, size = 0.5, reverse = FALSE)+
+  geom_text(stat='stratum', aes(label = after_stat(stratum)), reverse = FALSE)+
+  scale_fill_manual(values = colors[c(6,4)])+
+  labs(tag = 'C')
 
+
+
+png(filename = paste0(plotdir, '/FIG2.png'), width = 6.5, height = 7.5, units = 'in', res = 300)
+
+layout <- "
+AABB
+CCCC
+CCCC
+"
+ev + canonical.shape + ap + plot_layout(design = layout)
+dev.off()
                     
-#-----FIGURE 3a--------
+#----------------------------------FIGURE 3-------------------------------------
+#--FIGURE 3a--
 plotdat.denblock <- plotdat[which(plotdat$type=='denblock'),]
 plotdat.denblock$lab.all <- 'All'
 plotdat.denblock$lab.den <- 'Den'
 plotdat.denblock$lab.nonden <- 'Non-Den'
 p_nevents <- ggplot(data = plotdat.denblock) + 
-  geom_violin(mapping = aes(x = lab.all, y = nevents), fill = 'gray', color = 'gray') + 
+  geom_violin(mapping = aes(x = lab.all, y = nevents), fill = 'gray30', color = 'gray30') + 
   geom_point(x = 1, y = events.tot.data, shape = '_', size = 7)+
   #geom_line(aes(x = x, y = y), data = data.frame(x = c(0.5,1.5), y = rep(events.tot.data, 2)), col = 'gray', size = 2) +
-  geom_violin(mapping = aes(x = lab.den, y = denevents), fill = 'blue', color = 'blue') + 
+  geom_violin(mapping = aes(x = lab.den, y = denevents), fill = colors[2], color = colors[2]) + 
   geom_point(x = 2, y = events.tot.den.data, shape = '_', size = 7)+
   #geom_line(aes(x = x, y = y), data = data.frame(x = c(1.5,2.5), y = rep(events.tot.den.data, 2)), col = 'blue', size = 2) +
-  geom_violin(mapping = aes(x = lab.nonden, y = nondenevents), fill = 'magenta', color = 'magenta') + 
+  geom_violin(mapping = aes(x = lab.nonden, y = nondenevents), fill = colors[1], color = colors[1]) + 
   #geom_line(aes(x = x, y = y), data = data.frame(x = c(2.5,3.5), y = rep(events.tot.nonden.data, 2)), col = 'magenta', size = 2) +
   geom_point(x = 3, y = events.tot.nonden.data, shape = '_', size = 7)+
   labs(title="",x="", y = "Number of fission-fusion events") +
@@ -443,29 +466,41 @@ p_nevents <- ggplot(data = plotdat.denblock) +
   labs(tag = 'A')
 p_nevents
 
-#------FIGURE 3b------
+#-FIGURE 3b--
 png(paste0(plotdir, '/FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
-p_nevents + visualize_event_type_distributions(events.data, events.rand.list.denblock, rand.params, timestamps, remove.events.around.day.breaks = T)+labs(tag = 'B')
+p_nevents + visualize_event_type_distributions(events.data, events.rand.list.denblock, 
+                                               rand.params, timestamps, 
+                                               remove.events.around.day.breaks = T,
+                                               col = colors[6])+labs(tag = 'B')
 dev.off()
 
 
-#--------FIGURE 4----------
+#-----------------------------------------FIGURE 4------------------------------
 png(paste0(plotdir, '/FIG4.png'), width = 5, height = 7, units = 'in', res = 500)
-visualize_compare_event_properties(events.data, events.rand.list.denblock, params, rand.params, timestamps)
+visualize_compare_event_properties(events.data, events.rand.list.denblock,
+                                   params, rand.params, timestamps, cols = colors[1:2])
 dev.off()
 
-#-----FIGURE 5 - version 2 (simplified)-----
+#---------------------------------FIGURE 5--------------------------------------
 #create the plot - all
 networkdat.denblock <- networkdat[which(networkdat$type %in% c('denblock','real')),]
 psri2 <- ggplot(networkdat.denblock, aes(x = dyad, y = sri)) + 
-  geom_violin(fill = 'yellow') + 
-  geom_point(aes(x = dyad, y = sri), data = networkdat.denblock[which(networkdat.denblock$type=='real'),], shape = '|', fill = 'black', size = 10) +
+  geom_violin(fill = 'gray30', color = 'grey30', size = 1) + 
+  geom_point(aes(x = dyad, y = sri), data = networkdat.denblock[which(networkdat.denblock$type=='real'),], shape = '|', fill = 'black', size = 7) +
   coord_flip() +
-  theme_classic(base_size = 24) +
+  theme_classic(base_size = 12) +
   theme(legend.position = 'none') +
   ylab('Edge weight') + 
   xlab('')
+
+png(paste0(plotdir, '/FIG5.png'), width = 6.5, height = 4, units = 'in', res = 500)
 psri2
+dev.off()
+
+
+
+
+
 
 ###############################################################################
 ##### Things not in the paper -- determine which are supplemental figures and 
