@@ -132,7 +132,7 @@ get_angle_between_vectors <- function(x1.i, x2.i, y1.i, y2.i,
 # }
 
 #read in den locations
-get_dens <- function(den.file.path = '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv',
+get_dens <- function(den.file.path,
                      den.names = c('DAVE D','RBEND D','RES M D1','DICK D')){
   known.locs <- read.csv(den.file.path,stringsAsFactors=F)
   eastsNorths <- latlon.to.utm(cbind(known.locs$lon,known.locs$lat),southern_hemisphere=T,utm.zone=36)
@@ -817,7 +817,7 @@ plot_den_attendance_by_ind <- function(xs, ys, den.file.path, den.names, params,
   mins <- minute(ts.sub) + hour(ts.sub)*60
   
   dist.dens.thresh <- dist.dens.sub < thresh.arrive
-  quartz(width=12,height=6)
+  #quartz(width=12,height=6)
   par(mfrow=c(1,5),mar=c(4,4,1,0))
   cols <- dens$col
   for(i in 1:n.inds){
@@ -1020,13 +1020,13 @@ remove_events_around_day_breaks <- function(together.seqs, timestamps, rand.para
   return(together.seqs)
 }
 
-visualize_event_type_distributions <- function(events, events.rand.list, rand.params, timestamps, remove.events.around.day.breaks = T){
+visualize_event_type_distributions <- function(events, events.rand.list, rand.params, timestamps, remove.events.around.day.breaks = T, col){
   
-  quartz()
+  #quartz()
   
   n.rands <- length(events.rand.list)
   event.type.symbols <- get_event_type_symbols()
-  distribs.rand <- matrix(NA, nrow = 10, ncol = n.rands)
+  distribs.rand.list <- list()
   distribs.dat <- rep(NA, 10)
   
   #remove events surrounding the 'day break'
@@ -1044,10 +1044,49 @@ visualize_event_type_distributions <- function(events, events.rand.list, rand.pa
     if(remove.events.around.day.breaks){
       events.rand <- remove_events_around_day_breaks(events.rand, timestamps, rand.params)
     }
-    distribs.rand[,i] <- get_event_type_distributions(events.rand)
+    distribs.rand.list[[i]] <- get_event_type_distributions(events.rand)
   }
   
-  visualize_yvals_vs_event_type(distribs.dat, distribs.rand, 'Frequency')
+  plot.df <- data.frame(freq = do.call(c, distribs.rand.list),
+                        condition = names(do.call(c, distribs.rand.list)))
+  
+  plot.df$condition <- factor(plot.df$condition, levels = c('fusion.stay.move__together.local__fission.stay.move',
+                                                            'fusion.stay.move__together.local__fission.move.stay',
+                                                            'fusion.stay.move__together.local__fission.move.move',
+                                                            'fusion.move.move__together.local__fission.stay.move',
+                                                            'fusion.move.move__together.local__fission.move.move',
+                                                            'fusion.stay.move__together.travel__fission.stay.move',
+                                                            'fusion.stay.move__together.travel__fission.move.stay',
+                                                            'fusion.stay.move__together.travel__fission.move.move',
+                                                            'fusion.move.move__together.travel__fission.stay.move',
+                                                            'fusion.move.move__together.travel__fission.move.move'),
+                              labels = get_event_type_symbols())
+
+  
+  plot.df.obs <- data.frame(condition = names(distribs.dat), freq = distribs.dat)
+  plot.df.obs$condition <- factor(plot.df.obs$condition, levels = c('fusion.stay.move__together.local__fission.stay.move',
+                                                            'fusion.stay.move__together.local__fission.move.stay',
+                                                            'fusion.stay.move__together.local__fission.move.move',
+                                                            'fusion.move.move__together.local__fission.stay.move',
+                                                            'fusion.move.move__together.local__fission.move.move',
+                                                            'fusion.stay.move__together.travel__fission.stay.move',
+                                                            'fusion.stay.move__together.travel__fission.move.stay',
+                                                            'fusion.stay.move__together.travel__fission.move.move',
+                                                            'fusion.move.move__together.travel__fission.stay.move',
+                                                            'fusion.move.move__together.travel__fission.move.move'),
+                              labels = get_event_type_symbols())
+  
+  
+  ggplot(data = plot.df, aes(x = condition, y = freq))+
+    geom_violin(scale = 'width', fill = col, col = col)+
+    geom_point(data = plot.df.obs, shape = '_', size = 7)+
+    theme_classic(base_size = 12)+
+    geom_vline(aes(xintercept = 5.5))+
+    ylab('Frequency')+
+    theme(axis.text = element_text(color = 'black'), axis.title.x = element_blank())+
+    scale_x_discrete(labels = sprintf(as.character(plot.df.obs$condition)))
+  
+  #visualize_yvals_vs_event_type(distribs.dat, distribs.rand, 'Frequency')
   
 }
 
@@ -1064,8 +1103,8 @@ visualize_yvals_vs_event_type <- function(yvals.dat, yvals.rand, ylab){
   plot(NULL, xlim = c(.8, 10.2), ylim = c(0, max.freq*1.1), xlab = '', ylab = ylab, xaxt='n', cex.lab=1.5, cex.axis = 1.5)
   axis(side = 1, at = seq(1,10), labels = event.type.symbols, line = 2.3, tick = F, srt = 180, cex.axis = 1.5)
   abline(v=5.5, lty = 1)
-  polygon(c(2.5,2.5,4.5,4.5), c(-max.freq*.03,max.freq*1.1, max.freq*1.1,-max.freq*.03), border='blue', lty = 2)
-  polygon(c(7.5,7.5,9.5,9.5), c(-max.freq*.03,max.freq*1.1, max.freq*1.1,-max.freq*.03), border='blue', lty = 2)
+  # polygon(c(2.5,2.5,4.5,4.5), c(-max.freq*.03,max.freq*1.1, max.freq*1.1,-max.freq*.03), border='blue', lty = 2)
+  # polygon(c(7.5,7.5,9.5,9.5), c(-max.freq*.03,max.freq*1.1, max.freq*1.1,-max.freq*.03), border='blue', lty = 2)
   
   for(i in 1:n.rands){
     jitter <- rnorm(10, mean=0, sd = .1)
@@ -1090,12 +1129,23 @@ get_event_type_symbols <- function(){
   
   arrow <- intToUtf8(0x2191)
   dot <- intToUtf8(0x2022) 
-  travel <- intToUtf8(0x27F9)
-  travel <- intToUtf8(0x21CA)
+  # travel <- intToUtf8(0x27F9)
+  # travel <- intToUtf8(0x21CA)
   travel <- paste0(arrow, arrow)
   #travel <-intToUtf8(0x21D1)
   #local <- intToUtf8(0x235F)
   local <- paste0(dot, dot)
+  
+  
+  # travel <- paste0(intToUtf8(8593),intToUtf8(8593))
+  # local <- paste0(intToUtf8(8625),intToUtf8(8626))
+  fission.move.move <- paste0(intToUtf8(8598),intToUtf8(8599))
+  fusion.move.move <- paste0(intToUtf8(8599),intToUtf8(8598))
+  fission.stay.move <- paste0(intToUtf8(8226), intToUtf8(8599))
+  fission.move.stay <- paste0(intToUtf8(8598), intToUtf8(8226))
+  fusion.stay.move <- paste0(intToUtf8(8226),intToUtf8(8598))
+  
+  
   
   event.type.symbols <- rep('', length(event.types.all))
   names(event.type.symbols) <- event.types.all
@@ -1109,6 +1159,16 @@ get_event_type_symbols <- function(){
   event.type.symbols[8] <- paste0(arrow, arrow, '\n', travel, '\n', dot, arrow)
   event.type.symbols[9] <- paste0(dot, arrow, '\n', travel, '\n', arrow, arrow)
   event.type.symbols[10] <- paste0(arrow, arrow, '\n', travel, '\n', arrow, arrow)
+  # event.type.symbols[1] <- paste0(fission.stay.move, '\n', local, '\n', fusion.stay.move)
+  # event.type.symbols[2] <- paste0(fission.move.stay, '\n', local, '\n', fusion.stay.move)
+  # event.type.symbols[3] <- paste0(fission.move.move, '\n', local, '\n', fusion.stay.move)
+  # event.type.symbols[4] <- paste0(fission.stay.move, '\n', local, '\n', fusion.move.move)
+  # event.type.symbols[5] <- paste0(fission.move.move, '\n', local, '\n', fusion.move.move)
+  # event.type.symbols[6] <- paste0(fission.stay.move, '\n', travel, '\n', fusion.stay.move)
+  # event.type.symbols[7] <- paste0(fission.move.stay, '\n', travel, '\n', fusion.stay.move)
+  # event.type.symbols[8] <- paste0(fission.move.move, '\n', travel, '\n', fusion.stay.move)
+  # event.type.symbols[9] <- paste0(fission.stay.move, '\n', travel, '\n', fusion.move.move)
+  # event.type.symbols[10] <- paste0(fission.move.move, '\n', travel, '\n', fusion.move.move)
   
   return(event.type.symbols)
 }
@@ -1116,7 +1176,7 @@ get_event_type_symbols <- function(){
 #plot fraction of time each event type occurs at den in beginning or end, compare to randomized
 visualize_den_association_by_event_type <- function(events, events.rand.list, timestamps, rand.params, params, assess.at.start = T, remove.events.around.day.breaks=T){
   
-  quartz()
+  #quartz()
   
   n.rands <- length(events.rand.list)
   event.type.symbols <- get_event_type_symbols()
@@ -1161,7 +1221,7 @@ visualize_den_association_by_event_type <- function(events, events.rand.list, ti
 #plot event type frequencies in real data vs permuted data - separate out den vs non-den events
 visualize_event_type_frequency_den_vs_nonden <- function(events, events.rand.list, params, rand.params, timestamps, remove.events.around.day.breaks = T){
   
-  quartz()
+  #quartz()
   
   #setup
   n.rands <- length(events.rand.list)
@@ -1204,7 +1264,7 @@ visualize_event_type_frequency_den_vs_nonden <- function(events, events.rand.lis
   
 }
 
-visualize_compare_event_properties <- function(events, events.rand.list, params, rand.params, timestamps, remove.events.around.day.breaks = T){
+visualize_compare_event_properties <- function(events, events.rand.list, params, rand.params, timestamps, remove.events.around.day.breaks = T, cols){
   
   #concatenate randomized events list of tables into one giant table containing data from all randomizations
   events.rand.all <- events.rand.list[[1]]
@@ -1229,24 +1289,29 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   den.cat.data <- events$dist.den.start <= params$den.dist.thresh | events$dist.den.end <= params$den.dist.thresh
   den.cat.rand <- events.rand.all$dist.den.start <= params$den.dist.thresh | events.rand.all$dist.den.end <= params$den.dist.thresh
   
-  quartz(height = 12, width = 10)
-  par(mfrow = c(4,2), mar = c(5,6,1,1))
+  #quartz(height = 12, width = 10)
+  par(mfrow = c(4,2), mar = c(4,4,1,1), oma = c(0,0,2,0))
   #duration
   events.rand.all$duration <- events.rand.all$t.end - events.rand.all$t.start
   events$duration <- events$t.end - events$t.start
-  compare_histograms(events$duration[good.idxs.data]/60, events.rand.all$duration[good.idxs.rand]/60, events.rand.all$rand[good.idxs.rand], xlab = 'Duration (min)', logaxes = 'x', n.breaks = 100, custom.breaks=NULL, cumulative=T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$duration[good.idxs.data]/60, events.rand.all$duration[good.idxs.rand]/60, events.rand.all$rand[good.idxs.rand],
+                     xlab = 'Duration (min)', logaxes = 'x', n.breaks = 100, custom.breaks=NULL, cumulative=T, 
+                     categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols)
+  mtext(text = 'A', side = 3, line = 0, adj = 0, font = 2)
   
   #displacement during together phase (minimum of the 2 individuals used)
   events$disp.together <- suppressWarnings(apply(cbind(events$disp.together.i, events$disp.together.j), FUN = function(x){return(min(x,na.rm=T))}, 1))
   events$disp.together[which(is.infinite(events$disp.together))] <- NA
   events.rand.all$disp.together <- suppressWarnings(apply(cbind(events.rand.all$disp.together.i, events.rand.all$disp.together.j), FUN = function(x){return(min(x,na.rm=T))}, 1))
   events.rand.all$disp.together[which(is.infinite(events.rand.all$disp.together))] <- NA
-  compare_histograms(events$disp.together[good.idxs.data], events.rand.all$disp.together[good.idxs.rand], events.rand.all$rand[good.idxs.rand],  n.breaks = 500, xlab = 'Displacement together (m)', logaxes = 'x',cumulative=T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$disp.together[good.idxs.data], events.rand.all$disp.together[good.idxs.rand], events.rand.all$rand[good.idxs.rand],  n.breaks = 500, xlab = 'Displacement together (m)', logaxes = 'x',cumulative=T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
+  mtext(text = 'B', side = 3, line = 0, adj = 0, font = 2)
   
   #TODO - look at cases of very large displacements together in randomized data - is this real or some weird artifact?
   
   #closest approach
-  compare_histograms(events$closest.app[good.idxs.data], events.rand.all$closest.app[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Closest approach (m)', logaxes = 'x', cumulative=T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$closest.app[good.idxs.data], events.rand.all$closest.app[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Closest approach (m)', logaxes = 'x', cumulative=T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
+  mtext(text = 'C', side = 3, line = 0, adj = 0, font = 2)
   
   #whether at the den or not
   events$dist.den.min <- suppressWarnings(apply(cbind(events$dist.den.start, events$dist.den.end), FUN = function(x){return(min(x,na.rm=T))}, 1))
@@ -1258,29 +1323,34 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   #time of day (use midpoint of event)
   events$hour <- hour(timestamps[(events$t.start + events$t.end)/2] + params$local.time.diff)
   events.rand.all$hour <- hour(timestamps[(events.rand.all$t.start + events.rand.all$t.end)/2] + params$local.time.diff)
-  compare_histograms(events$hour[good.idxs.data], events.rand.all$hour[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 23, xlab = 'Hour of day', logaxes='', custom.breaks = seq(0,23,1), categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
-  legend('topright',legend = c('Den','Non-Den'), col = c('blue','magenta'), lwd = c(2,2), lty = c(1,1),cex = 2)
+  compare_histograms(events$hour[good.idxs.data], events.rand.all$hour[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 23, xlab = 'Hour of day', logaxes='', custom.breaks = seq(0,23,1), categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
+  legend('topright',legend = c('Den','Non-Den'), col = c('blue','magenta'), lwd = c(1.5,1.5), lty = c(1,1),cex = 1, bty='n')
+  mtext(text = 'D', side = 3, line = 0, adj = 0, font = 2)
   
   #heading similarity
   events$heading.similarity.filt <- events$together.heading.similarity
   events$heading.similarity.filt[which(events$together.heading.samples==0)] <- NA
   events.rand.all$heading.similarity.filt <- events.rand.all$together.heading.similarity
   events.rand.all$heading.similarity.filt[which(events.rand.all$together.heading.samples==0)] <- NA
-  compare_histograms(events$heading.similarity.filt[good.idxs.data], events.rand.all$heading.similarity.filt[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Heading similarity', logaxes = '', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$heading.similarity.filt[good.idxs.data], events.rand.all$heading.similarity.filt[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Heading similarity', logaxes = '', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
+  mtext(text = 'E', side = 3, line = 0, adj = 0, font = 2)
   
   #vedba similarity
-  compare_histograms(events$vedba.similarity[good.idxs.data], events.rand.all$vedba.similarity[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Activity similarity', logaxes = '', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$vedba.similarity[good.idxs.data], events.rand.all$vedba.similarity[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Activity similarity', logaxes = '', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
+  mtext(text = 'F', side = 3, line = 0, adj = 0, font= 2)
   
   #distance from den at start
-  compare_histograms(events$dist.den.start[good.idxs.data], events.rand.all$dist.den.start[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Starting distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$dist.den.start[good.idxs.data], events.rand.all$dist.den.start[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Starting distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
+  mtext(text = 'G', side = 3, line = 0, adj = 0, font = 2)
   
   #distance from den at end
-  compare_histograms(events$dist.den.end[good.idxs.data], events.rand.all$dist.den.end[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Ending distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
+  compare_histograms(events$dist.den.end[good.idxs.data], events.rand.all$dist.den.end[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Ending distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
+  mtext(text = 'H', side = 3, line = 0, adj = 0, font = 2)
   
 }
 
 #make a plot of randomized (black) vs data (red) histograms of a given features
-compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.breaks = 100, xlab = '', logaxes = 'x', custom.breaks = NULL, cumulative=F, categories.data = NULL, categories.rand = NULL){
+compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.breaks = 100, xlab = '', logaxes = 'x', custom.breaks = NULL, cumulative=F, categories.data = NULL, categories.rand = NULL, cols = cols){
   
   n.rands <- length(unique(randomization.idxs))
   breaks <- seq(min(c(values.dat, values.rand),na.rm=T),max(c(values.dat, values.rand),na.rm=T), length.out = n.breaks)
@@ -1354,13 +1424,15 @@ compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.br
     } else{
       ylab <- 'Density'
     }
-    plot(NULL,  xlab = xlab, ylab = ylab, log = logaxes, xlim = range(mids), ylim = c(ymin, ymax), cex.lab = 1.5, cex.axis = 1.5)
+    plot(NULL,  xlab = '', ylab = '', log = logaxes, xlim = range(mids), ylim = c(ymin, ymax), cex.lab = 1, cex.axis = 1)
     for(i in 1:n.rands){
-      lines(hist.data.T$mids, hists.rand.T[i,], lwd = 0.2, col = '#0000FF33')
-      lines(hist.data.F$mids, hists.rand.F[i,], lwd = 0.2, col = '#FF00FF33')
+      lines(hist.data.T$mids, hists.rand.T[i,], lwd = 0.4, col = alpha(cols[2], 0.2))
+      lines(hist.data.F$mids, hists.rand.F[i,], lwd = 0.4, col = alpha(cols[1], 0.2))
     }
-    lines(mids, y.data.T, col = 'blue', lwd = 3)
-    lines(mids, y.data.F, col = 'magenta', lwd = 3)
+    lines(mids, y.data.T, col = cols[2], lwd = 1.5)
+    lines(mids, y.data.F, col = cols[1], lwd = 1.5)
+    title(ylab = ylab, line = 2)
+    title(xlab = xlab, line = 2)
     
     
   } else{
@@ -1371,16 +1443,17 @@ compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.br
     } else{
       ylab <- 'Density'
     }
-    plot(NULL,  xlab = xlab, ylab = ylab, log = logaxes, xlim = range(hist.data$mids), ylim = c(ymin, ymax), cex.lab = 1.5, cex.axis = 1.5)
+    plot(NULL,  xlab = '', ylab = '', log = logaxes, xlim = range(hist.data$mids), ylim = c(ymin, ymax), cex.lab = 1.5, cex.axis = 1.5)
     for(i in 1:n.rands){
-      lines(hist.data$mids, hists.rand[i,], lwd = 0.2, col = '#00000033')
+      lines(hist.data$mids, hists.rand[i,], lwd = 0.4, col = alpha(cols[2], 0.2))
     }
-    lines(hist.data$mids, y.data, col = 'red', lwd = 3)
+    lines(hist.data$mids, y.data, col = 'red', lwd = 1.5)
+    title(ylab = ylab, line = 2)
+    title(xlab = xlab, line = 2)
   }
 }
 
-plot_events <- function(indices, events, xs, ys, phase.col = TRUE, ...){
-  for(r in indices){
+plot_events <- function(r, events, xs, ys, cols, ...){
     x.i <- xs[events$i[r], events$t.start[r]:events$t.end[r]]
     x.i <- x.i - mean(x.i, na.rm = TRUE)
     y.i <- ys[events$i[r], events$t.start[r]:events$t.end[r]]
@@ -1392,59 +1465,46 @@ plot_events <- function(indices, events, xs, ys, phase.col = TRUE, ...){
     
     b1.idx <- events$b1[r] - events$t.start[r] + 1
     b2.idx <- events$b2[r] - events$t.start[r] + 1
-    col1 <- rep('darkblue', length(x.i))
-    if(phase.col){
-      col1[b1.idx:b2.idx] <- 'blue'
-      col1[b2.idx:length(x.i)] <- 'cyan'
-    }
-    col2 <- rep('darkred', length(x.j))
-    if(phase.col){
-      col2[b1.idx:b2.idx] <- 'red'
-      col2[b2.idx:length(x.j)] <- 'orange'
-    }
-    plot(x.i, y.i,asp=1, ylim = c(min(c(y.i, y.j), na.rm =TRUE), max(c(y.i, y.j), na.rm = TRUE)),
-         xlim = c(min(c(x.i, x.j), na.rm =TRUE), max(c(x.i, x.j), na.rm = TRUE)), col = scales::alpha(col1, 0.5),
-         cex = seq(0.1, 1, length.out = length(x.i)), ...)
-    points(x.j, y.j, col = scales::alpha(col2, 0.5), cex = seq(0.1, 1, length.out = length(x.i)))
-    x.lims <- par()$usr[1:2]
-    y.lims <- par()$usr[3:4]
-  }
+
+    plot.df <- data.frame(x = c(x.i, x.j), y = c(y.i, y.j), id = factor(c(rep(i, length(x.i)), rep(j, length(x.j)))), time = rep(1:length(x.i), 2), 
+                          phase = NA)
+    plot.df[plot.df$time < b1.idx,'phase'] <- 'fusion'
+    plot.df[plot.df$time >= b1.idx & plot.df$time <= b2.idx,'phase'] <- 'together'
+    plot.df[plot.df$time > b2.idx,'phase'] <- 'fission'
+    
+    ggplot(plot.df, aes(x =x ,y=y, col = id))+
+      geom_path(size = 0.5)+
+      geom_line(aes(x = x, y= y, group = time), inherit.aes = F, lty = 1, size = 0.5, 
+                data = plot.df[plot.df$phase == 'together',], alpha = 0.2, col = 'gray30')+
+      geom_point(data = plot.df[plot.df$time == 1,], shape = 'S', size = 2)+
+      geom_point(data = plot.df[plot.df$time == max(plot.df$time),], shape = 'E', size = 2, position = position_dodge(width = 1))+
+      theme_classic()+
+      theme(legend.position = 'none', axis.title = element_blank())+
+      scale_color_manual(values = cols)
 }
 
-plot_canonical_shape <- function(rows, together.seqs, xs, ys){
-  for(r in rows){
-    
+plot_canonical_shape <- function(r, together.seqs, xs, ys){
+
     y <- sqrt( (xs[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - xs[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2 +
                           (ys[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - ys[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2)
-    #y <- dyad.dists[together.seqs$i[r], together.seqs$j[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
+    
     x <- together.seqs$t.start[r]:together.seqs$t.end[r]
     
-    plot(y = y, type = 'l',
-         x = x- together.seqs$t.start[r],
-         xlab = 'Time (s)', ylab = 'Distance between individuals (m)',
-         lwd = 2, ylim = c(-50, 200),
-         yaxp  = c(0, 200, 2),
-         xlim = c(- (range(x)[2] - range(x)[1])*0.1, max( x- together.seqs$t.start[r])+ (range(x)[2] - range(x)[1])*0.1))
     
-    
-    
-    fp <- list(x0 = x[1], 
+    fp <- list(x0 = x[1],
                y0 = y[1],
                xf = x[length(x)],
-               yf = y[length(y)]) 
-    
-    # lines(x =x, y = fission_fusion_function(x, p$par[1], p$par[2], p$par[3], fp), col = 'red')
+               yf = y[length(y)])
+   
     y.fit <- fission_fusion_function(x = x, b1 = together.seqs$b1[r], b2 = together.seqs$b2[r],
                                      b.y.intercept = together.seqs$y.intercept[r], fixed.parameters = fp)
-    lines(x = x - together.seqs$t.start[r], y = y.fit, col = alpha('darkred', 0.75), lwd = 2)
-    brackets(x1 = 0, x2 = together.seqs$b1[r]- together.seqs$t.start[r] - 5, y1 = 0, y2 = 0, h = -20, type = 4)
-    brackets(x1 = together.seqs$b1[r]- together.seqs$t.start[r]+5, x2 = together.seqs$b2[r]- together.seqs$t.start[r]-5, y1 = 0, y2 = 0, h = -20, type = 4)
-    brackets(x1 = together.seqs$b2[r]- together.seqs$t.start[r]+5, x2 = together.seqs$t.end[r]- together.seqs$t.start[r], y1 = 0, y2 = 0, h = -20, type = 4)
     
-    text(x = (together.seqs$b1[r]- together.seqs$t.start[r])/2, y = -30, labels = 'fusion')
-    text(x = mean(c(together.seqs$b1[r]- together.seqs$t.start[r],
-                    together.seqs$b2[r]- together.seqs$t.start[r])), y = -30, labels = 'together')
-    text(x = mean(c(together.seqs$t.end[r]- together.seqs$t.start[r],
-                    together.seqs$b2[r]- together.seqs$t.start[r])), y = -30, labels = 'fission')
-  }
+    ggplot(data = data.frame(x = x-together.seqs$t.start[r], y, y.fit), aes(x,y))+
+      geom_line(size = 0.5)+
+      geom_line(aes(y = y.fit), col = '#ba0c2f', size = 0.5)+
+      theme_classic(base_size = 12)+
+      xlab('Time (s)')+
+      ylab('Distance between individuals (m)')
+
 }
+

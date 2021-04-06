@@ -316,26 +316,7 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
     setwd(indir)
     load('hyena_timestamps.RData')
   
-    #visualizations
-    
-    #plot total number of events in real vs permuted, and events per dyad in real vs permuted
-    
-    
-    #event type frequency for all events - real vs permuted
-    visualize_event_type_distributions(events, events.rand.list, rand.params, timestamps, remove.events.around.day.breaks = T)
-    dev.copy2pdf(file = paste0(plotdir, '/eventfreq_', randomization.type, '_avoiddups', ensure.no.day.matches, '.pdf', sep = ''))
-    dev.off()
-    
-    #event type frequency for den events and non-den events separate - real vs. permuted
-    visualize_event_type_frequency_den_vs_nonden(events, events.rand.list, params, rand.params, timestamps)
-    dev.copy2pdf(file = paste0(plotdir, '/eventfreq_denvsnon_', randomization.type, '_avoiddups', ensure.no.day.matches, '.pdf', sep = ''))
-    dev.off()
-    
-    #some other properties of events such as duration, displacement in together phase, time of day, den vs. nonden fraction
-    visualize_compare_event_properties(events, events.rand.list, params, rand.params, timestamps)
-    dev.copy2pdf(file = paste0(plotdir, '/properties_denvsnon_', randomization.type, '_avoiddups', ensure.no.day.matches, '.pdf', sep = ''))
-    dev.off()
-    
+
   }
 }
 
