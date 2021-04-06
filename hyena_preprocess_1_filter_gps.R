@@ -20,7 +20,7 @@
 #File: hyena_ids.RData
 
 #Required code files to run:
-
+#None
 
 #------------OUTPUTS---------
 #File: hyena_xy_level1.RData
@@ -28,9 +28,6 @@
 
 #File: hyena_xy_level1.h5
 # Contains the same data in hdf5 format, as well as the timestamps object
-
-#Required code files to run:
-# None
 
 #---------------PARAMETERS-------------
 max.interp <- 5 #maximum number of seconds of NAs to interpolate (default = 5)
