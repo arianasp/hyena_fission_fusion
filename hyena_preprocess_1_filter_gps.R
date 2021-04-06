@@ -23,7 +23,14 @@
 
 
 #------------OUTPUTS---------
+#File: hyena_xy_level1.RData
+# Contains xs and ys with filtered GPS (as described above) analogous to hyena_xy_level0.RData
 
+#File: hyena_xy_level1.h5
+# Contains the same data in hdf5 format, as well as the timestamps object
+
+#Required code files to run:
+# None
 
 #---------------PARAMETERS-------------
 max.interp <- 5 #maximum number of seconds of NAs to interpolate (default = 5)
@@ -35,7 +42,8 @@ min.dist.quantile <- .0001 #minimum distance quantile. distances below this quan
 
 overwrite <- F #wheter the overwrite the output file (defaults to F)
 
-#DIRECTORY where data are stored (and output is stored)
+#----DIRECTORY---- 
+#Directory where data are stored (and output is stored)
 dir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps'
 
 #set working directory
