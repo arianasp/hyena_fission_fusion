@@ -109,9 +109,9 @@ for(file in 1:length(acc.files)){
   
   #get ACC data, start time, sample rate
   utc <- h5read(file = acc.files[file],'/UTC')
-  fs <- h5read(file = acc.files[file],'/fs')
+  fs <- as.numeric(h5read(file = acc.files[file],'/fs'))
   A <- h5read(file = acc.files[file], name = '/A')
-  #vedba <- h5read(file = acc.files[file], name = '/vedba')
+  vedba_old <- h5read(file = acc.files[file], name = '/vedba')
   
   #Estimate static acceleration using sliding window
   Af <- matrix(NA, nrow=nrow(A), ncol = ncol(A))
@@ -142,17 +142,17 @@ for(file in 1:length(acc.files)){
   vedba.times <- seq.POSIXt(from=start,by=1,length.out=length(vedba.sub))
   
   #put into a data frame
-  vedba <- data.frame(time=vedba.times,vedba=as.numeric(vedba.sub))
+  vedba.df <- data.frame(time=vedba.times,vedba=as.numeric(vedba.sub))
   
   #threshold to get 3 activity states
-  vedba$state <- 0
-  vedba$state[which(vedba$vedba>threshes[1])] <- 1
-  vedba$state[which(vedba$vedba>threshes[2])] <- 2
-  vedba$state[which(is.na(vedba$vedba))] <- NA
+  vedba.df$state <- 0
+  vedba.df$state[which(vedba.df$vedba>threshes[1])] <- 1
+  vedba.df$state[which(vedba.df$vedba>threshes[2])] <- 2
+  vedba.df$state[which(is.na(vedba.df$vedba))] <- NA
   
   #link gps and vedba
-  all.dat <- vedba
-  rm(vedba)
+  all.dat <- vedba.df
+  rm(vedba.df)
   
   all.dat$hyena.id <- hyena.ids$id[grep(collar.id,hyena.ids$collar)]
   
@@ -208,6 +208,16 @@ params$gps.file <- gps.file
 params$times.file <- times.file
 params$ids.file <- ids.file
 
+#matrix with only vedba (as a matrix, structured same as xs and ys)
+vedbas <- matrix(NA, nrow = nrow(xs), ncol = ncol(xs))
+t.idxs <- match(gps.vedba.all$time, timestamps)
+non.nas <- which(!is.na(t.idxs))
+vedbas[cbind(gps.vedba.all$hyena.id[non.nas], t.idxs[non.nas])] <- gps.vedba.all$vedba[non.nas]
+
+#-----SAVE-----
+
+setwd(outdir)
+
 #R file
 save(list=c('gps.vedba.all','params','hyena.ids'),file=savefile)
 
@@ -216,11 +226,5 @@ h5createFile(file=savefile.hdf5)
 h5write(savefile.hdf5,name='/gps_vedba_all',obj=gps.vedba.all)
 h5write(savefile.hdf5,name='/params',obj=params)
 h5write(savefile.hdf5,name='/hyena_ids',obj=hyena.ids)
-
-#R file with only vedba (as a matrix, structured same as xs and ys
-vedbas <- matrix(NA, nrow = nrow(xs), ncol = ncol(xs))
-t.idxs <- match(gps.vedba.all$time, timestamps)
-non.nas <- which(!is.na(t.idxs))
-vedbas[cbind(gps.vedba.all$hyena.id[non.nas], t.idxs[non.nas])] <- gps.vedba.all$vedba[non.nas]
 
 save(list = c('vedbas', 'params'), file = savefile.vedba)
