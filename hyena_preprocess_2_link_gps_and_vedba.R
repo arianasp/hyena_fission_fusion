@@ -7,8 +7,9 @@
 
 ##This script should be run after hyena_preprocess_0_extract_GPS_csv_to_R.R and hyena_preprocess_1_filter_gps.R
 
-#The script reads ACC files (see below) where the vedba has already been computed at 25 Hz. It first smooths them over a window of 1 second
-#and then subsamples to 1 value per second, to link with GPS data
+#The script reads ACC files (see below) at 25 Hz. 
+#It first computes the VeDBA from the triaxial ACC (window size = 1 sec, following Qasem et al. 2012). 
+#It then smooths them over a window of 1 second and subsamples to 1 value per second, to link with GPS data
 
 #It outputs two files - one a data frame with GPS and vedba data for all individuals and 
 #one a matrix-form of vedbas only (same structure as xs and ys in hyena_xy_level1)
@@ -58,6 +59,7 @@
 
 #----------------------------PARAMETERS-----------------------------
 vedba.win <- 1 #window for computing vedba, in sec
+vedba.smooth.win <- 1 #window for smoothing the vedba, after it is computed, in sec
 threshes <- c(.05,0.8) #thresholds of vedba for activity states (not used in fission-fusion analysis)
 double.threshes <- exp(c(-9,-4,-2.8,-.4,-.1,3)) #thresholds for vedba for activity states, when using the double threshold method (not used in fission-fusion analysis)
 
@@ -105,17 +107,29 @@ for(file in 1:length(acc.files)){
   
   print(paste('loading in file:',acc.files[file]))
   
-  #get vedba, start time, sample rate
-  utc <- h5read(acc.files[file],'/UTC')
-  fs <- h5read(acc.files[file],'/fs')
-  vedba <- h5read(acc.files[file],'/vedba')
+  #get ACC data, start time, sample rate
+  utc <- h5read(file = acc.files[file],'/UTC')
+  fs <- h5read(file = acc.files[file],'/fs')
+  A <- h5read(file = acc.files[file], name = '/A')
+  #vedba <- h5read(file = acc.files[file], name = '/vedba')
+  
+  #Estimate static acceleration using sliding window
+  Af <- matrix(NA, nrow=nrow(A), ncol = ncol(A))
+  for(j in 1:3){
+    print(j)
+    Af[,j] <- filter(A[,j],rep(1,fs*vedba.win)/(fs*vedba.win),method='convolution',sides=2)
+  }
+  
+  #Then calculate VeDBA as vectorial difference from static acceleration
+  Adiff <- A - Af
+  vedba <- sqrt(Adiff[,1]^2 + Adiff[,2]^2 + Adiff[,3]^2)
   
   #get hyena name and collar id
   collar.id <- strsplit(acc.files[file],'_')[[1]][2]
   hyena.name <- hyena.ids$name[which(hyena.ids$collar==collar.id)]
   
   #smooth vedba at smoothing window
-  vedba.sm <- filter(vedba,rep(1,fs*vedba.win)/(fs*vedba.win),method='convolution',sides=2)
+  vedba.sm <- filter(vedba,rep(1,fs*vedba.smooth.win)/(fs*vedba.smooth.win),method='convolution',sides=2)
   
   #subsample to once per second
   vedba.sub <- vedba.sm[seq(1,length(vedba.sm),fs)]
