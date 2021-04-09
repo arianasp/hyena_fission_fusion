@@ -53,7 +53,8 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
                  move.thresh = 5, #minimum amount moved to be considered 'moving' during a phase
                  together.travel.thresh = 200, #minimum amount to be considered 'moving' during the together phase
                  local.time.diff = 3, # difference in hours from local time
-                 den.dist.thresh = 200
+                 den.dist.thresh = 200, #threshold to consider something 'at the den'
+                 last.day.used = 35 #last day in the data set to use (this is the day before the first collar died)
                   ) 
   
   #randomization.type <- 'denblock' #options: denblock, nightperm
@@ -65,7 +66,7 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
   
   #parameters for a regular night randomization
   nightperm.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
-                      last.day.used = 35, #last day to use in the randomizations (and real data)
+                      last.day.used = params$last.day.used, #last day to use in the randomizations (and real data)
                       blocks = NULL, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
                       ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
                       n.rands = 100 #how many randomizations to do
@@ -80,7 +81,7 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
   den.blocks[[4]] <- c(15)
   den.blocks[[5]] <- c(12, 31)
   denblock.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
-                                last.day.used = 35, #last day to use in the randomizations (and real data)
+                                last.day.used = params$last.day.used, #last day to use in the randomizations (and real data)
                                 blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
                                 ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
                                 n.rands = 100 #how many randomizations to do
@@ -119,11 +120,20 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
       print('Loading xy data')
     }
     load('hyena_xy_level1.RData')
+    load('hyena_day_start_idxs.RData')
+    
+    #remove everything after the last day used
+    t.idxs.use <- 1:(day.start.idxs[params$last.day.used+1]-1)
+    xs <- xs[,t.idxs.use]
+    ys <- ys[,t.idxs.use]
     
     #since vedba file also has something called params, first save the correct params and then replace it 
     params2 <- params
     load('../acc/hyena_vedba.RData')
     params <- params2
+    
+    #remove everything after the last day used
+    vedbas <- vedbas[,t.idxs.use]
     
     #extract events
     events <- get_ff_events_and_phases(xs = xs, 
@@ -152,11 +162,19 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
         print('Loading xy data')
       }
       load('hyena_xy_level1.RData')
+      load('hyena_day_start_idxs.RData')
+      
+      #remove everything after the last day used
+      t.idxs.use <- 1:(day.start.idxs[params$last.day.used+1]-1)
+      xs <- xs[,t.idxs.use]
+      ys <- ys[,t.idxs.use]
       
       #since vedba file also has something called params, first save the correct params and then replace it 
       params2 <- params
       load('../acc/hyena_vedba.RData')
       params <- params2
+      
+      vedbas <- vedbas[,t.idxs.use]
       
       setwd(outdir)
       load(events_filename)
@@ -237,6 +255,13 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
     load('../acc/hyena_vedba.RData')
     params <- params2
     
+    #remove everything after the last day used
+    t.idxs.use <- 1:(day.start.idxs[params$last.day.used+1]-1)
+    xs <- xs[,t.idxs.use]
+    ys <- ys[,t.idxs.use]
+    timestamps <- timestamps[t.idxs.use]
+    vedbas <- vedbas[,t.idxs.use]
+    
     timestamps.local <- timestamps + params$local.time.diff*60*60
     
     setwd(outdir)
@@ -307,17 +332,6 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
     
   }
   
-  if(output_day_randomization_plots){
-    
-    #load data
-    setwd(outdir)
-    load(day_randomization_output_filename)
-    load(events_features_filename)
-    setwd(indir)
-    load('hyena_timestamps.RData')
-  
-
-  }
 }
 
 #-----------------------------------MAIN-------------------------------------------------
