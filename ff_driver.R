@@ -75,11 +75,11 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
   #parameters for a den block permutation
   #this bit is manual (hardcoded), - the boundaries are based on looking at the plot of den attendance
   den.blocks <- list()
-  den.blocks[[1]] <- c(12, 22, 30, 33)
-  den.blocks[[2]] <- c(13, 26)
-  den.blocks[[3]] <- c(14)
+  den.blocks[[1]] <- c(11, 21, 29, 33)
+  den.blocks[[2]] <- c(12, 25)
+  den.blocks[[3]] <- c(13)
   den.blocks[[4]] <- c(15)
-  den.blocks[[5]] <- c(12, 31)
+  den.blocks[[5]] <- c(11, 30)
   denblock.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
                                 last.day.used = params$last.day.used, #last day to use in the randomizations (and real data)
                                 blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
