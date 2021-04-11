@@ -77,7 +77,7 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
   den.blocks <- list()
   den.blocks[[1]] <- c(12, 22, 30, 33)
   den.blocks[[2]] <- c(13, 26)
-  den.blocks[[3]] <- c(14, 35)
+  den.blocks[[3]] <- c(14)
   den.blocks[[4]] <- c(15)
   den.blocks[[5]] <- c(12, 31)
   denblock.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
