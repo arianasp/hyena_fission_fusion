@@ -16,14 +16,22 @@ setwd(gps.dir)
 load('hyena_xy_level1.RData')
 load('hyena_timestamps.Rdata')
 load('hyena_ids.Rdata')
+load('hyena_day_start_idxs.RData')
 
 setwd(ff.dir)
 load('fission_fusion_events_features.RData')
 
 #-----PARAMETERS----
 local.time.diff <- 3 #difference of local time from UTC (3 hours)
+last.day <- 35
 
 #-----PROCESS----
+#Remove data from after day 35
+t.idxs <- seq(1, day.start.idxs[last.day+1]-1)
+xs <- xs[,t.idxs]
+ys <- ys[,t.idxs]
+timestamps <- timestamps[t.idxs]
+
 #Create a data frame to hold missing data information
 missing.df <- data.frame()
 for(i in 1:nrow(xs)){
@@ -143,7 +151,7 @@ frac.time.ff <- ff.time / dyad.present.by.hour.sec$x
 #make a plot
 png(filename = 'missingdata_5_ff_time_over_tracked_time.png',width = 600, height = 600, units = 'px')
 par(mar=c(5,5,1,1))
-plot(hours, frac.time.ff*100, xlim = range(hours), ylim = c(0,40), pch = 19, xlab = "Hour of day", ylab = 'Time in FF event / Total time dyads tracked', cex = 1.5, cex.lab = 1.5, cex.axis=1.5)
+plot(hours, frac.time.ff*100, xlim = range(hours), ylim = c(0,8), pch = 19, xlab = "Hour of day", ylab = 'Time in FF event / Total time dyads tracked', cex = 1.5, cex.lab = 1.5, cex.axis=1.5)
 dev.off()
 
 #---Plot 6: Are GPS outages correlated across individuals within the same day?---
