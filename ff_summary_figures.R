@@ -431,6 +431,17 @@ ap <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Together, a
   scale_fill_manual(values = colors[c(6,4)])+
   labs(tag = 'C')
 
+ap.blank <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Together, axis3 = Fission))+
+  scale_x_continuous(breaks = c(1,2,3), labels = c('Fusion', 'Together', 'Fission'), expand = c(0.01,0.01))+
+  scale_y_continuous(expand = c(0,0))+
+  theme(axis.text.y = element_blank(), axis.line = element_blank(), rect = element_blank(), axis.ticks = element_blank(),
+        axis.title = element_blank(), legend.position = 'none', axis.text.x = element_text(size = 12))+
+ # geom_alluvium(aes(fill = Fusion), col = 'black', curve_type = 'sine', width = 1/12, reverse = FALSE) + 
+  geom_stratum(width = 1/8, alpha = 1, size = 0.5, reverse = FALSE)+
+  geom_text(stat='stratum', aes(label = after_stat(stratum)), reverse = FALSE)+
+  scale_fill_manual(values = colors[c(6,4)])+
+  labs(tag = 'C')
+
 
 
 png(filename = paste0(plotdir, '/FIG2.png'), width = 6.5, height = 7.5, units = 'in', res = 300)
@@ -474,6 +485,10 @@ p_nevents + visualize_event_type_distributions(events.data, events.rand.list.den
                                                col = colors[6])+labs(tag = 'B')
 dev.off()
 
+visualize_symmetrical_event_type_comparison(events.data, events.rand.list.denblock, 
+                                            rand.params, timestamps, 
+                                            remove.events.around.day.breaks = T,
+                                            col = colors[6])+labs(tag = 'C')
 
 #-----------------------------------------FIGURE 4------------------------------
 png(paste0(plotdir, '/FIG4.png'), width = 5, height = 7, units = 'in', res = 500)
