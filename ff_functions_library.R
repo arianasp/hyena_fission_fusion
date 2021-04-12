@@ -1196,6 +1196,7 @@ visualize_symmetrical_event_type_comparison <- function(events, events.rand.list
     theme_classic(base_size = 12)+
     geom_vline(aes(xintercept = 5.5))+
     ylab('Degree of asymmetry')+
+    geom_hline(aes(yintercept = 0.5), lty = 3)+
     theme(axis.text = element_text(color = 'black'), axis.title.x = element_blank())
 }
 
