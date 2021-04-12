@@ -14,7 +14,7 @@
 #cc16_366aGPS.csv: FAY 
 
 #Required code files to run:
-#'hyena_functions.R'
+#ff_functions_library.R (specifically the latlon.to.utm function)
 
 #------------OUTPUTS--------
 #File: hyena_gps_level0.RData - this file contains all the GPS info in multiple formats and as a result is very large! other files contain subsets for easier accessibility
@@ -47,13 +47,10 @@ overwrite <- F
 #specify time zone offset from GMT
 tz_offset <- 3 #3 hours
 
-#Libraries
-library(lubridate)
+#----DIRECTORIES-----
 
-#Get useful functions
+#directory where code is stored
 codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
-setwd(codedir)
-source('hyena_functions.R')
 
 #Directory where csv files are stored
 indir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/gps_technosmart'
@@ -61,6 +58,13 @@ indir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/gps_technos
 #Directory where to store output
 outdir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps'
 
+#-----SOURCE FUNCTIONS + LIBRARIES-----
+#Libraries
+library(lubridate)
+
+#Get useful functions
+setwd(codedir)
+source('ff_functions_library.R')
 
 #------MAIN--------
 #Set working directory
