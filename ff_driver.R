@@ -66,7 +66,7 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
   
   #parameters for a regular night randomization
   nightperm.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
-                      last.day.used = params$last.day.used, #last day to use in the randomizations (and real data)
+                      last.day.used = params$last.day.used - 1, #last day to use in the randomizations (and real data)
                       blocks = NULL, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
                       ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
                       n.rands = 100 #how many randomizations to do
@@ -81,7 +81,7 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
   den.blocks[[4]] <- c(15)
   den.blocks[[5]] <- c(11, 30)
   denblock.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
-                                last.day.used = params$last.day.used, #last day to use in the randomizations (and real data)
+                                last.day.used = params$last.day.used - 1, #last day to use in the randomizations (and real data)
                                 blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
                                 ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
                                 n.rands = 100 #how many randomizations to do
@@ -127,6 +127,12 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
     xs <- xs[,t.idxs.use]
     ys <- ys[,t.idxs.use]
     
+    #Set the first and last 12 hours to NAs (to match with randomizations, which do not include these hours)
+    xs[,1:rand.params$break.hour * 60 * 60] <- NA
+    ys[,1:rand.params$break.hour * 60 * 60] <- NA
+    xs[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
+    ys[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
+    
     #since vedba file also has something called params, first save the correct params and then replace it 
     params2 <- params
     load('../acc/hyena_vedba.RData')
@@ -168,6 +174,12 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
       t.idxs.use <- 1:(day.start.idxs[params$last.day.used+1]-1)
       xs <- xs[,t.idxs.use]
       ys <- ys[,t.idxs.use]
+      
+      #Set the first and last 12 hours to NAs (to match with randomizations, which do not include these hours)
+      xs[,1:rand.params$break.hour * 60 * 60] <- NA
+      ys[,1:rand.params$break.hour * 60 * 60] <- NA
+      xs[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
+      ys[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
       
       #since vedba file also has something called params, first save the correct params and then replace it 
       params2 <- params
@@ -264,6 +276,12 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
     
     timestamps.local <- timestamps + params$local.time.diff*60*60
     
+    #Set the first and last 12 hours to NAs (to match with randomizations, which do not include these hours)
+    xs[,1:rand.params$break.hour * 60 * 60] <- NA
+    ys[,1:rand.params$break.hour * 60 * 60] <- NA
+    xs[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
+    ys[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
+    
     setwd(outdir)
     load(day_randomization_plan_filename)
     
@@ -316,6 +334,7 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
                                      get.sync.measures = get.sync.measures,
                                      den.names = den.names,
                                      sync.subsample = 10)
+      
       events.rand.list[[r]] <- events.rand
       
       if(overwrite_day_randomization_output){

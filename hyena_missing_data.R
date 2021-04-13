@@ -6,6 +6,7 @@
 gps.dir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps'
 ff.dir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/main_output/'
 plot.dir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/results/missing_data_plots/'
+code.dir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
 
 #-----LIBRARIES----
 library(lubridate)
@@ -24,6 +25,25 @@ load('fission_fusion_events_features.RData')
 #-----PARAMETERS----
 local.time.diff <- 3 #difference of local time from UTC (3 hours)
 last.day <- 35
+
+#Den blocks
+den.blocks <- list()
+den.blocks[[1]] <- c(11, 21, 29, 33)
+den.blocks[[2]] <- c(12, 25)
+den.blocks[[3]] <- c(13)
+den.blocks[[4]] <- c(15)
+den.blocks[[5]] <- c(11, 30)
+
+rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
+                    last.day.used = last.day - 1, #last day to use in the randomizations (and real data)
+                    blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
+                    ensure.no.day.matches = T, #whether to ensure that no pair of individuals is randomized to the same day
+                    n.rands = 100 #how many randomizations to do
+)
+
+#-----SOURCE FUNCTIONS----
+setwd(code.dir)
+source('ff_functions_library.R')
 
 #-----PROCESS----
 #Remove data from after day 35
@@ -154,32 +174,101 @@ par(mar=c(5,5,1,1))
 plot(hours, frac.time.ff*100, xlim = range(hours), ylim = c(0,8), pch = 19, xlab = "Hour of day", ylab = 'Time in FF event / Total time dyads tracked', cex = 1.5, cex.lab = 1.5, cex.axis=1.5)
 dev.off()
 
-#---Plot 6: Are GPS outages correlated across individuals within the same day?---
+# #---Plot 6: Are GPS outages correlated across individuals within the same day?---
+# 
+# missing.by.date <- missing.by.date[which(!as.character(missing.by.date$Group.2) %in% c('2017-02-05','2017-02-06','2017-02-06','2017-02-07','2017-02-08','2017-02-09','2017-02-10')),]
+# 
+# #sum of variances within a day
+# within.day.variance <- sum(aggregate(missing.by.date$x, by = list(missing.by.date$Group.2), FUN = var)$x)
+# 
+# #sum of variance within a day for shuffled days
+# n.rands <- 1000
+# within.day.variance.shuff <- rep(NA,n.rands)
+# 
+# for(r in 1:n.rands){
+#   missing.by.date.shuff <- missing.by.date
+#   for(i in 1:nrow(hyena.ids)){
+#     idxs <- which(missing.by.date$Group.1==i)
+#     shuff.idxs <- sample(idxs)
+#     missing.by.date.shuff$x[idxs] <- missing.by.date$x[shuff.idxs]
+#   }
+#   within.day.variance.shuff[r] <- sum(aggregate(missing.by.date.shuff$x, by = list(missing.by.date.shuff$Group.2), FUN = var)$x)
+# }
+# 
+# #compare variance in fraction of time missing data within days vs for randomly-shuffled days
+# png(filename = 'missingdata_6_withindaycorr.png',width = 600, height = 600, units = 'px')
+# hist(within.day.variance.shuff, xlab = 'Sum of within-day variance in fraction of missing data across individuals', ylab = 'Frequency', main = '')
+# abline(v = within.day.variance, col = 'red', lwd = 2)
+# dev.off()
 
-missing.by.date <- missing.by.date[which(!as.character(missing.by.date$Group.2) %in% c('2017-02-05','2017-02-06','2017-02-06','2017-02-07','2017-02-08','2017-02-09','2017-02-10')),]
+#---Plot 6: How much dyadic data is there in real vs permuted data?-----
 
-#sum of variances within a day
-within.day.variance <- sum(aggregate(missing.by.date$x, by = list(missing.by.date$Group.2), FUN = var)$x)
+#Set the first and last 12 hours to NAs (to match with randomizations, which do not include these hours - this is also done in the main code)
+xs[,1:(rand.params$break.hour * 60 * 60)] <- NA
+ys[,1:(rand.params$break.hour * 60 * 60)] <- NA
+xs[,(ncol(xs) - (rand.params$break.hour * 60 * 60) + 1):ncol(xs)] <- NA
+ys[,(ncol(xs) - (rand.params$break.hour * 60 * 60) + 1):ncol(xs)] <- NA
 
-#sum of variance within a day for shuffled days
-n.rands <- 1000
-within.day.variance.shuff <- rep(NA,n.rands)
-
+#Perform randomizations and check how many dyad-seconds are present in randomized data permutations
+n.rands <- 100
+n.dyad.sec.rand <- rep(NA, n.rands)
+n.dyad.sec.data <- NA
 for(r in 1:n.rands){
-  missing.by.date.shuff <- missing.by.date
+  print(r)
+  
+  rand.plan <- generate_randomization_plan(rand.params, nrow(hyena.ids), ensure.no.day.matches = T)
+
+  xs.rand <- ys.rand <- matrix(NA, nrow = nrow(xs), ncol = ncol(xs))
   for(i in 1:nrow(hyena.ids)){
-    idxs <- which(missing.by.date$Group.1==i)
-    shuff.idxs <- sample(idxs)
-    missing.by.date.shuff$x[idxs] <- missing.by.date$x[shuff.idxs]
+    for(d in 1:rand.params$last.day.used){
+      
+      #original time indexes
+      t0 <- day.start.idxs[d] + rand.params$break.hour*60*60 #get initial time (day start, plus break.hour)
+      tf <- day.start.idxs[d+1] - 1 + rand.params$break.hour*60*60 #get final time
+      
+      #time indexes to swap in for this randomization
+      t0.swap <- day.start.idxs[rand.plan[i,d,r]] + rand.params$break.hour*60*60
+      tf.swap <- day.start.idxs[rand.plan[i,d,r]+1] - 1 + rand.params$break.hour*60*60
+      
+      ts.orig <- seq(t0, tf)
+      ts.swap <- seq(t0.swap, tf.swap)
+      
+      xs.rand[i, ts.orig] <- xs[i, ts.swap]
+      ys.rand[i, ts.orig] <- ys[i, ts.swap]
+      
+    }
+    
   }
-  within.day.variance.shuff[r] <- sum(aggregate(missing.by.date.shuff$x, by = list(missing.by.date.shuff$Group.2), FUN = var)$x)
+  
+  #get number of dyad-seconds in the randomized data
+  tracked <- !is.na(xs.rand)
+  n.dyad.sec <- 0
+  for(i in 1:(nrow(hyena.ids)-1)){
+    for(j in (i+1):nrow(hyena.ids)){
+      n.dyad.sec <- n.dyad.sec + sum(tracked[i,] * tracked[j,])
+    }
+  }
+  n.dyad.sec.rand[r] <- n.dyad.sec
+  
 }
 
-#compare variance in fraction of time missing data within days vs for randomly-shuffled days
-png(filename = 'missingdata_6_withindaycorr.png',width = 600, height = 600, units = 'px')
-hist(within.day.variance.shuff, xlab = 'Sum of within-day variance in fraction of missing data across individuals', ylab = 'Frequency', main = '')
-abline(v = within.day.variance, col = 'red', lwd = 2)
+#get number of dyad-seconds in the real data
+tracked <- !is.na(xs)
+n.dyad.sec <- 0
+for(i in 1:(nrow(hyena.ids)-1)){
+  for(j in (i+1):nrow(hyena.ids)){
+    n.dyad.sec <- n.dyad.sec + sum(tracked[i,] * tracked[j,])
+  }
+}
+n.dyad.sec.data <- n.dyad.sec
+
+#Plot comparison of dyad-seconds in randomized datasets vs real data
+png(filename = 'missingdata_6_dyadseconds.png', width = 600, height = 600, units = 'px')
+par(mar=c(5,5,1,1))
+hist(n.dyad.sec.rand, xlab = '# Dyad-seconds in permuted datasets', ylab = 'Frequency', col = 'gray', main = '', cex.lab = 2, cex.axis = 1.5)
+abline(v = n.dyad.sec.data, col = 'red', lwd = 2)
 dev.off()
+
 
 #---Plot 7: Are GPS outages correlated from one day to the next?---
 png(filename = 'missingdata_7_autocorr.png',width = 600, height = 600, units = 'px')
