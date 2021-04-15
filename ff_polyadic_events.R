@@ -177,7 +177,7 @@ poly_den_events_bydyad <- ggplot(plot.data, aes(fill = !at.den, y = n.agg.events
 quartz(height = 10, width = 12)
 grid.arrange(poly_den_events, poly_den_events_bydyad, nrow = 1)
 
-#Plot 5: Event types making up each category
+#----Plot 5: Event types making up each category----
 
 #calculate for each event, what type of (polyadic or dyadic) aggregated event it is in
 event.types.all <- c('fusion.stay.move__together.local__fission.stay.move',
