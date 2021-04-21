@@ -9,7 +9,7 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
     code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
   }else if(user == 'straussed'){
     remote.stem <- '/Volumes/EAS_shared/'
-    code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
+    code.stem <- '~/Documents/code/'
   }else{
     remote.stem <- '/Volumes/EAS_shared/'
     code.stem <- '~/Dropbox/code_ari/'

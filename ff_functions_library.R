@@ -1080,12 +1080,22 @@ visualize_event_type_distributions <- function(events, events.rand.list, rand.pa
   ggplot(data = plot.df, aes(x = condition, y = freq))+
     geom_violin(scale = 'width', fill = 'gray', col = 'gray')+
     geom_point(data = plot.df.obs, shape = '_', size = 10)+
-    theme_classic(base_size = 24)+
+    theme_classic(base_size = 12)+
     geom_vline(aes(xintercept = 5.5), size = 1)+
     ylab('Frequency')+
     xlab('')+
     theme(axis.text = element_text(color = 'black'))+
-    scale_x_discrete(labels = sprintf(as.character(plot.df.obs$condition)))
+    scale_x_discrete(labels = sprintf(as.character(plot.df.obs$condition)))+
+    geom_line(data = data.frame(x = c("↑↑\n••\n•↑",
+                                      "•↑\n••\n↑↑",
+                                      "↑↑\n↑↑\n•↑",
+                                      "•↑\n↑↑\n↑↑"),
+                                y = filter(plot.df.obs, condition %in% c("↑↑\n••\n•↑",
+                                                                         "•↑\n••\n↑↑",
+                                                                         "↑↑\n↑↑\n•↑",
+                                                                         "•↑\n↑↑\n↑↑"))$freq,
+                                group=c(1,1,2,2)),
+              aes(x = x, y = y, group = group), lty = 3)
   
   #visualize_yvals_vs_event_type(distribs.dat, distribs.rand, 'Frequency')
   

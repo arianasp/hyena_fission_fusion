@@ -7,7 +7,7 @@ library(ggmap)
 library(RColorBrewer)
 library(lubridate)
 library(viridis)
-library(alluvial)
+library(ggalluvial)
 library(dplyr)
 library(patchwork)
 library(magick)
@@ -21,8 +21,8 @@ if(user == 'strau'){
   code.stem <- '~/code/'
   den.file.path <- 'Z:\\hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv' 
 }else if(user == 'straussed'){
-  remote.stem <- '/Volumes/'
-  code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
+  remote.stem <- '/Volumes/EAS_shared/'
+  code.stem <- '~/Documents/code/'
   den.file.path <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv' 
 }else{
   remote.stem <- '/Volumes/EAS_shared/'
@@ -419,16 +419,18 @@ alluv.plot.data <- alluv.data %>%
 fusion.symbols <- unique(alluv.plot.data$Fusion)
 #alluvp <- alluvial(alluv.plot.data[,c('Fusion','Together','Fission')], freq = alluv.plot.data$count, col = ifelse(alluv.plot.data$Fusion == fusion.symbols[1], colors[7], colors[5]), blocks = T)
 
-
+alluv.plot.data$Event_Type = letters[1:10]
 ap <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Together, axis3 = Fission))+
   scale_x_continuous(breaks = c(1,2,3), labels = c('Fusion', 'Together', 'Fission'), expand = c(0.01,0.01))+
   scale_y_continuous(expand = c(0,0))+
   theme(axis.text.y = element_blank(), axis.line = element_blank(), rect = element_blank(), axis.ticks = element_blank(),
         axis.title = element_blank(), legend.position = 'none', axis.text.x = element_text(size = 12))+
   geom_alluvium(aes(fill = Fusion), col = 'black', curve_type = 'sine', width = 1/12, reverse = FALSE) + 
+  #geom_alluvium(aes(fill = Event_Type), col = 'black', curve_type = 'sine', width = 1/12, reverse = FALSE) + 
   geom_stratum(width = 1/8, alpha = 1, size = 0.5, reverse = FALSE)+
   geom_text(stat='stratum', aes(label = after_stat(stratum)), reverse = FALSE)+
   scale_fill_manual(values = colors[c(6,4)])+
+  #scale_fill_manual(values = plasma(10))+
   labs(tag = 'C')
 
 ap.blank <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Together, axis3 = Fission))+
@@ -481,8 +483,7 @@ p_nevents
 png(paste0(plotdir, '/FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
 p_nevents + visualize_event_type_distributions(events.data, events.rand.list.denblock, 
                                                rand.params, timestamps, 
-                                               remove.events.around.day.breaks = T,
-                                               col = colors[6])+labs(tag = 'B')
+                                               remove.events.around.day.breaks = T)+labs(tag = 'B')
 dev.off()
 
 visualize_symmetrical_event_type_comparison(events.data, events.rand.list.denblock, 
