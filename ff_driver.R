@@ -1,37 +1,25 @@
 #Driver script to run fission-fusion analyses
 
-################################ SET UP DIRECTORIES ##################################
 
-
-raw.data.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/raw_data/'
-processed.data.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/processed_data/'
-results.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/results/'
-code.directory <- '~/Documents/code/hyena_fission_fusion/'
-
+#----------------------------- SET UP DIRECTORIES---------------------------------------
 
 user <- Sys.info()['user']
 if(user == 'strau'){
   remote.stem <- 'Z:\\'
   code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
 }else if(user == 'straussed'){
-  remote.stem <- '/Volumes/EAS_shared/'
-  code.stem <- '~/Documents/code/'
+  raw.data.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/raw_data/'
+  processed.data.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/processed_data/'
+  results.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/results/'
+  code.directory <- '~/Documents/code/hyena_fission_fusion/'
 }else{
   remote.stem <- '/Volumes/EAS_shared/'
   code.stem <- '~/Dropbox/code_ari/'
 }
 
-#directory of where the original (processed) movement + vedba data is stored (+ metadata on IDs and den locations)
-indir <- paste0(remote.stem, 'hyena/archive/hyena_pilot_2017/processed/gps')
-
-#directory to put plots
-plotdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/results')
-
-#directory where code for fission-fusion project is stored
-codedir <- paste0(code.stem, 'hyena_fission_fusion/')
 
 
-
+#-------------------------- MAIN FUNCTION -------------------------------
 runall <- function(randomization.type, #options: denblock, nightperm
                    R.fusion = 100,
                    R.fission = 200,
@@ -91,7 +79,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
   
   #den info
   den.names <- c('DAVE D','RBEND D','RES M D1','DICK D')
-  den.file.path <- paste0(raw.data.directory, 'hyena_isolate_dens.csv')
+  den.file.path <- paste0(raw.data.directory, 'metadata/hyena_isolate_dens.csv')
   
   
   if(randomization.type == 'denblock'){
@@ -385,9 +373,19 @@ runall <- function(randomization.type, #options: denblock, nightperm
   
 }
 
-#-----------------------------------MAIN-------------------------------------------------
+
+
+#-----------------------------------RUN ME-------------------------------------------------
 
 print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
-runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 50, R.fission = 100)
+runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, 
+       raw.data.directory, preprocessed.data.directory, results.directory, code.directory, overwrite_preprocess = F)
 print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
-runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 200, R.fission = 300)
+runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 50, R.fission = 100,
+       raw.data.directory, preprocessed.data.directory, results.directory, code.directory)
+print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
+runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 200, R.fission = 300,
+       raw.data.directory, preprocessed.data.directory, results.directory, code.directory)
+
+
+
