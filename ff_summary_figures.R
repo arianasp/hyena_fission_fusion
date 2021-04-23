@@ -14,25 +14,6 @@ library(magick)
 
 
 #------------DIRECTORIES------------
-
-user <- Sys.info()['user']
-if(user == 'strau'){
-  remote.stem <- 'Z:\\'
-  code.stem <- '~/code/'
-  den.file.path <- 'Z:\\hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv' 
-}else if(user == 'straussed'){
-  remote.stem <- '/Volumes/EAS_shared/'
-  code.stem <- '~/Documents/code/'
-  den.file.path <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv' 
-}else{
-  remote.stem <- '/Volumes/EAS_shared/'
-  code.stem <- '~/Dropbox/code_ari/'
-  den.file.path <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv' 
-}
-
-#directory of where the original (processed) movement + vedba data is stored (+ metadata on IDs and den locations)
-indir <- paste0(remote.stem, 'hyena/archive/hyena_pilot_2017/processed/gps')
-
 #directory of where to store extracted data for fission-fusion project
 outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/main_output')
 
@@ -52,45 +33,35 @@ nightperm_output_file <- 'hyena_day_randomization_events_features_nightperm_avoi
 denblock_output_file <- 'hyena_day_randomization_events_features_denblock_avoidmatchTRUE.RData'
 map_file <- 'hyena_satellite_map.RData'
 
-#----------FUNCTIONS---------------
-setwd(codedir)
-source('ff_functions_library.R')
-
 #----------LOAD DATA-------------
-
-print("Loading data")
-setwd(indir)
-load('hyena_timestamps.RData')
-load('hyena_ids.RData')
-load('hyena_xy_level1.RData')
-load('hyena_latlon_level0.RData')
-
-setwd(outdir)
+load(paste0(processed.data.directory,'hyena_timestamps.RData'))
+load(paste0(processed.data.directory,'hyena_ids.RData'))
+load(paste0(processed.data.directory,'hyena_xy_level1.RData'))
+load(paste0(processed.data.directory,'hyena_latlon_level0.RData'))
 
 #load events from real data
-load(data_output_file)
+load(paste0(data.outdir, data_output_file))
 events.data <- events
 rm('events')
 
 #load events from nightperm randomization
-load(nightperm_output_file)
+load(paste0(data.outdir, nightperm_output_file))
 events.rand.list.nightperm <- events.rand.list
 rm('events.rand.list')
 
 #load events from denblock randomization
-load(denblock_output_file)
+load(paste0(data.outdir, denblock_output_file))
 events.rand.list.denblock <- events.rand.list
 rm('events.rand.list')
 
-#load the map
-setwd(mapdir)
-load(map_file)
+load(paste0(raw.data.directory, map_file))
 
 # Load hyena image
-hyena <- image_read(path = paste0(remote.stem, 'hyena/working/hyena_fission_fusion/collared_hyena.jpg'))
+hyena <- image_read(path = paste0(raw.data.directory, collared_hyena.jpg))
 
 #------------PROCESS-----------------
-print("Preprocessing")
+if(verbose)
+  print("Preprocessing")
 n.rands <- length(events.rand.list.denblock)
 n.inds <- nrow(hyena.ids)
   
@@ -290,9 +261,6 @@ print(paste0('The number of stationary events during the together phase is ', su
 
 #--------------PLOTS----------------
 
-print("Creating plots")
-print('# Events plot')
-
 colors <- c("#F72585", "#3f37c9", "#21054C", "#4895EF", "#ba0c2f",'gray30')
 
 #-------FIGURE 1b time of fusions ----------
@@ -309,7 +277,6 @@ timeplot <- ggplot(aes(x = hour.start, fill = as.logical(at.den.start-1)), data 
   theme(legend.position = c(.75,.75), legend.title = element_blank())+
   labs(tag='B')
 
-timeplot
 
 ################################################################################
 ##### I feel like this belongs in a different script but I'm leaving it for now
@@ -322,8 +289,6 @@ for(i in 1:(n.inds-1)){
     all.hrs <- c(all.hrs, hours.ts[both.tracked])
   }
 }
-
-#quartz()
 hist(all.hrs)
 ################################################################################
 
@@ -358,7 +323,6 @@ scalebar <- data.frame(lon = scale.lons, lat = scale.lats)
 scalebar2 <- data.frame(lon = mean(scale.lons), lat = mean(scale.lats))
 
 #create the plot (for fusions, in this case)
-#quartz(height = 8, width = 8)
 mapplot <- ggmap(hyena_map_transparent, alpha = 0.5) + 
   geom_point(aes(x = lon.fusion, y = lat.fusion, color = at.den.start), data = events.data.exact, size = 1, shape = 3, alpha = 0.8) +
   scale_color_manual(values=c(colors[1], colors[2])) + 
@@ -377,7 +341,7 @@ BBCCCC
 BBCCCC
 "
 
-png(paste0(plotdir, '/FIG1.png'), width = 6, height =4, units = 'in', res = 500)
+png(paste0(plots.outdir, '/FIG1.png'), width = 6, height =4, units = 'in', res = 500)
 hyena.plot + timeplot + mapplot + plot_layout(design = layout)
 dev.off()
 
@@ -446,7 +410,7 @@ ap.blank <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Toget
 
 
 
-png(filename = paste0(plotdir, '/FIG2.png'), width = 6.5, height = 7.5, units = 'in', res = 300)
+png(filename = paste0(plots.outdir, '/FIG2.png'), width = 6.5, height = 7.5, units = 'in', res = 300)
 
 layout <- "
 AABB
@@ -480,7 +444,7 @@ p_nevents <- ggplot(data = plotdat.denblock) +
 p_nevents
 
 #-FIGURE 3b--
-png(paste0(plotdir, '/FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
+png(paste0(plots.outdir, '/FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
 p_nevents + visualize_event_type_distributions(events.data, events.rand.list.denblock, 
                                                rand.params, timestamps, 
                                                remove.events.around.day.breaks = T)+labs(tag = 'B')
@@ -492,7 +456,7 @@ visualize_symmetrical_event_type_comparison(events.data, events.rand.list.denblo
                                             col = colors[6])+labs(tag = 'C')
 
 #-----------------------------------------FIGURE 4------------------------------
-png(paste0(plotdir, '/FIG4.png'), width = 5, height = 7, units = 'in', res = 500)
+png(paste0(plots.outdir, '/FIG4.png'), width = 5, height = 7, units = 'in', res = 500)
 visualize_compare_event_properties(events.data, events.rand.list.denblock,
                                    params, rand.params, timestamps, cols = colors[1:2])
 dev.off()
@@ -509,7 +473,7 @@ psri2 <- ggplot(networkdat.denblock, aes(x = dyad, y = sri)) +
   ylab('Edge weight') + 
   xlab('')
 
-png(paste0(plotdir, '/FIG5.png'), width = 6.5, height = 4, units = 'in', res = 500)
+png(paste0(plots.outdir, '/FIG5.png'), width = 6.5, height = 4, units = 'in', res = 500)
 psri2
 dev.off()
 

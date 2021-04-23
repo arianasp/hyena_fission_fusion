@@ -65,17 +65,16 @@ double.threshes <- exp(c(-9,-4,-2.8,-.4,-.1,3)) #thresholds for vedba for activi
 
 #----------------------FILES AND DIRECTORIES------------------------
 #Inputs
-outdir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/acc'
-indir_gps <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps'
-indir_acc <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/acc'
-gps.file <- 'hyena_xy_level1.RData'
-times.file <- 'hyena_timestamps.RData'
-ids.file <- 'hyena_ids.RData'
+indir_gps <- processed.data.directory
+indir_acc <- paste0(raw.data.directory, 'acc/')
+gps.file <- paste0(processed.data.directory, 'hyena_xy_level1.RData')
+times.file <- paste0(processed.data.directory,'hyena_timestamps.RData')
+ids.file <- paste0(processed.data.directory,'hyena_ids.RData')
 
 #Outputs
-savefile <- 'hyena_gps_and_acc.RData'
-savefile.hdf5 <- 'hyena_gps_and_acc.h5'
-savefile.vedba <- 'hyena_vedba.RData'
+savefile <- paste0(processed.data.directory,'hyena_gps_and_acc.RData')
+savefile.hdf5 <- paste0(processed.data.directory,'hyena_gps_and_acc.h5')
+savefile.vedba <- paste0(processed.data.directory,'hyena_vedba.RData')
 
 #-----------------------------MAIN----------------------------------
 
@@ -89,35 +88,28 @@ library(scales)
 
 #LOAD FILES
 
-#set working directory for gps files
-setwd(indir_gps)
-
 #gps, times, ids
 load(gps.file)
 load(times.file)
 load(ids.file)
 
-#set working directory for acc files
-setwd(indir_acc)
-
 #vedba from each hyena
-acc.files <- list.files()
+acc.files <- list.files(indir_acc)
 gps.vedba.all <- data.frame()
 for(file in 1:length(acc.files)){
-  
-  print(paste('loading in file:',acc.files[file]))
+  if(verbose)
+    print(paste('loading in file:',acc.files[file]))
   
   #get ACC data, start time, sample rate
-  utc <- h5read(file = acc.files[file],'/UTC')
-  fs <- as.numeric(h5read(file = acc.files[file],'/fs'))
-  A <- h5read(file = acc.files[file], name = '/A')
-  vedba_old <- h5read(file = acc.files[file], name = '/vedba')
+  utc <- h5read(file = paste0(indir_acc, acc.files[file]),'/UTC')
+  fs <- as.numeric(h5read(file = paste0(indir_acc, acc.files[file]),'/fs'))
+  A <- h5read(file = paste0(indir_acc, acc.files[file]), name = '/A')
+  vedba_old <- h5read(file = paste0(indir_acc, acc.files[file]), name = '/vedba')
   
   #Estimate static acceleration using sliding window
   Af <- matrix(NA, nrow=nrow(A), ncol = ncol(A))
   for(j in 1:3){
-    print(j)
-    Af[,j] <- filter(A[,j],rep(1,fs*vedba.win)/(fs*vedba.win),method='convolution',sides=2)
+    Af[,j] <- stats::filter(A[,j],rep(1,fs*vedba.win)/(fs*vedba.win),method='convolution',sides=2)
   }
   
   #Then calculate VeDBA as vectorial difference from static acceleration
@@ -129,7 +121,7 @@ for(file in 1:length(acc.files)){
   hyena.name <- hyena.ids$name[which(hyena.ids$collar==collar.id)]
   
   #smooth vedba at smoothing window
-  vedba.sm <- filter(vedba,rep(1,fs*vedba.smooth.win)/(fs*vedba.smooth.win),method='convolution',sides=2)
+  vedba.sm <- stats::filter(vedba,rep(1,fs*vedba.smooth.win)/(fs*vedba.smooth.win),method='convolution',sides=2)
   
   #subsample to once per second
   vedba.sub <- vedba.sm[seq(1,length(vedba.sm),fs)]
@@ -215,8 +207,6 @@ non.nas <- which(!is.na(t.idxs))
 vedbas[cbind(gps.vedba.all$hyena.id[non.nas], t.idxs[non.nas])] <- gps.vedba.all$vedba[non.nas]
 
 #-----SAVE-----
-
-setwd(outdir)
 
 #R file
 save(list=c('gps.vedba.all','params','hyena.ids'),file=savefile)

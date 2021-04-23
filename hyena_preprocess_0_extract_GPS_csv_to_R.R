@@ -41,40 +41,21 @@
 #File: hyena_ids.RData: contains hyena.ids data frame, as described above
 
 #---------PARAMETERS--------
-#whether to overwrite saved files on the server
-overwrite <- F
 
 #specify time zone offset from GMT
 tz_offset <- 3 #3 hours
 
-#----DIRECTORIES-----
-
-#directory where code is stored
-codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
-
-#Directory where csv files are stored
-indir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/gps_technosmart'
-
-#Directory where to store output
-outdir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps'
-
-#-----SOURCE FUNCTIONS + LIBRARIES-----
+#-----SOURCE LIBRARIES-----
 #Libraries
 library(lubridate)
 
-#Get useful functions
-setwd(codedir)
-source('ff_functions_library.R')
-
 #------MAIN--------
-#Set working directory
-setwd(indir)
 
 #First create a data frame (hyena.ids) that maps hyenas to collar ids
 hyena.ids <- data.frame(name = c('WRTH','BORA','BYTE','MGTA','FAY'), collar = c('352a','352b','354a','360a','366a'), id = seq(1,5,1),color=c('red','blue','green','magenta','orange'))
 #Get all files in folder
-files <- list.files()
-files <- files[grep('.csv',files)]
+files <- list.files(path = paste0(raw.data.directory, 'gps_technosmart/'))
+files <- paste0(raw.data.directory, 'gps_technosmart/',files[grep('.csv',files)])
 hyena.ids$name <- as.character(hyena.ids$name)
 hyena.ids$collar <- as.character(hyena.ids$collar)
 hyena.ids$color <- as.character(hyena.ids$name)
@@ -82,7 +63,8 @@ hyena.ids$color <- as.character(hyena.ids$name)
 #Read everything into a single data table (hyena.gps)
 hyena.gps.list <- list()
 for(i in 1:nrow(hyena.ids)){
-	print(i)
+  if(verbose)
+    print('File ', i)
 	file <- paste('cc16_',hyena.ids$collar[i],'GPS.csv',sep='')
 	collar <- hyena.ids$collar[i]
 	dat.curr <- read.table(files[i],sep='\t',header=TRUE,stringsAsFactors=F)
@@ -133,12 +115,11 @@ for(i in 1:length(dates)){
 	day.start.idxs <- c(day.start.idxs, min(which(days==dates[i])))
 }
 
-if(overwrite){
-  setwd(outdir)
-  save(file='hyena_gps_level0.RData',list=c('xs','ys','lats','lons','timestamps','hyena.ids','hyena.gps','dates','day.start.idxs'))
-  save(file='hyena_xy_level0.Rdata',list=c('xs','ys'))
-  save(file='hyena_timestamps.Rdata',list=c('timestamps'))
-  save(file='hyena_day_start_idxs.RData', list = c('day.start.idxs'))
-  save(file='hyena_latlon_level0.RData',list=c('lats','lons'))
-  save(file='hyena_ids.RData',list=c('hyena.ids'))
-}
+
+save(file=paste0(processed.data.directory,'hyena_gps_level0.RData'),list=c('xs','ys','lats','lons','timestamps','hyena.ids','hyena.gps','dates','day.start.idxs'))
+save(file=paste0(processed.data.directory,'hyena_xy_level0.Rdata'),list=c('xs','ys'))
+save(file=paste0(processed.data.directory,'hyena_timestamps.Rdata'),list=c('timestamps'))
+save(file=paste0(processed.data.directory,'hyena_day_start_idxs.RData'), list = c('day.start.idxs'))
+save(file=paste0(processed.data.directory,'hyena_latlon_level0.RData'),list=c('lats','lons'))
+save(file=paste0(processed.data.directory,'hyena_ids.RData'),list=c('hyena.ids'))
+

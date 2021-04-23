@@ -1,49 +1,56 @@
 #Driver script to run fission-fusion analyses
 
-runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.fission = 200){
-  ################################ SET UP DIRECTORIES ##################################
+################################ SET UP DIRECTORIES ##################################
+
+
+raw.data.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/raw_data/'
+processed.data.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/processed_data/'
+results.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/results/'
+code.directory <- '~/Documents/code/hyena_fission_fusion/'
+
+
+user <- Sys.info()['user']
+if(user == 'strau'){
+  remote.stem <- 'Z:\\'
+  code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
+}else if(user == 'straussed'){
+  remote.stem <- '/Volumes/EAS_shared/'
+  code.stem <- '~/Documents/code/'
+}else{
+  remote.stem <- '/Volumes/EAS_shared/'
+  code.stem <- '~/Dropbox/code_ari/'
+}
+
+#directory of where the original (processed) movement + vedba data is stored (+ metadata on IDs and den locations)
+indir <- paste0(remote.stem, 'hyena/archive/hyena_pilot_2017/processed/gps')
+
+#directory to put plots
+plotdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/results')
+
+#directory where code for fission-fusion project is stored
+codedir <- paste0(code.stem, 'hyena_fission_fusion/')
+
+
+
+runall <- function(randomization.type, #options: denblock, nightperm
+                   R.fusion = 100,
+                   R.fission = 200,
+                   raw.data.directory, preprocessed.data.directory, results.directory, code.directory,
+                   ensure.no.day.matches = T, 
+                   verbose = T,
+                   overwrite_preprocess = T,
+                   run_extract_ff_events = T, ## The rest are options for skipping steps to reduce runtime 
+                   overwrite_extract_ff_events = T,
+                   run_get_ff_features = T,
+                   overwrite_extract_ff_features = T,
+                   generate_day_randomization_plan = T,
+                   overwrite_day_randomization_plan = T,
+                   execute_day_randomization_plan = T,
+                   overwrite_day_randomization_output = T,
+                   output_day_randomization_plots = T,
+                   get.sync.measures = T,
+                   ovewrite_figures = T){
   
-  user <- Sys.info()['user']
-  if(user == 'strau'){
-    remote.stem <- 'Z:\\'
-    code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
-  }else if(user == 'straussed'){
-    remote.stem <- '/Volumes/EAS_shared/'
-    code.stem <- '~/Documents/code/'
-  }else{
-    remote.stem <- '/Volumes/EAS_shared/'
-    code.stem <- '~/Dropbox/code_ari/'
-  }
-  
-  #directory of where the original (processed) movement + vedba data is stored (+ metadata on IDs and den locations)
-  indir <- paste0(remote.stem, 'hyena/archive/hyena_pilot_2017/processed/gps')
-  
-  #directory of where to store extracted data for fission-fusion project
-  outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/no_synchrony_measures')
-  if(R.fusion == 50){
-    outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/robustness_checks/R50_100')
-  } else if(R.fusion == 200){
-    outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/robustness_checks/R200_300')
-  }
-  
-  #directory to put plots
-  plotdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/results')
-  
-  #directory where code for fission-fusion project is stored
-  codedir <- paste0(code.stem, 'hyena_fission_fusion/')
-  
-  
-  ################################ CHOOSE ANALYSES TO RUN ##################################
-  
-  run_extract_ff_events <- T
-  overwrite_extract_ff_events <- T
-  run_get_ff_features <- T
-  overwrite_extract_ff_features <- T
-  generate_day_randomization_plan <- T
-  overwrite_day_randomization_plan <- T
-  execute_day_randomization_plan <- T
-  overwrite_day_randomization_output <- T
-  output_day_randomization_plots <- F
   
   ################################ PARAMETERS ##########################################
   
@@ -56,11 +63,6 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
                  den.dist.thresh = 200, #threshold to consider something 'at the den'
                  last.day.used = 35 #last day in the data set to use (this is the day before the first collar died)
                   ) 
-  
-  #randomization.type <- 'denblock' #options: denblock, nightperm
-  
-  verbose <- TRUE
-  get.sync.measures <- TRUE
   
   ######################## FIXED PARAMETERS - DON'T CHANGE ##############################
   
@@ -88,8 +90,8 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
                                 )
   
   #den info
-  den.file.path <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv'
   den.names <- c('DAVE D','RBEND D','RES M D1','DICK D')
+  den.file.path <- paste0(raw.data.directory, 'hyena_isolate_dens.csv')
   
   
   if(randomization.type == 'denblock'){
@@ -105,22 +107,57 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
   day_randomization_plan_filename <- paste0('hyena_day_randomization_plan_', randomization.type, '_avoidmatch', rand.params$ensure.no.day.matches, '.RData')
   day_randomization_output_filename <- paste0('hyena_day_randomization_events_features_',randomization.type,'_avoidmatch', rand.params$ensure.no.day.matches, '.RData')
   
+  
+  #adjust subdirectory  where to store extracted data based on parameters - FIX THIS
+  if(R.fusion == 100){
+      data.outdir <- paste0(results.directory, '1_main_output_R100_200/data/')
+      plots.outdir <- paste0(results.directory, '1_main_output_R100_200/plots/')
+  } else if(R.fusion == 50){
+    data.outdir <- paste0(results.directory, '2_stability_check_R50_100/data/')
+    plots.outdir <- paste0(results.directory, '2_stability_check_R50_100/plots/')
+  } else if(R.fusion == 200){
+    data.outdir <- paste0(results.directory, '2_stability_check_R200_300/data/')
+    plots.outdir <- paste0(results.directory, '2_stability_check_R200_300/plots/')
+  }
+  
   ################################# SOURCE FUNCTIONS #######################################
   
-  setwd(codedir)
-  source('ff_functions_library.R')
+  source(paste0(code.directory, 'ff_functions_library.R'))
+  
+  ################################# PREPROCESS DATA #######################################
+  
+  if(overwrite_preprocess){
+    if(verbose){
+      print('Starting data preprocessing')
+      print('Starting step 1...')
+      source(paste0(code.directory, 'hyena_preprocess_0_extract_GPS_csv_to_R.R'))
+      print('... step 1 finished')
+      
+      print('Starting step 2... ')
+      source(paste0(code.directory, 'hyena_preprocess_1_filter_gps.R'))
+      print('...step 2 finished')
+      
+      print('Starting step 3... ')
+      source(paste0(code.directory, 'hyena_preprocess_2_link_gps_and_vedba.R'))
+      print('...step 3 finished')
+      
+      print('Completed data preprocessing')
+    }else{
+      source(paste0(code.directory, 'hyena_preprocess_0_extract_GPS_csv_to_R.R'))
+      source(paste0(code.directory, 'hyena_preprocess_1_filter_gps.R'))
+    }
+  }
   
   ################################# MAIN #######################################
   
   if(run_extract_ff_events){
     
     #Load data
-    setwd(indir)
     if(verbose){
       print('Loading xy data')
     }
-    load('hyena_xy_level1.RData')
-    load('hyena_day_start_idxs.RData')
+    load(paste0(processed.data.directory,'/hyena_xy_level1.RData'))
+    load(paste0(processed.data.directory, '/hyena_day_start_idxs.RData'))
     
     #remove everything after the last day used
     t.idxs.use <- 1:(day.start.idxs[params$last.day.used+1]-1)
@@ -135,7 +172,7 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
     
     #since vedba file also has something called params, first save the correct params and then replace it 
     params2 <- params
-    load('../acc/hyena_vedba.RData')
+    load(paste0(processed.data.directory, 'hyena_vedba.RData'))
     params <- params2
     
     #remove everything after the last day used
@@ -147,11 +184,10 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
                                        params = params)
     
     if(overwrite_extract_ff_events){
-      setwd(outdir)
       if(verbose){
-        print(paste0('Saving events to ', outdir, '/', events_filename))
+        print(paste0('Saving events to ', data.outdir, events_filename))
       }
-      save(list = c('events','params'), file = events_filename)
+      save(list = c('events','params'), file = paste0(data.outdir, events_filename))
     }
     
     
@@ -163,12 +199,11 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
     if(!run_extract_ff_events){
       
       #Load data
-      setwd(indir)
       if(verbose){
         print('Loading xy data')
       }
-      load('hyena_xy_level1.RData')
-      load('hyena_day_start_idxs.RData')
+      load(paste0(processed.data.directory,'hyena_xy_level1.RData'))
+      load(paste0(processed.data.directory, 'hyena_day_start_idxs.RData'))
       
       #remove everything after the last day used
       t.idxs.use <- 1:(day.start.idxs[params$last.day.used+1]-1)
@@ -183,13 +218,12 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
       
       #since vedba file also has something called params, first save the correct params and then replace it 
       params2 <- params
-      load('../acc/hyena_vedba.RData')
+      load(paste0(processed.data.directory, 'hyena_vedba.RData'))
       params <- params2
       
       vedbas <- vedbas[,t.idxs.use]
       
-      setwd(outdir)
-      load(events_filename)
+      load(paste0(data.outdir, events_filename))
       
     } 
     
@@ -209,11 +243,10 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
     
     if(overwrite_extract_ff_features){
       
-      setwd(outdir)
       if(verbose){
-        print(paste0('Saving events + features to ', outdir, '/', events_features_filename))
+        print(paste0('Saving events + features to ', data.outdir, events_features_filename))
       }
-      save(list = c('events','params'), file = events_features_filename)
+      save(list = c('events','params'), file = paste0(data.outdir, events_features_filename))
       
     }
     
@@ -221,9 +254,8 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
   
   if(generate_day_randomization_plan){
     
-    setwd(indir)
-    load('hyena_ids.RData')
-    load('hyena_day_start_idxs.RData')
+    load(paste0(preprocessed.data.directory, 'hyena_ids.RData'))
+    load(paste0(preprocessed.data.directory, 'hyena_day_start_idxs.RData'))
     
     n.inds <- nrow(hyena.ids)
     
@@ -240,8 +272,7 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
     
     if(overwrite_day_randomization_plan){
       
-      setwd(outdir)
-      save(file = day_randomization_plan_filename, list = c('rand.plan','rand.params'))
+      save(file = paste0(data.outdir, day_randomization_plan_filename, list = c('rand.plan','rand.params')))
       
     }
     
@@ -257,14 +288,13 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
       print('Loading data')
     }
     
-    setwd(indir)
-    load('hyena_xy_level1.RData')
-    load('hyena_timestamps.RData')
-    load('hyena_day_start_idxs.RData')
+    load(paste0(preprocessed.data.directory,'hyena_xy_level1.RData'))
+    load(paste0(preprocessed.data.directory,'hyena_timestamps.RData'))
+    load(paste0(preprocessed.data.directory,'hyena_day_start_idxs.RData'))
     
     #since vedba file also has something called params, first save the correct params and then replace it 
     params2 <- params
-    load('../acc/hyena_vedba.RData')
+    load(paste0(preprocessed.data.directory, 'hyena_vedba.RData'))
     params <- params2
     
     #remove everything after the last day used
@@ -282,8 +312,7 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
     xs[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
     ys[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
     
-    setwd(outdir)
-    load(day_randomization_plan_filename)
+    load(paste0(data.outidr, day_randomization_plan_filename))
     
     n.inds <- nrow(xs)
     
@@ -338,7 +367,7 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
       events.rand.list[[r]] <- events.rand
       
       if(overwrite_day_randomization_output){
-        save(list = c('events.rand.list','params','rand.params','complete'), file = day_randomization_output_filename)
+        save(list = c('events.rand.list','params','rand.params','complete'), file = paste0(data.outdir, day_randomization_output_filename))
       }
       
     }
@@ -346,9 +375,12 @@ runall <- function(randomization.type, ensure.no.day.matches, R.fusion = 100, R.
     complete <- T
     
     if(overwrite_day_randomization_output){
-      save(list = c('events.rand.list','params','rand.params','complete'), file = day_randomization_output_filename)
+      save(list = c('events.rand.list','params','rand.params','complete'), file = paste0(data.outdir, day_randomization_output_filename))
     }
     
+    if(ovewrite_figures){
+      source(paste0(code.directory, 'ff_summary_figures.R'))
+    }
   }
   
 }

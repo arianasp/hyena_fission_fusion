@@ -37,14 +37,6 @@ max.move.time <- 5*60 #maximum NA gap time (in seconds) to replace with mean val
 max.dist.quantile <- .9999 #maximum distance quantile. distances beyond this quantile in both x and y direction for each individual will be replaced with NAs (defaults to 0.9999)
 min.dist.quantile <- .0001 #minimum distance quantile. distances below this quantile in both x and y direction for each individual will be replaced with NAs (defaults to 0.0001)
 
-overwrite <- F #wheter the overwrite the output file (defaults to F)
-
-#----DIRECTORY---- 
-#Directory where data are stored (and output is stored)
-dir <- '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps'
-
-#set working directory
-setwd(dir)
 
 #--------MAIN-----------
 #LIBRARIES
@@ -52,16 +44,18 @@ library(lubridate)
 library(rhdf5)
 
 #Load level 0 gps data
-load('hyena_xy_level0.RData')
-load('hyena_timestamps.RData')
-load('hyena_ids.RData')
+load(paste0(processed.data.directory, 'hyena_xy_level0.RData'))
+load(paste0(processed.data.directory,'hyena_timestamps.RData'))
+load(paste0(processed.data.directory,'hyena_ids.RData'))
 
 #number of indidivudals
 n.inds <- nrow(xs)
 n.times <- ncol(xs)
 
-print('initial NA frac:')
-print(sum(is.na(xs))/length(xs))
+if(verbose){
+  print('initial NA frac:')
+  print(sum(is.na(xs))/length(xs))
+}
 
 #Find extreme speeds and replace with NAs
 speeds <- matrix(NA,nrow=n.inds,ncol=n.times)
@@ -79,8 +73,10 @@ for(i in 1:n.inds){
    ys[i,unrealistic.speed.idxs + 1] <- NA
 }
 
-print('after removing unrealistic speeds:')
-print(sum(is.na(xs))/length(xs))
+if(verbose){
+  print('after removing unrealistic speeds:')
+  print(sum(is.na(xs))/length(xs))
+}
 
 #Interpolate through seqs of NAs of length < max.interp
 for(i in 1:n.inds){
@@ -143,10 +139,12 @@ for(i in 1:n.inds){
 	
 }
 
-print('after interpolating:')
-print(sum(is.na(xs))/length(xs))
+if(verbose){
+  print('after interpolating:')
+  print(sum(is.na(xs))/length(xs))
+  print('removing unrealistic distances...')
+}
 
-print('removing unrealistic distances...')
 
 #Find and remove unrealistic distances (if they are not surrounded by other similar distances)
 for(i in 1:n.inds){
@@ -160,9 +158,12 @@ for(i in 1:n.inds){
   bigs <- unique(c(which(xi>quantile(xi,max.dist.quantile,na.rm=T)),which(yi>quantile(yi,max.dist.quantile,na.rm=T))))
   smalls <- unique(c(which(xi<quantile(xi,min.dist.quantile,na.rm=T)),which(yi<quantile(yi,min.dist.quantile,na.rm=T))))
   extremes <- unique(c(bigs,smalls))
-  print('number of extremes = ')
-  print(length(extremes))
   
+  if(verbose){
+    print('number of extremes = ')
+    print(length(extremes))
+  }
+
   #for each extreme value, find the previous and next non-NA data point
   #if this previous point is more than 1 km away, just replace the unrealistic location with NA
   #otherwise, leave it
@@ -175,7 +176,8 @@ for(i in 1:n.inds){
     dist.next <- sqrt((xs[i,next.t]-xs[i,t.idx])^2 + (ys[i,next.t]-ys[i,t.idx])^2)
     
     if(dist.prev > 1000 & dist.next > 1000){
-      print(paste('found unrealistic distance at time:',t.idx,'dist.prev = ',dist.prev,'dist.next = ',dist.next,'dt1=',(t.idx-prev.t)/60,'dt2=',(next.t-prev.t)/60))
+      if(verbose)
+        print(paste('found unrealistic distance at time:',t.idx,'dist.prev = ',dist.prev,'dist.next = ',dist.next,'dt1=',(t.idx-prev.t)/60,'dt2=',(next.t-prev.t)/60))
       
       xi.new[t.idx] <- NA
       yi.new[t.idx] <- NA
@@ -206,16 +208,14 @@ for(i in 1:n.inds){
 }
 
 #Save as RData and HDF5
-if(overwrite){
-  setwd(dir)
-  save(file='hyena_xy_level1.RData',list=c('xs','ys'))
-  
-  h5createFile(file='hyena_xy_level1.h5')
-  h5write(file='hyena_xy_level1.h5',name='/xs',obj=xs)
-  h5write(file='hyena_xy_level1.h5',name='/ys',obj=ys)
-  h5write(file='hyena_xy_level1.h5',name='/timestamps',obj=as.character(timestamps))
-  H5close()
-}
+
+save(file=paste0(processed.data.directory, 'hyena_xy_level1.RData'),list=c('xs','ys'))
+
+h5createFile(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'))
+h5write(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'),name='/xs',obj=xs)
+h5write(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'),name='/ys',obj=ys)
+h5write(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'),name='/timestamps',obj=as.character(timestamps))
+H5close()
 
 
 
