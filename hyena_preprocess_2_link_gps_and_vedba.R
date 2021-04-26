@@ -213,9 +213,9 @@ save(list=c('gps.vedba.all','params','hyena.ids'),file=savefile)
 
 #HDF5 file
 if(file.exists(savefile.hdf5)){
-  h5delete(savefile.hdf5,name='/gps_vedba_all',obj=gps.vedba.all)
-  h5delete(savefile.hdf5,name='/params',obj=params)
-  h5delete(savefile.hdf5,name='/hyena_ids',obj=hyena.ids)
+  h5delete(savefile.hdf5,name='/gps_vedba_all')
+  h5delete(savefile.hdf5,name='/params')
+  h5delete(savefile.hdf5,name='/hyena_ids')
   h5write(savefile.hdf5,name='/gps_vedba_all',obj=gps.vedba.all)
   h5write(savefile.hdf5,name='/params',obj=params)
   h5write(savefile.hdf5,name='/hyena_ids',obj=hyena.ids)
