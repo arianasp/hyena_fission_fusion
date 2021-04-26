@@ -23,6 +23,7 @@ if(user == 'strau'){
 runall <- function(randomization.type, #options: denblock, nightperm
                    R.fusion = 100,
                    R.fission = 200,
+                   n.rands = 100,
                    raw.data.directory, processed.data.directory, results.directory, code.directory,
                    ensure.no.day.matches = T, 
                    verbose = T,
@@ -52,7 +53,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
                       last.day.used = params$last.day.used - 1, #last day to use in the randomizations (and real data)
                       blocks = NULL, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
                       ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
-                      n.rands = 4 #how many randomizations to do
+                      n.rands = n.rands #how many randomizations to do
                       )
   
   #parameters for a den block permutation
@@ -370,7 +371,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
 #-----------------------------------RUN ME-------------------------------------------------
 
 print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
-output.dirs <- runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, 
+output.dirs <- runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 4, 
        raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = T,
        execute.day.randomization = T)
 runall(randomization.type = 'nightperm', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, 
