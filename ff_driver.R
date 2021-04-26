@@ -44,7 +44,9 @@ runall <- function(randomization.type, #options: denblock, nightperm
                  local.time.diff = 3, # difference in hours from local time
                  den.dist.thresh = 200, #threshold to consider something 'at the den'
                  last.day.used = 35 #last day in the data set to use (this is the day before the first collar died)
-                  ) 
+                  )
+  
+  run.params <- params
   
   ######################## FIXED PARAMETERS - DON'T CHANGE ##############################
   
@@ -129,6 +131,8 @@ runall <- function(randomization.type, #options: denblock, nightperm
       source(paste0(code.directory, 'hyena_preprocess_1_filter_gps.R'), local = T)
       source(paste0(code.directory, 'hyena_preprocess_2_link_gps_and_vedba.R'), local = T)
     }
+    
+    params <- run.params ## params object is overwritten during preprocessing. reset to run parameters
   }
   
   ################################# MAIN #######################################
@@ -153,10 +157,9 @@ runall <- function(randomization.type, #options: denblock, nightperm
     xs[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
     ys[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
     
-    #since vedba file also has something called params, first save the correct params and then replace it 
-    params2 <- params
+    #since vedba file also has something called params, recover correct params 
     load(paste0(processed.data.directory, 'hyena_vedba.RData'))
-    params <- params2
+    params <- run.params
     
     #remove everything after the last day used
     vedbas <- vedbas[,t.idxs.use]
@@ -199,10 +202,9 @@ runall <- function(randomization.type, #options: denblock, nightperm
       xs[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
       ys[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
       
-      #since vedba file also has something called params, first save the correct params and then replace it 
-      params2 <- params
+      #since vedba file also has something called params, recover the correct params 
       load(paste0(processed.data.directory, 'hyena_vedba.RData'))
-      params <- params2
+      params <- run.params
       
       vedbas <- vedbas[,t.idxs.use]
       
@@ -275,10 +277,9 @@ runall <- function(randomization.type, #options: denblock, nightperm
     load(paste0(processed.data.directory,'hyena_timestamps.RData'))
     load(paste0(processed.data.directory,'hyena_day_start_idxs.RData'))
     
-    #since vedba file also has something called params, first save the correct params and then replace it 
-    params2 <- params
+    #since vedba file also has something called params, recover the correct params
     load(paste0(processed.data.directory, 'hyena_vedba.RData'))
-    params <- params2
+    params <- run.params
     
     #remove everything after the last day used
     t.idxs.use <- 1:(day.start.idxs[params$last.day.used+1]-1)
@@ -372,7 +373,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
 
 print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
 output.dirs <- runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 4, 
-       raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = T,
+       raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = F,
        execute.day.randomization = T)
 runall(randomization.type = 'nightperm', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, 
                       raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = T,
