@@ -211,10 +211,19 @@ for(i in 1:n.inds){
 
 save(file=paste0(processed.data.directory, 'hyena_xy_level1.RData'),list=c('xs','ys'))
 
-h5createFile(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'))
-h5write(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'),name='/xs',obj=xs)
-h5write(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'),name='/ys',obj=ys)
-h5write(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'),name='/timestamps',obj=as.character(timestamps))
+if(file.exists(paste0(processed.data.directory, 'hyena_xy_level1.h5'))){
+  h5delete(paste0(processed.data.directory, 'hyena_xy_level1.h5'), name = '/xs')
+  h5delete(paste0(processed.data.directory, 'hyena_xy_level1.h5'), name = '/ys')
+  h5delete(paste0(processed.data.directory, 'hyena_xy_level1.h5'), name = '/timestamps')
+  h5write(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'),name='/xs',obj=xs)
+  h5write(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'),name='/ys',obj=ys)
+  h5write(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'),name='/timestamps',obj=as.character(timestamps))
+}else{
+  h5createFile(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'))
+  h5write(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'),name='/xs',obj=xs)
+  h5write(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'),name='/ys',obj=ys)
+  h5write(file=paste0(processed.data.directory, 'hyena_xy_level1.h5'),name='/timestamps',obj=as.character(timestamps))
+}
 H5close()
 
 

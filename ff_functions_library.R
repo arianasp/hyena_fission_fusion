@@ -1095,9 +1095,6 @@ visualize_event_type_distributions <- function(events, events.rand.list, rand.pa
                                                                          "•↑\n↑↑\n↑↑"))$freq,
                                 group=c(1,1,2,2)),
               aes(x = x, y = y, group = group), lty = 3)
-  
-  #visualize_yvals_vs_event_type(distribs.dat, distribs.rand, 'Frequency')
-  
 }
 
 #general plotting function for plotting event types on x axis and some value on y axis

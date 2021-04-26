@@ -74,7 +74,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
                                 last.day.used = params$last.day.used - 1, #last day to use in the randomizations (and real data)
                                 blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
                                 ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
-                                n.rands = 2 #how many randomizations to do
+                                n.rands = 4 #how many randomizations to do
                                 )
   
   #den info
@@ -117,22 +117,23 @@ runall <- function(randomization.type, #options: denblock, nightperm
   if(overwrite_preprocess){
     if(verbose){
       print('Starting data preprocessing')
-      print('Starting step 1...')
-      source(paste0(code.directory, 'hyena_preprocess_0_extract_GPS_csv_to_R.R'))
-      print('... step 1 finished')
+      print('Starting step 0...')
+      source(paste0(code.directory, 'hyena_preprocess_0_extract_GPS_csv_to_R.R'), local = T)
+      print('... step 0 finished')
+      
+      print('Starting step 1... ')
+      source(paste0(code.directory, 'hyena_preprocess_1_filter_gps.R'), local = T)
+      print('...step 1 finished')
       
       print('Starting step 2... ')
-      source(paste0(code.directory, 'hyena_preprocess_1_filter_gps.R'))
+      source(paste0(code.directory, 'hyena_preprocess_2_link_gps_and_vedba.R'), local = T)
       print('...step 2 finished')
-      
-      print('Starting step 3... ')
-      source(paste0(code.directory, 'hyena_preprocess_2_link_gps_and_vedba.R'))
-      print('...step 3 finished')
       
       print('Completed data preprocessing')
     }else{
-      source(paste0(code.directory, 'hyena_preprocess_0_extract_GPS_csv_to_R.R'))
-      source(paste0(code.directory, 'hyena_preprocess_1_filter_gps.R'))
+      source(paste0(code.directory, 'hyena_preprocess_0_extract_GPS_csv_to_R.R'), local = T)
+      source(paste0(code.directory, 'hyena_preprocess_1_filter_gps.R'), local = T)
+      source(paste0(code.directory, 'hyena_preprocess_2_link_gps_and_vedba.R'), local = T)
     }
   }
   
@@ -377,10 +378,10 @@ runall <- function(randomization.type, #options: denblock, nightperm
 
 print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
 output.dirs <- runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, 
-       raw.data.directory, processed.data.directory, results.directory, code.directory, overwrite_preprocess = F,
+       raw.data.directory, processed.data.directory, results.directory, code.directory, overwrite_preprocess = T,
        execute_day_randomization_plan = T)
 runall(randomization.type = 'nightperm', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, 
-                      raw.data.directory, processed.data.directory, results.directory, code.directory, overwrite_preprocess = F,
+                      raw.data.directory, processed.data.directory, results.directory, code.directory, overwrite_preprocess = T,
                       execute_day_randomization_plan = T)
 generate_figures(output.dirs[1], output.dirs[2], code.directory)
 

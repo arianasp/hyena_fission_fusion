@@ -64,7 +64,7 @@ hyena.ids$color <- as.character(hyena.ids$name)
 hyena.gps.list <- list()
 for(i in 1:nrow(hyena.ids)){
   if(verbose)
-    print('File ', i)
+    print(paste0('File ', i))
 	file <- paste('cc16_',hyena.ids$collar[i],'GPS.csv',sep='')
 	collar <- hyena.ids$collar[i]
 	dat.curr <- read.table(files[i],sep='\t',header=TRUE,stringsAsFactors=F)

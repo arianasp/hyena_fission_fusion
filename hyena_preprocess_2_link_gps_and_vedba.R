@@ -212,9 +212,19 @@ vedbas[cbind(gps.vedba.all$hyena.id[non.nas], t.idxs[non.nas])] <- gps.vedba.all
 save(list=c('gps.vedba.all','params','hyena.ids'),file=savefile)
 
 #HDF5 file
-h5createFile(file=savefile.hdf5)
-h5write(savefile.hdf5,name='/gps_vedba_all',obj=gps.vedba.all)
-h5write(savefile.hdf5,name='/params',obj=params)
-h5write(savefile.hdf5,name='/hyena_ids',obj=hyena.ids)
+if(file.exists(savefile.hdf5)){
+  h5delete(savefile.hdf5,name='/gps_vedba_all',obj=gps.vedba.all)
+  h5delete(savefile.hdf5,name='/params',obj=params)
+  h5delete(savefile.hdf5,name='/hyena_ids',obj=hyena.ids)
+  h5write(savefile.hdf5,name='/gps_vedba_all',obj=gps.vedba.all)
+  h5write(savefile.hdf5,name='/params',obj=params)
+  h5write(savefile.hdf5,name='/hyena_ids',obj=hyena.ids)
+}else{
+  h5createFile(file=savefile.hdf5)
+  h5write(savefile.hdf5,name='/gps_vedba_all',obj=gps.vedba.all)
+  h5write(savefile.hdf5,name='/params',obj=params)
+  h5write(savefile.hdf5,name='/hyena_ids',obj=hyena.ids)
+}
+H5close()
 
 save(list = c('vedbas', 'params'), file = savefile.vedba)
