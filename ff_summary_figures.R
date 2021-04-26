@@ -325,7 +325,7 @@ BBCCCC
 BBCCCC
 "
 
-png(paste0(plots.outdir, '/FIG1.png'), width = 6, height =4, units = 'in', res = 500)
+png(paste0(plots.outdir, 'FIG1.png'), width = 6, height =4, units = 'in', res = 500)
 hyena.plot + timeplot + mapplot + plot_layout(design = layout)
 dev.off()
 
@@ -334,7 +334,7 @@ dev.off()
 
 
 ev <- plot_events(r = 393, events = events.data.exact, xs = xs, ys = ys,
-                  phase.col = FALSE, axes = FALSE, xlab = '', ylab = '') +
+                  phase.col = FALSE, axes = FALSE, xlab = '', ylab = '', cols = colors[c(3,5)]) +
   labs(tag= 'A')
 
 canonical.shape <- plot_canonical_shape(393, together.seqs = events.data.exact, xs = xs, ys = ys) +
@@ -394,7 +394,7 @@ ap.blank <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Toget
 
 
 
-png(filename = paste0(plots.outdir, '/FIG2.png'), width = 6.5, height = 7.5, units = 'in', res = 300)
+png(filename = paste0(plots.outdir, 'FIG2.png'), width = 6.5, height = 7.5, units = 'in', res = 300)
 
 layout <- "
 AABB
@@ -428,19 +428,20 @@ p_nevents <- ggplot(data = plotdat.denblock) +
 p_nevents
 
 #-FIGURE 3b--
-png(paste0(plots.outdir, '/FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
+png(paste0(plots.outdir, 'FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
 p_nevents + visualize_event_type_distributions(events.data, events.rand.list.denblock, 
                                                rand.params, timestamps, 
-                                               remove.events.around.day.breaks = T)+labs(tag = 'B')
+                                               remove.events.around.day.breaks = T,
+                                               col = colors[6])+labs(tag = 'B')
 dev.off()
 
-visualize_symmetrical_event_type_comparison(events.data, events.rand.list.denblock, 
-                                            rand.params, timestamps, 
-                                            remove.events.around.day.breaks = T,
-                                            col = colors[6])+labs(tag = 'C')
+# visualize_symmetrical_event_type_comparison(events.data, events.rand.list.denblock, 
+#                                             rand.params, timestamps, 
+#                                             remove.events.around.day.breaks = T,
+#                                             col = colors[6])+labs(tag = 'C')
 
 #-----------------------------------------FIGURE 4------------------------------
-png(paste0(plots.outdir, '/FIG4.png'), width = 5, height = 7, units = 'in', res = 500)
+png(paste0(plots.outdir, 'FIG4.png'), width = 5, height = 7, units = 'in', res = 500)
 visualize_compare_event_properties(events.data, events.rand.list.denblock,
                                    params, rand.params, timestamps, cols = colors[1:2])
 dev.off()
@@ -457,7 +458,7 @@ psri2 <- ggplot(networkdat.denblock, aes(x = dyad, y = sri)) +
   ylab('Edge weight') + 
   xlab('')
 
-png(paste0(plots.outdir, '/FIG5.png'), width = 6.5, height = 4, units = 'in', res = 500)
+png(paste0(plots.outdir, 'FIG5.png'), width = 6.5, height = 4, units = 'in', res = 500)
 psri2
 dev.off()
 
