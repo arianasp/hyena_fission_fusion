@@ -364,7 +364,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
     
   }
   
-  invisible(c(data.outdir, plot.outdir))
+  invisible(c(data.outdir, plots.outdir))
 }
 
 
@@ -374,7 +374,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
 print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
 output.dirs <- runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 4, 
        raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = F,
-       execute.day.randomization = T)
+       execute.day.randomization = F, extract.ff.events = F, get.sync.measures = F, get.ff.features = F)
 runall(randomization.type = 'nightperm', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, 
                       raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = T,
                       execute.day.randomization = T)
