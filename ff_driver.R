@@ -23,7 +23,7 @@ if(user == 'strau'){
 runall <- function(randomization.type, #options: denblock, nightperm
                    R.fusion = 100,
                    R.fission = 200,
-                   raw.data.directory, preprocessed.data.directory, results.directory, code.directory,
+                   raw.data.directory, processed.data.directory, results.directory, code.directory,
                    ensure.no.day.matches = T, 
                    verbose = T,
                    overwrite_preprocess = T,
@@ -33,11 +33,11 @@ runall <- function(randomization.type, #options: denblock, nightperm
                    overwrite_extract_ff_features = T,
                    generate_day_randomization_plan = T,
                    overwrite_day_randomization_plan = T,
-                   execute_day_randomization_plan = T,
+                   execute_day_randomization_plan = T, 
                    overwrite_day_randomization_output = T,
                    output_day_randomization_plots = T,
                    get.sync.measures = T,
-                   ovewrite_figures = T){
+                   overwrite_figures = T){
   
   
   ################################ PARAMETERS ##########################################
@@ -59,7 +59,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
                       last.day.used = params$last.day.used - 1, #last day to use in the randomizations (and real data)
                       blocks = NULL, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
                       ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
-                      n.rands = 100 #how many randomizations to do
+                      n.rands = 2 #how many randomizations to do
                       )
   
   #parameters for a den block permutation
@@ -74,7 +74,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
                                 last.day.used = params$last.day.used - 1, #last day to use in the randomizations (and real data)
                                 blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
                                 ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
-                                n.rands = 100 #how many randomizations to do
+                                n.rands = 2 #how many randomizations to do
                                 )
   
   #den info
@@ -242,8 +242,8 @@ runall <- function(randomization.type, #options: denblock, nightperm
   
   if(generate_day_randomization_plan){
     
-    load(paste0(preprocessed.data.directory, 'hyena_ids.RData'))
-    load(paste0(preprocessed.data.directory, 'hyena_day_start_idxs.RData'))
+    load(paste0(processed.data.directory, 'hyena_ids.RData'))
+    load(paste0(processed.data.directory, 'hyena_day_start_idxs.RData'))
     
     n.inds <- nrow(hyena.ids)
     
@@ -260,7 +260,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
     
     if(overwrite_day_randomization_plan){
       
-      save(file = paste0(data.outdir, day_randomization_plan_filename, list = c('rand.plan','rand.params')))
+      save(file = paste0(data.outdir, day_randomization_plan_filename), list = c('rand.plan','rand.params'))
       
     }
     
@@ -276,13 +276,13 @@ runall <- function(randomization.type, #options: denblock, nightperm
       print('Loading data')
     }
     
-    load(paste0(preprocessed.data.directory,'hyena_xy_level1.RData'))
-    load(paste0(preprocessed.data.directory,'hyena_timestamps.RData'))
-    load(paste0(preprocessed.data.directory,'hyena_day_start_idxs.RData'))
+    load(paste0(processed.data.directory,'hyena_xy_level1.RData'))
+    load(paste0(processed.data.directory,'hyena_timestamps.RData'))
+    load(paste0(processed.data.directory,'hyena_day_start_idxs.RData'))
     
     #since vedba file also has something called params, first save the correct params and then replace it 
     params2 <- params
-    load(paste0(preprocessed.data.directory, 'hyena_vedba.RData'))
+    load(paste0(processed.data.directory, 'hyena_vedba.RData'))
     params <- params2
     
     #remove everything after the last day used
@@ -300,7 +300,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
     xs[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
     ys[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
     
-    load(paste0(data.outidr, day_randomization_plan_filename))
+    load(paste0(data.outdir, day_randomization_plan_filename))
     
     n.inds <- nrow(xs)
     
@@ -366,11 +366,9 @@ runall <- function(randomization.type, #options: denblock, nightperm
       save(list = c('events.rand.list','params','rand.params','complete'), file = paste0(data.outdir, day_randomization_output_filename))
     }
     
-    if(ovewrite_figures){
-      source(paste0(code.directory, 'ff_summary_figures.R'))
-    }
   }
   
+  invisible(c(data.outdir, plot.outdir))
 }
 
 
@@ -378,14 +376,20 @@ runall <- function(randomization.type, #options: denblock, nightperm
 #-----------------------------------RUN ME-------------------------------------------------
 
 print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
-runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, 
-       raw.data.directory, preprocessed.data.directory, results.directory, code.directory, overwrite_preprocess = F)
+output.dirs <- runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, 
+       raw.data.directory, processed.data.directory, results.directory, code.directory, overwrite_preprocess = F,
+       execute_day_randomization_plan = T)
+runall(randomization.type = 'nightperm', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, 
+                      raw.data.directory, processed.data.directory, results.directory, code.directory, overwrite_preprocess = F,
+                      execute_day_randomization_plan = T)
+generate_figures(output.dirs[1], output.dirs[2], code.directory)
+
 print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
 runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 50, R.fission = 100,
-       raw.data.directory, preprocessed.data.directory, results.directory, code.directory)
+       raw.data.directory, processed.data.directory, results.directory, code.directory)
 print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
 runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 200, R.fission = 300,
-       raw.data.directory, preprocessed.data.directory, results.directory, code.directory)
+       raw.data.directory, processed.data.directory, results.directory, code.directory)
 
 
 

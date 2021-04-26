@@ -132,7 +132,7 @@ get_angle_between_vectors <- function(x1.i, x2.i, y1.i, y2.i,
 # }
 
 #read in den locations
-get_dens <- function(den.file.path = '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv',
+get_dens <- function(den.file.path,
                      den.names = c('DAVE D','RBEND D','RES M D1','DICK D')){
   known.locs <- read.csv(den.file.path,stringsAsFactors=F)
   eastsNorths <- latlon.to.utm(cbind(known.locs$lon,known.locs$lat),southern_hemisphere=T,utm.zone=36)
@@ -1571,72 +1571,132 @@ compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.br
   }
 }
 
-plot_events <- function(indices, events, xs, ys, phase.col = TRUE, ...){
-  for(r in indices){
-    x.i <- xs[events$i[r], events$t.start[r]:events$t.end[r]]
-    x.i <- x.i - mean(x.i, na.rm = TRUE)
-    y.i <- ys[events$i[r], events$t.start[r]:events$t.end[r]]
-    y.i <- y.i - mean(y.i, na.rm = TRUE)
-    x.j <- xs[events$j[r], events$t.start[r]:events$t.end[r]]
-    x.j <- x.j - mean(x.j, na.rm = TRUE)
-    y.j <- ys[events$j[r], events$t.start[r]:events$t.end[r]]
-    y.j <- y.j - mean(y.j, na.rm = TRUE)
-    
-    b1.idx <- events$b1[r] - events$t.start[r] + 1
-    b2.idx <- events$b2[r] - events$t.start[r] + 1
-    col1 <- rep('darkblue', length(x.i))
-    if(phase.col){
-      col1[b1.idx:b2.idx] <- 'blue'
-      col1[b2.idx:length(x.i)] <- 'cyan'
-    }
-    col2 <- rep('darkred', length(x.j))
-    if(phase.col){
-      col2[b1.idx:b2.idx] <- 'red'
-      col2[b2.idx:length(x.j)] <- 'orange'
-    }
-    plot(x.i, y.i,asp=1, ylim = c(min(c(y.i, y.j), na.rm =TRUE), max(c(y.i, y.j), na.rm = TRUE)),
-         xlim = c(min(c(x.i, x.j), na.rm =TRUE), max(c(x.i, x.j), na.rm = TRUE)), col = scales::alpha(col1, 0.5),
-         cex = seq(0.1, 1, length.out = length(x.i)), ...)
-    points(x.j, y.j, col = scales::alpha(col2, 0.5), cex = seq(0.1, 1, length.out = length(x.i)))
-    x.lims <- par()$usr[1:2]
-    y.lims <- par()$usr[3:4]
-  }
+# plot_events <- function(indices, events, xs, ys, phase.col = TRUE, ...){
+#   for(r in indices){
+#     x.i <- xs[events$i[r], events$t.start[r]:events$t.end[r]]
+#     x.i <- x.i - mean(x.i, na.rm = TRUE)
+#     y.i <- ys[events$i[r], events$t.start[r]:events$t.end[r]]
+#     y.i <- y.i - mean(y.i, na.rm = TRUE)
+#     x.j <- xs[events$j[r], events$t.start[r]:events$t.end[r]]
+#     x.j <- x.j - mean(x.j, na.rm = TRUE)
+#     y.j <- ys[events$j[r], events$t.start[r]:events$t.end[r]]
+#     y.j <- y.j - mean(y.j, na.rm = TRUE)
+#     
+#     b1.idx <- events$b1[r] - events$t.start[r] + 1
+#     b2.idx <- events$b2[r] - events$t.start[r] + 1
+#     col1 <- rep('darkblue', length(x.i))
+#     if(phase.col){
+#       col1[b1.idx:b2.idx] <- 'blue'
+#       col1[b2.idx:length(x.i)] <- 'cyan'
+#     }
+#     col2 <- rep('darkred', length(x.j))
+#     if(phase.col){
+#       col2[b1.idx:b2.idx] <- 'red'
+#       col2[b2.idx:length(x.j)] <- 'orange'
+#     }
+#     plot(x.i, y.i,asp=1, ylim = c(min(c(y.i, y.j), na.rm =TRUE), max(c(y.i, y.j), na.rm = TRUE)),
+#          xlim = c(min(c(x.i, x.j), na.rm =TRUE), max(c(x.i, x.j), na.rm = TRUE)), col = scales::alpha(col1, 0.5),
+#          cex = seq(0.1, 1, length.out = length(x.i)), ...)
+#     points(x.j, y.j, col = scales::alpha(col2, 0.5), cex = seq(0.1, 1, length.out = length(x.i)))
+#     x.lims <- par()$usr[1:2]
+#     y.lims <- par()$usr[3:4]
+#   }
+# }
+
+# plot_canonical_shape <- function(rows, together.seqs, xs, ys){
+#   for(r in rows){
+#     
+#     y <- sqrt( (xs[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - xs[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2 +
+#                           (ys[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - ys[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2)
+#     #y <- dyad.dists[together.seqs$i[r], together.seqs$j[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
+#     x <- together.seqs$t.start[r]:together.seqs$t.end[r]
+#     
+#     plot(y = y, type = 'l',
+#          x = x- together.seqs$t.start[r],
+#          xlab = 'Time (s)', ylab = 'Distance between individuals (m)',
+#          lwd = 2, ylim = c(-50, 200),
+#          yaxp  = c(0, 200, 2),
+#          xlim = c(- (range(x)[2] - range(x)[1])*0.1, max( x- together.seqs$t.start[r])+ (range(x)[2] - range(x)[1])*0.1))
+#     
+#     
+#     
+#     fp <- list(x0 = x[1], 
+#                y0 = y[1],
+#                xf = x[length(x)],
+#                yf = y[length(y)]) 
+#     
+#     # lines(x =x, y = fission_fusion_function(x, p$par[1], p$par[2], p$par[3], fp), col = 'red')
+#     y.fit <- fission_fusion_function(x = x, b1 = together.seqs$b1[r], b2 = together.seqs$b2[r],
+#                                      b.y.intercept = together.seqs$y.intercept[r], fixed.parameters = fp)
+#     lines(x = x - together.seqs$t.start[r], y = y.fit, col = alpha('darkred', 0.75), lwd = 2)
+#     brackets(x1 = 0, x2 = together.seqs$b1[r]- together.seqs$t.start[r] - 5, y1 = 0, y2 = 0, h = -20, type = 4)
+#     brackets(x1 = together.seqs$b1[r]- together.seqs$t.start[r]+5, x2 = together.seqs$b2[r]- together.seqs$t.start[r]-5, y1 = 0, y2 = 0, h = -20, type = 4)
+#     brackets(x1 = together.seqs$b2[r]- together.seqs$t.start[r]+5, x2 = together.seqs$t.end[r]- together.seqs$t.start[r], y1 = 0, y2 = 0, h = -20, type = 4)
+#     
+#     text(x = (together.seqs$b1[r]- together.seqs$t.start[r])/2, y = -30, labels = 'fusion')
+#     text(x = mean(c(together.seqs$b1[r]- together.seqs$t.start[r],
+#                     together.seqs$b2[r]- together.seqs$t.start[r])), y = -30, labels = 'together')
+#     text(x = mean(c(together.seqs$t.end[r]- together.seqs$t.start[r],
+#                     together.seqs$b2[r]- together.seqs$t.start[r])), y = -30, labels = 'fission')
+#   }
+# }
+
+plot_events <- function(r, events, xs, ys, cols, ...){
+  x.i <- xs[events$i[r], events$t.start[r]:events$t.end[r]]
+  x.i <- x.i - mean(x.i, na.rm = TRUE)
+  y.i <- ys[events$i[r], events$t.start[r]:events$t.end[r]]
+  y.i <- y.i - mean(y.i, na.rm = TRUE)
+  x.j <- xs[events$j[r], events$t.start[r]:events$t.end[r]]
+  x.j <- x.j - mean(x.j, na.rm = TRUE)
+  y.j <- ys[events$j[r], events$t.start[r]:events$t.end[r]]
+  y.j <- y.j - mean(y.j, na.rm = TRUE)
+  
+  b1.idx <- events$b1[r] - events$t.start[r] + 1
+  b2.idx <- events$b2[r] - events$t.start[r] + 1
+  
+  plot.df <- data.frame(x = c(x.i, x.j), y = c(y.i, y.j), id = factor(c(rep(i, length(x.i)), rep(j, length(x.j)))), time = rep(1:length(x.i), 2), 
+                        phase = NA)
+  plot.df[plot.df$time < b1.idx,'phase'] <- 'fusion'
+  plot.df[plot.df$time >= b1.idx & plot.df$time <= b2.idx,'phase'] <- 'together'
+  plot.df[plot.df$time > b2.idx,'phase'] <- 'fission'
+  
+  ggplot(plot.df, aes(x =x ,y=y, col = id))+
+    geom_path(size = 0.5)+
+    geom_line(aes(x = x, y= y, group = time), inherit.aes = F, lty = 1, size = 0.5, 
+              data = plot.df[plot.df$phase == 'together',], alpha = 0.2, col = 'gray30')+
+    geom_point(data = plot.df[plot.df$time == 1,], shape = 'S', size = 2)+
+    geom_point(data = plot.df[plot.df$time == max(plot.df$time),], shape = 'E', size = 2, position = position_dodge(width = 1))+
+    theme_classic()+
+    theme(legend.position = 'none', axis.title = element_blank())+
+    scale_color_manual(values = cols)
 }
 
-plot_canonical_shape <- function(rows, together.seqs, xs, ys){
-  for(r in rows){
-    
-    y <- sqrt( (xs[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - xs[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2 +
-                          (ys[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - ys[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2)
-    #y <- dyad.dists[together.seqs$i[r], together.seqs$j[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
-    x <- together.seqs$t.start[r]:together.seqs$t.end[r]
-    
-    plot(y = y, type = 'l',
-         x = x- together.seqs$t.start[r],
-         xlab = 'Time (s)', ylab = 'Distance between individuals (m)',
-         lwd = 2, ylim = c(-50, 200),
-         yaxp  = c(0, 200, 2),
-         xlim = c(- (range(x)[2] - range(x)[1])*0.1, max( x- together.seqs$t.start[r])+ (range(x)[2] - range(x)[1])*0.1))
-    
-    
-    
-    fp <- list(x0 = x[1], 
-               y0 = y[1],
-               xf = x[length(x)],
-               yf = y[length(y)]) 
-    
-    # lines(x =x, y = fission_fusion_function(x, p$par[1], p$par[2], p$par[3], fp), col = 'red')
-    y.fit <- fission_fusion_function(x = x, b1 = together.seqs$b1[r], b2 = together.seqs$b2[r],
-                                     b.y.intercept = together.seqs$y.intercept[r], fixed.parameters = fp)
-    lines(x = x - together.seqs$t.start[r], y = y.fit, col = alpha('darkred', 0.75), lwd = 2)
-    brackets(x1 = 0, x2 = together.seqs$b1[r]- together.seqs$t.start[r] - 5, y1 = 0, y2 = 0, h = -20, type = 4)
-    brackets(x1 = together.seqs$b1[r]- together.seqs$t.start[r]+5, x2 = together.seqs$b2[r]- together.seqs$t.start[r]-5, y1 = 0, y2 = 0, h = -20, type = 4)
-    brackets(x1 = together.seqs$b2[r]- together.seqs$t.start[r]+5, x2 = together.seqs$t.end[r]- together.seqs$t.start[r], y1 = 0, y2 = 0, h = -20, type = 4)
-    
-    text(x = (together.seqs$b1[r]- together.seqs$t.start[r])/2, y = -30, labels = 'fusion')
-    text(x = mean(c(together.seqs$b1[r]- together.seqs$t.start[r],
-                    together.seqs$b2[r]- together.seqs$t.start[r])), y = -30, labels = 'together')
-    text(x = mean(c(together.seqs$t.end[r]- together.seqs$t.start[r],
-                    together.seqs$b2[r]- together.seqs$t.start[r])), y = -30, labels = 'fission')
-  }
+plot_canonical_shape <- function(r, together.seqs, xs, ys){
+  
+  y <- sqrt( (xs[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - xs[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2 +
+               (ys[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - ys[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2)
+  
+  x <- together.seqs$t.start[r]:together.seqs$t.end[r]
+  
+  
+  fp <- list(x0 = x[1],
+             y0 = y[1],
+             xf = x[length(x)],
+             yf = y[length(y)])
+  
+  y.fit <- fission_fusion_function(x = x, b1 = together.seqs$b1[r], b2 = together.seqs$b2[r],
+                                   b.y.intercept = together.seqs$y.intercept[r], fixed.parameters = fp)
+  
+  ggplot(data = data.frame(x = x-together.seqs$t.start[r], y, y.fit), aes(x,y))+
+    geom_line(size = 0.5)+
+    geom_line(aes(y = y.fit), col = '#ba0c2f', size = 0.5)+
+    theme_classic(base_size = 12)+
+    xlab('Time (s)')+
+    ylab('Distance between individuals (m)')
+  
+}
+
+generate_figures <- function(data.outdir, plot.outdir, code.directory){
+  print('Generating figures')
+ source(paste0(code.directory, 'ff_summary_figures.R'), local = TRUE)
 }

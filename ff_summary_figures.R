@@ -13,20 +13,6 @@ library(patchwork)
 library(magick)
 
 
-#------------DIRECTORIES------------
-#directory of where to store extracted data for fission-fusion project
-outdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/main_output')
-
-#directory where the satelite map is stored
-#Load pre-downloaded map
-mapdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/data/')
-
-#directory to put plots
-plotdir <- paste0(remote.stem, 'hyena/working/hyena_fission_fusion/results')
-
-#directory where code for fission-fusion project is stored
-codedir <- paste0(code.stem, 'hyena_fission_fusion/')
-
 #-----------FILENAMES---------------
 data_output_file <- 'fission_fusion_events_features.RData'
 nightperm_output_file <- 'hyena_day_randomization_events_features_nightperm_avoidmatchTRUE.RData'
@@ -57,11 +43,9 @@ rm('events.rand.list')
 load(paste0(raw.data.directory, map_file))
 
 # Load hyena image
-hyena <- image_read(path = paste0(raw.data.directory, collared_hyena.jpg))
+hyena <- image_read(path = paste0(raw.data.directory, "collared_hyena.jpg"))
 
 #------------PROCESS-----------------
-if(verbose)
-  print("Preprocessing")
 n.rands <- length(events.rand.list.denblock)
 n.inds <- nrow(hyena.ids)
   
@@ -240,7 +224,7 @@ events.data.exact$at.den.start <- events.data.exact$dist.den.start <= params$den
 events.data.exact$at.end <- events.data.exact$dist.den.end <= params$den.dist.thresh
 
 #get den locations
-den.locs <- get_dens(den.file.path)
+den.locs <- get_dens(paste0(raw.data.directory, 'metadata/hyena_isolate_dens.csv'))
 
 #-------------DESCRIPTIVE STATS---------
 #Compute some basic stats mentioned in the paper and print the results
@@ -350,7 +334,7 @@ dev.off()
 
 
 ev <- plot_events(r = 393, events = events.data.exact, xs = xs, ys = ys,
-                  phase.col = FALSE, axes = FALSE, xlab = '', ylab = '', cols = colors[c(3,5)])+
+                  phase.col = FALSE, axes = FALSE, xlab = '', ylab = '') +
   labs(tag= 'A')
 
 canonical.shape <- plot_canonical_shape(393, together.seqs = events.data.exact, xs = xs, ys = ys) +
