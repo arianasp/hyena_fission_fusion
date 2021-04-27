@@ -11,6 +11,8 @@ library(ggalluvial)
 library(dplyr)
 library(patchwork)
 library(magick)
+library(ggnetwork)
+library(sna)
 
 
 #-----------FILENAMES---------------
@@ -411,15 +413,59 @@ dev.off()
 #---------------------------------FIGURE 5--------------------------------------
 #create the plot - all
 networkdat.denblock <- networkdat[which(networkdat$type %in% c('denblock','real')),]
-psri2 <- ggplot(networkdat.denblock, aes(x = dyad, y = sri)) + 
-  geom_violin(fill = 'gray30', color = 'grey30', size = 1) + 
-  geom_point(aes(x = dyad, y = sri), data = networkdat.denblock[which(networkdat.denblock$type=='real'),], shape = '|', fill = 'black', size = 7) +
+psri <- ggplot(networkdat.denblock, aes(x = dyad, y = sri, fill = dyad, color = dyad)) + 
+  geom_violin(size = 1) + 
+  geom_point(aes(x = dyad, y = sri), data = networkdat.denblock[which(networkdat.denblock$type=='real'),], shape = '|', color = 'black', size = 7) +
   coord_flip() +
   theme_classic(base_size = 12) +
   theme(legend.position = 'none') +
   ylab('Edge weight') + 
-  xlab('')
+  xlab('')+
+  scale_color_manual(values = plasma(10))+
+  scale_fill_manual(values = plasma(10))
 
-png(paste0(plots.outdir, 'FIG5.png'), width = 6.5, height = 4, units = 'in', res = 500)
-psri2
+
+obs.edges <- networkdat[networkdat$type == 'real',][1:10,]
+obs.net <- network(obs.edges[c('i', 'j')], directed = F, loops = F, multiple = F)
+obs.net %e% 'sri' <- obs.edges$sri^2 ## Because line thickness is scaled to sqrt of the value (see scale_size_area documentation)
+obs.net %e% 'name' <- obs.edges$dyad
+obs.net <- ggnetwork(obs.net, weights = 'sri', layout = 'circle')
+
+obs.plot <- ggplot(obs.net, aes(x = x, y = y, xend = xend, yend = yend, col = name))+
+  geom_edges(aes(size = sri), curvature = 0.2)+
+  geom_nodes(size = 2, color = 'black')+
+  theme_blank()+
+  theme(legend.position = 'none',
+        panel.border = element_rect(colour = "black", fill=NA, size=1))+
+  scale_color_manual(values = plasma(10))+
+  scale_size_area(max_size = 2)
+
+rand.counter <- 1
+for(i in sample(1:n.rands, 3, replace = F)){
+  edges <-  networkdat[!is.na(networkdat$rand) & networkdat$rand == i,][1:10,]
+  rand.net <- obs.net
+  edges$dyad[match(rand.net$name[1:10], edges$dyad)] == rand.net$name[1:10]
+  rand.net$sri[1:10] <- edges$sri[match(rand.net$name[1:10], edges$dyad)]^2 ## Because line thickness is scaled to sqrt of the value (see scale_size_area documentation)
+  p <- ggplot(rand.net, aes(x = x, y = y, xend = xend, yend = yend, col = name))+
+    geom_edges(aes(size = sri), curvature = 0.2)+
+    geom_nodes(size = 2, color = 'black')+
+    theme_blank()+
+    theme(legend.position = 'none')+
+    scale_color_manual(values = plasma(10))+
+    scale_size_area(max_size = 2)
+  
+  assign(paste0('rand.plot.', rand.counter), p)
+  rand.counter <- rand.counter + 1
+}
+
+layout <- '
+BCDE
+AAAA
+AAAA
+AAAA
+'
+
+
+png(paste0(plots.outdir, 'FIG5.png'), width = 6.5, height = 5, units = 'in', res = 500)
+psri + obs.plot + rand.plot.1 + rand.plot.2 + rand.plot.3 + plot_layout(design = layout)
 dev.off()
