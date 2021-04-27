@@ -115,22 +115,6 @@ get_angle_between_vectors <- function(x1.i, x2.i, y1.i, y2.i,
   return(angle)
 }
 
-# #get day start indexes
-# get_day_start_idxs <- function(timestamps, local.time.diff = 3){
-#   
-#   ts.local <- timestamps + local.time.diff * 60 * 60
-#   dates <- as.Date(ts.local)
-#   dates.uniq <- sort(unique(dates))
-#   day.start.idxs <- rep(NA, length(dates.uniq) + 1)
-#   for(i in 1:length(dates.uniq)){
-#     day.start.idxs[i] <- min(which(dates == dates.uniq[i]))
-#   }
-#   day.start.idxs[length(day.start.idxs)] <- length(dates)
-#   
-#   return(day.start.idxs)
-#   
-# }
-
 #read in den locations
 get_dens <- function(den.file.path,
                      den.names = c('DAVE D','RBEND D','RES M D1','DICK D')){
@@ -599,13 +583,13 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
   
   ### Angle
   together.seqs$angle.fusion <- get_angle_between_vectors(x1.i = positions$x.start.i, x2.i = positions$x.b1.i, y1.i = positions$y.start.i, y2.i = positions$y.b1.i,
-                                          x1.j = positions$x.start.j, x2.j = positions$x.b1.j, y1.j = positions$y.start.j, y2.j = positions$y.b1.j)
+                                                          x1.j = positions$x.start.j, x2.j = positions$x.b1.j, y1.j = positions$y.start.j, y2.j = positions$y.b1.j)
   
   together.seqs$angle.together <- get_angle_between_vectors(x1.i = positions$x.b1.i, x2.i = positions$x.b2.i, y1.i = positions$y.b1.i, y2.i = positions$y.b2.i,
-                                            x1.j = positions$x.b1.j, x2.j = positions$x.b2.j, y1.j = positions$y.b1.j, y2.j = positions$y.b2.j)
+                                                            x1.j = positions$x.b1.j, x2.j = positions$x.b2.j, y1.j = positions$y.b1.j, y2.j = positions$y.b2.j)
   
   together.seqs$angle.fission <- get_angle_between_vectors(x1.i = positions$x.b2.i, x2.i = positions$x.end.i, y1.i = positions$y.b2.i, y2.i = positions$y.end.i,
-                                           x1.j = positions$x.b2.j, x2.j = positions$x.end.j, y1.j = positions$y.b2.j, y2.j = positions$y.end.j)
+                                                           x1.j = positions$x.b2.j, x2.j = positions$x.end.j, y1.j = positions$y.b2.j, y2.j = positions$y.end.j)
   
   #### Categorize into types
   
@@ -613,7 +597,7 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
   fusion.stay.move.idxs <- which(together.seqs$disp.fusion.i <= params$move.thresh)
   fusion.move.stay.idxs <- which(together.seqs$disp.fusion.j <= params$move.thresh)
   fusion.move.move.idxs <- which(together.seqs$disp.fusion.i > params$move.thresh & together.seqs$disp.fusion.j > params$move.thresh)
-
+  
   #defining clusters - together
   together.local.idxs <- which(together.seqs$disp.together.i <= params$together.travel.thresh | together.seqs$disp.together.j <= params$together.travel.thresh)
   together.travel.idxs <- which(together.seqs$disp.together.i > params$together.travel.thresh & together.seqs$disp.together.j > params$together.travel.thresh)
@@ -681,7 +665,7 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
     dyj <- ys[cbind(together.seqs$j, together.seqs$t.end)] - y.d
     ddj <- sqrt(dxj^2 + dyj^2)
     dist.to.den.end[,i] <- apply(X = cbind(ddi,ddj), MARGIN = 1, FUN = min, na.rm=T)
-  
+    
   }
   
   #min dist to den at start and end of events
@@ -751,7 +735,7 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
 #Compute the datetimes of den attendance at each den by each individual
 #Creates a plot of this if specified
 plot_den_attendance_by_ind <- function(xs, ys, den.file.path, den.names, params, den.blocks = NULL){
-
+  
   #get number of inds and times
   n.inds <- dim(xs)[1]
   n.times <- dim(xs)[2]
@@ -770,12 +754,12 @@ plot_den_attendance_by_ind <- function(xs, ys, den.file.path, den.names, params,
   #for now set a single threshold or arrival and leaving (= den.dist.thresh) - consider changing this to two threhsolds for less 'flicker'
   thresh.arrive <- params$den.dist.thresh
   thresh.leave <- params$den.dist.thresh
-
+  
   #Get data frame with den locations and names
   den.locs <- get_dens(den.file.path = den.file.path, den.names = den.names)
   dens <- den.locs[,c('name','lat','lon','east','north')]
   dens$col <- c('green','magenta','blue','red')
-
+  
   #Get distance of each hyena to each den over time
   dist.dens <- array(NA,dim=c(dim(xs),nrow(den.locs)))
   for(i in 1:nrow(den.locs)){
@@ -807,7 +791,7 @@ plot_den_attendance_by_ind <- function(xs, ys, den.file.path, den.names, params,
     }
   }
   
-
+  
   #get days and minutes into day for all ts
   step <- 60 #subsample to one sample per minute
   dist.dens.sub <- dist.dens[,seq(1,length(timestamps),step),]
@@ -852,7 +836,7 @@ plot_den_attendance_by_ind <- function(xs, ys, den.file.path, den.names, params,
 #If ensure.no.day.matches == T, make sure that the trajectories don't 'align' on any day 
 #(i.e. the hyenas are actually randomized to have the same day represented at the same time in the randomized data)
 generate_randomization_plan <- function(rand.params, n.inds, ensure.no.day.matches = F, max.tries = 10000){
-
+  
   #initialize array to hold randomization plan
   n.rands <- rand.params$n.rands
   rand.plan <- array(NA, dim = c(n.inds, rand.params$last.day.used, n.rands))
@@ -974,15 +958,15 @@ get_phase_type_distributions <- function(together.seqs){
 get_event_type_distributions <- function(together.seqs){
   
   event.types.all <- c('fusion.stay.move__together.local__fission.stay.move',
-                   'fusion.stay.move__together.local__fission.move.stay',
-                   'fusion.stay.move__together.local__fission.move.move',
-                   'fusion.move.move__together.local__fission.stay.move',
-                   'fusion.move.move__together.local__fission.move.move',
-                   'fusion.stay.move__together.travel__fission.stay.move',
-                   'fusion.stay.move__together.travel__fission.move.stay',
-                   'fusion.stay.move__together.travel__fission.move.move',
-                   'fusion.move.move__together.travel__fission.stay.move',
-                   'fusion.move.move__together.travel__fission.move.move')
+                       'fusion.stay.move__together.local__fission.move.stay',
+                       'fusion.stay.move__together.local__fission.move.move',
+                       'fusion.move.move__together.local__fission.stay.move',
+                       'fusion.move.move__together.local__fission.move.move',
+                       'fusion.stay.move__together.travel__fission.stay.move',
+                       'fusion.stay.move__together.travel__fission.move.stay',
+                       'fusion.stay.move__together.travel__fission.move.move',
+                       'fusion.move.move__together.travel__fission.stay.move',
+                       'fusion.move.move__together.travel__fission.move.move')
   
   events.all <- together.seqs$event.type.sym
   
@@ -1005,7 +989,7 @@ remove_events_around_day_breaks <- function(together.seqs, timestamps, rand.para
   
   idx.rem <- c()
   for(i in 1:nrow(together.seqs)){
-
+    
     t.interval <- seq.POSIXt(from = timestamps[together.seqs$t.start[i]],to = timestamps[together.seqs$t.start[i]], by = 'sec')
     hrs <- hour(t.interval)
     if(rand.params$break.hour %in% t.interval){
@@ -1061,20 +1045,20 @@ visualize_event_type_distributions <- function(events, events.rand.list, rand.pa
                                                             'fusion.move.move__together.travel__fission.stay.move',
                                                             'fusion.move.move__together.travel__fission.move.move'),
                               labels = get_event_type_symbols())
-
+  
   
   plot.df.obs <- data.frame(condition = names(distribs.dat), freq = distribs.dat)
   plot.df.obs$condition <- factor(plot.df.obs$condition, levels = c('fusion.stay.move__together.local__fission.stay.move',
-                                                            'fusion.stay.move__together.local__fission.move.stay',
-                                                            'fusion.stay.move__together.local__fission.move.move',
-                                                            'fusion.move.move__together.local__fission.stay.move',
-                                                            'fusion.move.move__together.local__fission.move.move',
-                                                            'fusion.stay.move__together.travel__fission.stay.move',
-                                                            'fusion.stay.move__together.travel__fission.move.stay',
-                                                            'fusion.stay.move__together.travel__fission.move.move',
-                                                            'fusion.move.move__together.travel__fission.stay.move',
-                                                            'fusion.move.move__together.travel__fission.move.move'),
-                              labels = get_event_type_symbols())
+                                                                    'fusion.stay.move__together.local__fission.move.stay',
+                                                                    'fusion.stay.move__together.local__fission.move.move',
+                                                                    'fusion.move.move__together.local__fission.stay.move',
+                                                                    'fusion.move.move__together.local__fission.move.move',
+                                                                    'fusion.stay.move__together.travel__fission.stay.move',
+                                                                    'fusion.stay.move__together.travel__fission.move.stay',
+                                                                    'fusion.stay.move__together.travel__fission.move.move',
+                                                                    'fusion.move.move__together.travel__fission.stay.move',
+                                                                    'fusion.move.move__together.travel__fission.move.move'),
+                                  labels = get_event_type_symbols())
   
   
   ggplot(data = plot.df, aes(x = condition, y = freq))+
@@ -1166,16 +1150,6 @@ get_event_type_symbols <- function(){
   event.type.symbols[8] <- paste0(arrow, arrow, '\n', travel, '\n', dot, arrow)
   event.type.symbols[9] <- paste0(dot, arrow, '\n', travel, '\n', arrow, arrow)
   event.type.symbols[10] <- paste0(arrow, arrow, '\n', travel, '\n', arrow, arrow)
-  # event.type.symbols[1] <- paste0(fission.stay.move, '\n', local, '\n', fusion.stay.move)
-  # event.type.symbols[2] <- paste0(fission.move.stay, '\n', local, '\n', fusion.stay.move)
-  # event.type.symbols[3] <- paste0(fission.move.move, '\n', local, '\n', fusion.stay.move)
-  # event.type.symbols[4] <- paste0(fission.stay.move, '\n', local, '\n', fusion.move.move)
-  # event.type.symbols[5] <- paste0(fission.move.move, '\n', local, '\n', fusion.move.move)
-  # event.type.symbols[6] <- paste0(fission.stay.move, '\n', travel, '\n', fusion.stay.move)
-  # event.type.symbols[7] <- paste0(fission.move.stay, '\n', travel, '\n', fusion.stay.move)
-  # event.type.symbols[8] <- paste0(fission.move.move, '\n', travel, '\n', fusion.stay.move)
-  # event.type.symbols[9] <- paste0(fission.stay.move, '\n', travel, '\n', fusion.move.move)
-  # event.type.symbols[10] <- paste0(fission.move.move, '\n', travel, '\n', fusion.move.move)
   
   return(event.type.symbols)
 }
@@ -1461,61 +1435,63 @@ compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.br
 }
 
 plot_events <- function(r, events, xs, ys, cols, ...){
-    x.i <- xs[events$i[r], events$t.start[r]:events$t.end[r]]
-    x.i <- x.i - mean(x.i, na.rm = TRUE)
-    y.i <- ys[events$i[r], events$t.start[r]:events$t.end[r]]
-    y.i <- y.i - mean(y.i, na.rm = TRUE)
-    x.j <- xs[events$j[r], events$t.start[r]:events$t.end[r]]
-    x.j <- x.j - mean(x.j, na.rm = TRUE)
-    y.j <- ys[events$j[r], events$t.start[r]:events$t.end[r]]
-    y.j <- y.j - mean(y.j, na.rm = TRUE)
-    
-    b1.idx <- events$b1[r] - events$t.start[r] + 1
-    b2.idx <- events$b2[r] - events$t.start[r] + 1
-
-    plot.df <- data.frame(x = c(x.i, x.j), y = c(y.i, y.j), id = factor(c(rep(i, length(x.i)), rep(j, length(x.j)))), time = rep(1:length(x.i), 2), 
-                          phase = NA)
-    plot.df[plot.df$time < b1.idx,'phase'] <- 'fusion'
-    plot.df[plot.df$time >= b1.idx & plot.df$time <= b2.idx,'phase'] <- 'together'
-    plot.df[plot.df$time > b2.idx,'phase'] <- 'fission'
-    
-    ggplot(plot.df, aes(x =x ,y=y, col = id))+
-      geom_path(size = 0.5)+
-      geom_line(aes(x = x, y= y, group = time), inherit.aes = F, lty = 1, size = 0.5, 
-                data = plot.df[plot.df$phase == 'together',], alpha = 0.2, col = 'gray30')+
-      geom_point(data = plot.df[plot.df$time == 1,], shape = 'S', size = 2)+
-      geom_point(data = plot.df[plot.df$time == max(plot.df$time),], shape = 'E', size = 2, position = position_dodge(width = 1))+
-      theme_classic()+
-      theme(legend.position = 'none', axis.title = element_blank())+
-      scale_color_manual(values = cols)
+  i <- events$i[r]
+  j <- events$j[r]
+  x.i <- xs[events$i[r], events$t.start[r]:events$t.end[r]]
+  x.i <- x.i - mean(x.i, na.rm = TRUE)
+  y.i <- ys[events$i[r], events$t.start[r]:events$t.end[r]]
+  y.i <- y.i - mean(y.i, na.rm = TRUE)
+  x.j <- xs[events$j[r], events$t.start[r]:events$t.end[r]]
+  x.j <- x.j - mean(x.j, na.rm = TRUE)
+  y.j <- ys[events$j[r], events$t.start[r]:events$t.end[r]]
+  y.j <- y.j - mean(y.j, na.rm = TRUE)
+  
+  b1.idx <- events$b1[r] - events$t.start[r] + 1
+  b2.idx <- events$b2[r] - events$t.start[r] + 1
+  
+  plot.df <- data.frame(x = c(x.i, x.j), y = c(y.i, y.j), id = factor(c(rep(i, length(x.i)), rep(j, length(x.j)))), time = rep(1:length(x.i), 2), 
+                        phase = NA)
+  plot.df[plot.df$time < b1.idx,'phase'] <- 'fusion'
+  plot.df[plot.df$time >= b1.idx & plot.df$time <= b2.idx,'phase'] <- 'together'
+  plot.df[plot.df$time > b2.idx,'phase'] <- 'fission'
+  
+  ggplot(plot.df, aes(x =x ,y=y, col = id))+
+    geom_path(size = 1)+
+    geom_line(aes(x = x, y= y, group = time), inherit.aes = F, lty = 1, size = 0.5,
+              data = plot.df[plot.df$phase == 'together',], alpha = 0.2, col = 'gray30')+
+    geom_point(data = plot.df[plot.df$time == 1,], shape = 'S', size = 2)+
+    geom_point(data = plot.df[plot.df$time == max(plot.df$time),], shape = 'E', size = 2, position = position_dodge(width = 1))+
+    theme_classic()+
+    theme(legend.position = 'none', axis.title = element_blank())+
+    scale_color_manual(values = cols)
 }
 
 plot_canonical_shape <- function(r, together.seqs, xs, ys){
-
-    y <- sqrt( (xs[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - xs[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2 +
-                          (ys[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - ys[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2)
-    
-    x <- together.seqs$t.start[r]:together.seqs$t.end[r]
-    
-    
-    fp <- list(x0 = x[1],
-               y0 = y[1],
-               xf = x[length(x)],
-               yf = y[length(y)])
-   
-    y.fit <- fission_fusion_function(x = x, b1 = together.seqs$b1[r], b2 = together.seqs$b2[r],
-                                     b.y.intercept = together.seqs$y.intercept[r], fixed.parameters = fp)
-    
-    ggplot(data = data.frame(x = x-together.seqs$t.start[r], y, y.fit), aes(x,y))+
-      geom_line(size = 0.5)+
-      geom_line(aes(y = y.fit), col = '#ba0c2f', size = 0.5)+
-      theme_classic(base_size = 12)+
-      xlab('Time (s)')+
-      ylab('Distance between individuals (m)')
-
+  
+  y <- sqrt( (xs[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - xs[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2 +
+               (ys[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - ys[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2)
+  
+  x <- together.seqs$t.start[r]:together.seqs$t.end[r]
+  
+  
+  fp <- list(x0 = x[1],
+             y0 = y[1],
+             xf = x[length(x)],
+             yf = y[length(y)])
+  
+  y.fit <- fission_fusion_function(x = x, b1 = together.seqs$b1[r], b2 = together.seqs$b2[r],
+                                   b.y.intercept = together.seqs$y.intercept[r], fixed.parameters = fp)
+  
+  ggplot(data = data.frame(x = x-together.seqs$t.start[r], y, y.fit), aes(x,y))+
+    geom_line(size = 0.5)+
+    geom_line(aes(y = y.fit), col = '#ba0c2f', size = 0.5)+
+    theme_classic(base_size = 12)+
+    xlab('Time (s)')+
+    ylab('Distance between individuals (m)')
+  
 }
 
-generate_figures <- function(data.outdir, plot.outdir, code.directory){
+generate_figures <- function(data.outdir, plots.outdir, code.directory){
   print('Generating figures')
   source(paste0(code.directory, 'ff_summary_figures.R'), local = TRUE, print.eval = TRUE)
 }

@@ -15,7 +15,6 @@ library(magick)
 
 #-----------FILENAMES---------------
 data_output_file <- 'fission_fusion_events_features.RData'
-nightperm_output_file <- 'hyena_day_randomization_events_features_nightperm_avoidmatchTRUE.RData'
 denblock_output_file <- 'hyena_day_randomization_events_features_denblock_avoidmatchTRUE.RData'
 map_file <- 'hyena_satellite_map.RData'
 
@@ -29,11 +28,6 @@ load(paste0(processed.data.directory,'hyena_latlon_level0.RData'))
 load(paste0(data.outdir, data_output_file))
 events.data <- events
 rm('events')
-
-#load events from nightperm randomization
-load(paste0(data.outdir, nightperm_output_file))
-events.rand.list.nightperm <- events.rand.list
-rm('events.rand.list')
 
 #load events from denblock randomization
 load(paste0(data.outdir, denblock_output_file))
@@ -65,61 +59,37 @@ den.idxs <- which(events.data$dist.den.start <= params$den.dist.thresh | events.
 nonden.idxs <- which(events.data$dist.den.start > params$den.dist.thresh & events.data$dist.den.end > params$den.dist.thresh)
 events.net.data.den <- count_events_per_dyad(events.data[den.idxs,])
 events.net.data.nonden <- count_events_per_dyad(events.data[nonden.idxs,])
-  
-#get total number of events in each randomization, and events per dyad
-events.tot.nightperm <- events.tot.denblock <- rep(NA, n.rands)
-events.tot.den.nightperm <- events.tot.nonden.nightperm <- events.tot.den.denblock <- events.tot.nonden.denblock <- rep(NA, n.rands)
-events.net.nightperm <- events.net.denblock <- array(NA, dim = c(n.inds, n.inds, n.rands))
-events.net.nightperm.den <- events.net.denblock.den <- array(NA, dim = c(n.inds, n.inds, n.rands))
-events.net.nightperm.nonden <- events.net.denblock.nonden <- array(NA, dim = c(n.inds, n.inds, n.rands))
 
+#get total number of events in each randomization, and events per dyad
+events.tot.denblock <- rep(NA, n.rands)
+events.tot.den.denblock <- events.tot.nonden.denblock <- rep(NA, n.rands)
+events.net.denblock <- array(NA, dim = c(n.inds, n.inds, n.rands))
+events.net.denblock.den <- array(NA, dim = c(n.inds, n.inds, n.rands))
+events.net.denblock.nonden <- array(NA, dim = c(n.inds, n.inds, n.rands))
+  
 for(r in 1:n.rands){
   
   #get events associated with that randomization\
-  if(exists('events.rand.list.nightperm')){
-    events.rand.nightperm <- events.rand.list.nightperm[[r]]
-  }
   events.rand.denblock <- events.rand.list.denblock[[r]]
   
   #remove events surrounding the 'day break'
-  if(exists('events.rand.list.nightperm')){
-    events.rand.nightperm <- remove_events_around_day_breaks(events.rand.nightperm, timestamps, rand.params)
-  }
   events.rand.denblock <- remove_events_around_day_breaks(events.rand.denblock, timestamps, rand.params)
   
   #total number of events
-  if(exists('events.rand.list.nightperm')){
-    events.tot.nightperm[r] <- nrow(events.rand.nightperm)
-  }
   events.tot.denblock[r] <- nrow(events.rand.denblock)
   
   #den vs nonden 
-  if(exists('events.rand.list.nightperm')){
-    events.tot.den.nightperm[r] <- sum(events.rand.nightperm$dist.den.start <= params$den.dist.thresh | events.rand.nightperm$dist.den.end <= params$den.dist.thresh)
-    events.tot.nonden.nightperm[r] <- sum(events.rand.nightperm$dist.den.start > params$den.dist.thresh & events.rand.nightperm$dist.den.end > params$den.dist.thresh)
-  }
   events.tot.den.denblock[r] <- sum(events.rand.denblock$dist.den.start <= params$den.dist.thresh | events.rand.denblock$dist.den.end <= params$den.dist.thresh)
   events.tot.nonden.denblock[r] <- sum(events.rand.denblock$dist.den.start > params$den.dist.thresh & events.rand.denblock$dist.den.end > params$den.dist.thresh)
   
   #den indexes
-  if(exists('events.rand.list.nightperm')){
-    nightperm.den.idxs <- which(events.rand.nightperm$dist.den.start <= params$den.dist.thresh | events.rand.nightperm$dist.den.end <= params$den.dist.thresh)
-    nightperm.nonden.idxs <- which(events.rand.nightperm$dist.den.start > params$den.dist.thresh & events.rand.nightperm$dist.den.end > params$den.dist.thresh)
-  }  
   denblock.den.idxs <- which(events.rand.denblock$dist.den.start <= params$den.dist.thresh | events.rand.denblock$dist.den.end <= params$den.dist.thresh)
   denblock.nonden.idxs <- which(events.rand.denblock$dist.den.start > params$den.dist.thresh & events.rand.denblock$dist.den.end > params$den.dist.thresh)
   
   #networks - all
-  if(exists('events.rand.list.nightperm')){
-    events.net.nightperm[,,r] <- count_events_per_dyad(events.rand.nightperm)
-  }
   events.net.denblock[,,r] <- count_events_per_dyad(events.rand.denblock)
   
   #networks - den vs nonden
-  if(exists('events.rand.list.nightperm')){
-    events.net.nightperm.den[,,r] <- count_events_per_dyad(events.rand.nightperm[nightperm.den.idxs,])
-    events.net.nightperm.nonden[,,r] <- count_events_per_dyad(events.rand.nightperm[nightperm.nonden.idxs,])
-  }
   events.net.denblock.den[,,r] <- count_events_per_dyad(events.rand.denblock[denblock.den.idxs,])
   events.net.denblock.nonden[,,r] <- count_events_per_dyad(events.rand.denblock[denblock.nonden.idxs,])
   
@@ -127,9 +97,9 @@ for(r in 1:n.rands){
 
 # Pre-processing for PLOT 1 and FIGURE 3a ------
 #prep for ggplot
-plotdat <- data.frame(type = c(rep('nightperm',n.rands),rep('denblock',n.rands)), nevents = c(events.tot.nightperm, events.tot.denblock), denevents = c(events.tot.den.nightperm, events.tot.den.denblock), nondenevents = c(events.tot.nonden.nightperm, events.tot.nonden.denblock))
-plotdat$type <- factor(plotdat$type,
-                       levels = c('nightperm','denblock'),ordered = TRUE)
+plotdat <- data.frame(type = rep('denblock',n.rands), nevents = events.tot.denblock, denevents = events.tot.den.denblock, nondenevents = events.tot.nonden.denblock)
+# plotdat$type <- factor(plotdat$type,
+#                        levels = c('denblock', 'real'),ordered = TRUE)
 
 # Pre-processing for FIGURE 5 ------
 #data frame of dyads
@@ -145,7 +115,7 @@ colnames(dyads) <- c('i','j')
 networkdat <- data.frame()
 for(r in 1:n.rands){
   tmp <- rbind(dyads, dyads)
-  tmp$type <- c(rep('nightperm',nrow(dyads)), rep('denblock',nrow(dyads)))
+  tmp$type <- rep('denblock',nrow(dyads))
   tmp$rand <- r
   networkdat <- rbind(networkdat, tmp)
 }
@@ -162,15 +132,6 @@ networkdat$count.nonden <- networkdat$sri.nonden <- NA
 for(i in 1:(n.inds-1)){
   for(j in (i+1):n.inds){
     for(r in 1:n.rands){
-      #nighpterm
-      idx <- which(networkdat$i == i & networkdat$j==j & networkdat$rand == r & networkdat$type == 'nightperm')
-      networkdat$count[idx] <- events.net.nightperm[i,j,r]
-      networkdat$sri[idx] <- events.net.nightperm[i,j,r] / (sum(events.net.nightperm[i,,r], na.rm=T) + sum(events.net.nightperm[,j,r], na.rm=T))
-      networkdat$count.den[idx] <- events.net.nightperm.den[i,j,r]
-      networkdat$sri.den[idx] <- events.net.nightperm.den[i,j,r] / (sum(events.net.nightperm.den[i,,r], na.rm=T) + sum(events.net.nightperm.den[,j,r], na.rm=T))
-      networkdat$count.nonden[idx] <- events.net.nightperm.nonden[i,j,r]
-      networkdat$sri.nonden[idx] <- events.net.nightperm.nonden[i,j,r] / (sum(events.net.nightperm.nonden[i,,r], na.rm=T) + sum(events.net.nightperm.nonden[,j,r], na.rm=T))
-      
       #denblock
       idx <- which(networkdat$i == i & networkdat$j==j & networkdat$rand == r & networkdat$type == 'denblock')
       networkdat$count[idx] <- events.net.denblock[i,j,r]
@@ -204,7 +165,7 @@ networkdat$dyad <- paste(networkdat$iname, '/', networkdat$jname)
 
 #order
 networkdat$type <- factor(networkdat$type,
-                          levels = c('nightperm','denblock','real'),ordered = TRUE)
+                          levels = c('denblock','real'),ordered = TRUE)
 
 #------ Pre-processing for FIGURE 1, FIGURE 2
 good.idxs <- which(events.data$start.exact & events.data$end.exact)
@@ -242,6 +203,8 @@ print(paste0('The mean and 95% range of predicted number of nonden events in den
 
 print(paste0('The number of traveling events during the together phase is ', sum(events.data$together.type=='together.travel', na.rm=T)))
 print(paste0('The number of stationary events during the together phase is ', sum(events.data$together.type=='together.local', na.rm=T)))
+print(paste0('The number of together-traveling events starting at the den is ', sum(events.data$dist.den.start <= params$den.dist.thresh & events.data$together.type=='together.travel', na.rm = T)))
+print(paste0('The number of together-traveling events ending at the den is ', sum(events.data$dist.den.end <= params$den.dist.thresh & events.data$together.type=='together.travel', na.rm = T)))
 
 #--------------PLOTS----------------
 
@@ -273,7 +236,7 @@ for(i in 1:(n.inds-1)){
     all.hrs <- c(all.hrs, hours.ts[both.tracked])
   }
 }
-hist(all.hrs)
+hist(all.hrs, main = 'GPS data available by hour', xlab = 'Hour')
 ################################################################################
 
 
@@ -333,11 +296,11 @@ dev.off()
 #-----------FIGURE 2 example of fission-fusion events + alluvial plot ----------
 
 
-ev <- plot_events(r = 393, events = events.data.exact, xs = xs, ys = ys,
+ev <- plot_events(r = 394, events = events.data.exact, xs = xs, ys = ys,
                   phase.col = FALSE, axes = FALSE, xlab = '', ylab = '', cols = colors[c(3,5)]) +
   labs(tag= 'A')
 
-canonical.shape <- plot_canonical_shape(393, together.seqs = events.data.exact, xs = xs, ys = ys) +
+canonical.shape <- plot_canonical_shape(394, together.seqs = events.data.exact, xs = xs, ys = ys) +
   labs(tag = 'B')
 
 
@@ -386,7 +349,7 @@ ap.blank <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Toget
   scale_y_continuous(expand = c(0,0))+
   theme(axis.text.y = element_blank(), axis.line = element_blank(), rect = element_blank(), axis.ticks = element_blank(),
         axis.title = element_blank(), legend.position = 'none', axis.text.x = element_text(size = 12))+
- # geom_alluvium(aes(fill = Fusion), col = 'black', curve_type = 'sine', width = 1/12, reverse = FALSE) + 
+ # geom_alluvium(aes(fill = Fusion), col = 'black', curve_type = 'sine', width = 1/12, reverse = FALSE) +
   geom_stratum(width = 1/8, alpha = 1, size = 0.5, reverse = FALSE)+
   geom_text(stat='stratum', aes(label = after_stat(stratum)), reverse = FALSE)+
   scale_fill_manual(values = colors[c(6,4)])+
@@ -425,7 +388,6 @@ p_nevents <- ggplot(data = plotdat.denblock) +
   theme_classic(base_size = 12) + 
   theme(legend.position="none")+
   labs(tag = 'A')
-p_nevents
 
 #-FIGURE 3b--
 png(paste0(plots.outdir, 'FIG3.png'), width = 6, height = 4, units = 'in', res = 500)

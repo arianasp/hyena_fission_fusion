@@ -375,9 +375,6 @@ print('--------------------------- DENBLOCK / NO MATCH -------------------------
 output.dirs <- runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 4, 
        raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = F,
        execute.day.randomization = F, extract.ff.events = F, get.sync.measures = F, get.ff.features = F)
-runall(randomization.type = 'nightperm', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, 
-                      raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = T,
-                      execute.day.randomization = T)
 generate_figures(output.dirs[1], output.dirs[2], code.directory)
 
 print('--------------------------- DENBLOCK / NO MATCH ---------------------------------')
