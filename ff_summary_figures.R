@@ -396,13 +396,13 @@ p_nevents <- ggplot(data = plotdat.denblock) +
 png(paste0(plots.outdir, 'FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
 
 layout <- '
-AABBBB
+AAABBBB
 '
 p_nevents + visualize_event_type_distributions(events.data, events.rand.list.denblock, 
                                                rand.params, timestamps, 
                                                remove.events.around.day.breaks = T,
                                                col = colors[6])+labs(tag = 'B') +
-  plot_layout(design = 'layout')
+  plot_layout(design = layout)
 dev.off()
 
 # visualize_symmetrical_event_type_comparison(events.data, events.rand.list.denblock, 

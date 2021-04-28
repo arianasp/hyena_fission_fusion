@@ -100,8 +100,8 @@ runall <- function(randomization.type, #options: denblock, nightperm
     data.outdir <- paste0(results.directory, '2_stability_check_R50_100/data/')
     plots.outdir <- paste0(results.directory, '2_stability_check_R50_100/plots/')
   } else if(R.fusion == 200){
-    data.outdir <- paste0(results.directory, '2_stability_check_R200_300/data/')
-    plots.outdir <- paste0(results.directory, '2_stability_check_R200_300/plots/')
+    data.outdir <- paste0(results.directory, '3_stability_check_R200_300/data/')
+    plots.outdir <- paste0(results.directory, '3_stability_check_R200_300/plots/')
   }
   
   ################################# SOURCE FUNCTIONS #######################################
