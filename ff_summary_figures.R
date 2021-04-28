@@ -327,12 +327,13 @@ alluv.data <- na.omit(alluv.data)
 
 alluv.plot.data <- alluv.data %>% 
   group_by(Fusion, Together, Fission) %>%
-  summarize(count = length(full.type))
+  summarize(count = length(full.type)) %>%
+  ungroup()
 
 fusion.symbols <- unique(alluv.plot.data$Fusion)
 #alluvp <- alluvial(alluv.plot.data[,c('Fusion','Together','Fission')], freq = alluv.plot.data$count, col = ifelse(alluv.plot.data$Fusion == fusion.symbols[1], colors[7], colors[5]), blocks = T)
 
-alluv.plot.data$Event_Type = letters[1:10]
+alluv.plot.data$Event_Type = letters[1:nrow(alluv.plot.data)]
 ap <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Together, axis3 = Fission))+
   scale_x_continuous(breaks = c(1,2,3), labels = c('Fusion', 'Together', 'Fission'), expand = c(0.01,0.01))+
   scale_y_continuous(expand = c(0,0))+
@@ -393,10 +394,15 @@ p_nevents <- ggplot(data = plotdat.denblock) +
 
 #-FIGURE 3b--
 png(paste0(plots.outdir, 'FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
+
+layout <- '
+AABBBB
+'
 p_nevents + visualize_event_type_distributions(events.data, events.rand.list.denblock, 
                                                rand.params, timestamps, 
                                                remove.events.around.day.breaks = T,
-                                               col = colors[6])+labs(tag = 'B')
+                                               col = colors[6])+labs(tag = 'B') +
+  plot_layout(design = 'layout')
 dev.off()
 
 # visualize_symmetrical_event_type_comparison(events.data, events.rand.list.denblock, 
