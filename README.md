@@ -22,7 +22,7 @@ Here are instructions for how to run this analysis.
 
 To run the analysis you will need to specify four file paths and pass them to `runall()` in ff_driver.R:
 1. code.directory - filepath to code contained in this repo
-2. raw.data.directory - filepath 
+2. raw.data.directory - filepath where raw data are located
 3. processed.data.directory - filepath to results folder where processed data will be output.
 4. results.directory - filepath to results folder where analyzed data and plots will be output. This folder must contain specific subdirectories to store output for runs with different parameters.
 
