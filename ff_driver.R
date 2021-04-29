@@ -20,8 +20,7 @@ if(user == 'strau'){
 
 
 #-------------------------- MAIN FUNCTION -------------------------------
-runall <- function(randomization.type, #options: denblock, nightperm
-                   R.fusion = 100,
+runall <- function(R.fusion = 100,
                    R.fission = 200,
                    n.rands = 100,
                    raw.data.directory, processed.data.directory, results.directory, code.directory,
@@ -50,14 +49,6 @@ runall <- function(randomization.type, #options: denblock, nightperm
   
   ######################## FIXED PARAMETERS - DON'T CHANGE ##############################
   
-  #parameters for a regular night randomization
-  nightperm.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
-                      last.day.used = params$last.day.used - 1, #last day to use in the randomizations (and real data)
-                      blocks = NULL, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
-                      ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
-                      n.rands = n.rands #how many randomizations to do
-                      )
-  
   #parameters for a den block permutation
   #this bit is manual (hardcoded), - the boundaries are based on looking at the plot of den attendance
   den.blocks <- list()
@@ -77,19 +68,14 @@ runall <- function(randomization.type, #options: denblock, nightperm
   den.names <- c('DAVE D','RBEND D','RES M D1','DICK D')
   den.file.path <- paste0(raw.data.directory, 'metadata/hyena_isolate_dens.csv')
   
-  
-  if(randomization.type == 'denblock'){
-    rand.params <- denblock.rand.params
-  }
-  if(randomization.type == 'nightperm'){
-    rand.params <- nightperm.rand.params
-  }
+  rand.params <- denblock.rand.params
+
   
   events_filename <- 'fission_fusion_events.RData'
   events_features_filename <- 'fission_fusion_events_features.RData'
   day_start_idxs_filename <- 'hyena_day_start_idxs.RData'
-  day_randomization_plan_filename <- paste0('hyena_day_randomization_plan_', randomization.type, '_avoidmatch', rand.params$ensure.no.day.matches, '.RData')
-  day_randomization_output_filename <- paste0('hyena_day_randomization_events_features_',randomization.type,'_avoidmatch', rand.params$ensure.no.day.matches, '.RData')
+  day_randomization_plan_filename <- paste0('hyena_day_randomization_plan_denblock_avoidmatch', rand.params$ensure.no.day.matches, '.RData')
+  day_randomization_output_filename <- paste0('hyena_day_randomization_events_features_denblock_avoidmatch', rand.params$ensure.no.day.matches, '.RData')
   
   
   #adjust subdirectory  where to store extracted data based on parameters - FIX THIS
@@ -244,12 +230,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
     
     n.inds <- nrow(hyena.ids)
     
-    if(randomization.type == 'nightperm'){
-      rand.params <- nightperm.rand.params
-    }
-    if(randomization.type == 'denblock'){
-      rand.params <- denblock.rand.params
-    }
+    rand.params <- denblock.rand.params
     
     print('Generating randomization plan')
     
@@ -372,18 +353,18 @@ runall <- function(randomization.type, #options: denblock, nightperm
 #-----------------------------------RUN ME-------------------------------------------------
 set.seed(43410)
 print('--------------------------- MAIN RESULTS ---------------------------------')
-output.dirs <- runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 100, 
+output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 100, 
        raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = T,
        execute.day.randomization = T, extract.ff.events = T, get.sync.measures = T, get.ff.features = T)
 generate_figures(output.dirs[1], output.dirs[2], code.directory)
 
 print('--------------------------- CHECK SMALLER THRESHOLD ---------------------------------')
-output.dirs <- runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 50, R.fission = 100, n.rands = 4, 
+output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 50, R.fission = 100, n.rands = 4, 
                       raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = F,
                       execute.day.randomization = T, extract.ff.events = T, get.sync.measures = T, get.ff.features = T)
 generate_figures(output.dirs[1], output.dirs[2], code.directory)
 print('--------------------------- CHECK LARGER THRESHOLD ---------------------------------')
-output.dirs <- runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 200, R.fission = 300, n.rands = 4, 
+output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 200, R.fission = 300, n.rands = 4, 
                       raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = F,
                       execute.day.randomization = T, extract.ff.events = T, get.sync.measures = T, get.ff.features = T)
 generate_figures(output.dirs[1], output.dirs[2], code.directory)
