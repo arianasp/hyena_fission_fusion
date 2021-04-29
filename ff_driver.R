@@ -70,7 +70,7 @@ runall <- function(randomization.type, #options: denblock, nightperm
                                 last.day.used = params$last.day.used - 1, #last day to use in the randomizations (and real data)
                                 blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
                                 ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
-                                n.rands = 4 #how many randomizations to do
+                                n.rands = n.rands #how many randomizations to do
                                 )
   
   #den info
@@ -372,9 +372,9 @@ runall <- function(randomization.type, #options: denblock, nightperm
 #-----------------------------------RUN ME-------------------------------------------------
 set.seed(43410)
 print('--------------------------- MAIN RESULTS ---------------------------------')
-output.dirs <- runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 4, 
-       raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = F,
-       execute.day.randomization = F, extract.ff.events = F, get.sync.measures = F, get.ff.features = F)
+output.dirs <- runall(randomization.type = 'denblock', ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 100, 
+       raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = T,
+       execute.day.randomization = T, extract.ff.events = T, get.sync.measures = T, get.ff.features = T)
 generate_figures(output.dirs[1], output.dirs[2], code.directory)
 
 print('--------------------------- CHECK SMALLER THRESHOLD ---------------------------------')

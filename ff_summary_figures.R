@@ -199,9 +199,9 @@ print(paste0('The number of events ending at the den is ', sum(events.data$dist.
 print(paste0('The number of events either starting or ending at a den is ', sum(events.data$dist.den.start <= params$den.dist.thresh | events.data$dist.den.end <= params$den.dist.thresh)))
 
 
-print(paste0('The mean and 95% range of predicted number of events in denblock model is ', median(events.tot.denblock), ' (', quantile(events.tot.denblock, 0.025), ' to ', quantile(events.tot.denblock, 0.975), ')'))
-print(paste0('The mean and 95% range of predicted number of den events in denblock model is ', median(events.tot.den.denblock), ' (', quantile(events.tot.den.denblock, 0.025), ' to ', quantile(events.tot.den.denblock, 0.975), ')'))
-print(paste0('The mean and 95% range of predicted number of nonden events in denblock model is ', median(events.tot.nonden.denblock), ' (', quantile(events.tot.nonden.denblock, 0.025), ' to ', quantile(events.tot.nonden.denblock, 0.975), ')'))
+print(paste0('The median and 95% range of predicted number of events in denblock model is ', median(events.tot.denblock), ' (', quantile(events.tot.denblock, 0.025), ' to ', quantile(events.tot.denblock, 0.975), ')'))
+print(paste0('The median and 95% range of predicted number of den events in denblock model is ', median(events.tot.den.denblock), ' (', quantile(events.tot.den.denblock, 0.025), ' to ', quantile(events.tot.den.denblock, 0.975), ')'))
+print(paste0('The median and 95% range of predicted number of nonden events in denblock model is ', median(events.tot.nonden.denblock), ' (', quantile(events.tot.nonden.denblock, 0.025), ' to ', quantile(events.tot.nonden.denblock, 0.975), ')'))
 
 print(paste0('The number of traveling events during the together phase is ', sum(events.data$together.type=='together.travel', na.rm=T)))
 print(paste0('The number of stationary events during the together phase is ', sum(events.data$together.type=='together.local', na.rm=T)))
