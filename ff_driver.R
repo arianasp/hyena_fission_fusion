@@ -20,17 +20,27 @@ if(user == 'strau'){
 
 
 #-------------------------- MAIN FUNCTION -------------------------------
-runall <- function(R.fusion = 100,
-                   R.fission = 200,
-                   n.rands = 100,
-                   raw.data.directory, processed.data.directory, results.directory, code.directory,
-                   ensure.no.day.matches = T, 
-                   verbose = T,
-                   preprocess = T, ## The rest are options for skipping steps to reduce runtime
-                   extract.ff.events = T,
-                   get.ff.features = T,
-                   execute.day.randomization = T,
-                   get.sync.measures = T){
+runall <- function(
+  ### Run parameters
+  R.fusion = 100,  # threshold proximity for triggering a fission-fusion event
+  R.fission = 200, # threshold proximity defining start and end of ff event
+  n.rands = 100, # number of iterations of the reference model to run
+  ensure.no.day.matches = T, # should randomizations exclude randomly reproduced original data?
+  
+  ### input/output directories
+  raw.data.directory, # directory of raw data, containing metadata, gps data, acc data, den locations, hyena photograph, satllite map
+  processed.data.directory, # directory for output of preprocessing steps
+  results.directory, # directory for results, including subdirectories for each parameter combination and data/ and plots/ for data output
+  code.directory, # directory where code is located 
+  
+  ### Run options
+  verbose = T, # Should progress be printed to console?
+  preprocess = T, # Do you want to run preprocessing and overwrite output? (preprocessing steps are identical regardless of parameter values) 
+  extract.ff.events = T, # Do you want to extract fission-fusion events and overwrite output?
+  get.ff.features = T, # Do you want to extract features of ff events and overwrite output?
+  execute.day.randomization = T, # Do you want to run the reference model and overwrite output? 
+  get.sync.measures = T # Do you want to calculate synchrony measures?
+){
   
   
   ################################ PARAMETERS ##########################################
@@ -43,7 +53,7 @@ runall <- function(R.fusion = 100,
                  local.time.diff = 3, # difference in hours from local time
                  den.dist.thresh = 200, #threshold to consider something 'at the den'
                  last.day.used = 35 #last day in the data set to use (this is the day before the first collar died)
-                  )
+  )
   
   run.params <- params
   
@@ -58,18 +68,18 @@ runall <- function(R.fusion = 100,
   den.blocks[[4]] <- c(15)
   den.blocks[[5]] <- c(11, 30)
   denblock.rand.params <- list(break.hour = 12, #which hour to "break" at when randomizing days (0 = midnight, 12 = noon)
-                                last.day.used = params$last.day.used - 1, #last day to use in the randomizations (and real data)
-                                blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
-                                ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
-                                n.rands = n.rands #how many randomizations to do
-                                )
+                               last.day.used = params$last.day.used - 1, #last day to use in the randomizations (and real data)
+                               blocks = den.blocks, #blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
+                               ensure.no.day.matches = ensure.no.day.matches, #whether to ensure that no pair of individuals is randomized to the same day
+                               n.rands = n.rands #how many randomizations to do
+  )
   
   #den info
   den.names <- c('DAVE D','RBEND D','RES M D1','DICK D')
   den.file.path <- paste0(raw.data.directory, 'metadata/hyena_isolate_dens.csv')
   
   rand.params <- denblock.rand.params
-
+  
   
   events_filename <- 'fission_fusion_events.RData'
   events_features_filename <- 'fission_fusion_events_features.RData'
@@ -80,8 +90,8 @@ runall <- function(R.fusion = 100,
   
   #adjust subdirectory  where to store extracted data based on parameters - FIX THIS
   if(R.fusion == 100){
-      data.outdir <- paste0(results.directory, '1_main_output_R100_200/data/')
-      plots.outdir <- paste0(results.directory, '1_main_output_R100_200/plots/')
+    data.outdir <- paste0(results.directory, '1_main_output_R100_200/data/')
+    plots.outdir <- paste0(results.directory, '1_main_output_R100_200/plots/')
   } else if(R.fusion == 50){
     data.outdir <- paste0(results.directory, '2_stability_check_R50_100/data/')
     plots.outdir <- paste0(results.directory, '2_stability_check_R50_100/plots/')
@@ -203,7 +213,7 @@ runall <- function(R.fusion = 100,
       print('Extracting features')
     }
     events <- get_ff_features(xs = xs, 
-                               ys = ys, 
+                              ys = ys, 
                               together.seqs = events,
                               params = params,
                               den.file.path = den.file.path,
@@ -354,8 +364,8 @@ runall <- function(R.fusion = 100,
 set.seed(43410)
 print('--------------------------- MAIN RESULTS ---------------------------------')
 output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 100, 
-       raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = T,
-       execute.day.randomization = T, extract.ff.events = T, get.sync.measures = T, get.ff.features = T)
+                      raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = T,
+                      execute.day.randomization = T, extract.ff.events = T, get.sync.measures = T, get.ff.features = T)
 generate_figures(output.dirs[1], output.dirs[2], code.directory)
 
 print('--------------------------- CHECK SMALLER THRESHOLD ---------------------------------')
