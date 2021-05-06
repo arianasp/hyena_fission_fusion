@@ -293,6 +293,35 @@ count_events_per_dyad <- function(events, symmetrize = T){
 #################################### MAIN FUNCTIONS ####################################
 
 ##### Extract ff events and phases
+#This is the main function for extracting fission-fusion events from spatial data, fitting the phases for each event, and classifying them into types 
+#Inputs:
+# xs: [matrix] n.inds x n.times matrix of x coordinates (eastings) for all individuals. xs[i,t] gives the x coordinate of hyena i at time index t
+# ys: [matrix] same as xs, but for y coordinates (northings)
+# params: [named list] of parameters for extracting ff events, including
+#  params$R.fusion: [numeric] inner radius for ff events - individuals must come closer to one another than this distance to for something to count as a ff event
+#  params$R.fission: [numeric] outer radius for ff events - when individuals cross this radius, the ff event begins (or ends)
+#  params$max.break: [numeric] maximum number of time steps between two events connected by NAs to concatenate them together into 1 event
+#  params$move.thresh: [numeric] minimum amount moved (meters) to be considered 'moving' during the fusion or fission phase
+#  params$together.travel.thresh: [numeric] minimum amount moved (meters) to be considered 'moving' during the together phase
+#  params$local.time.diff: [numeric] time difference between local time and UTC (hours)
+#  params$den.dist.thresh: [numeric] threshold distance to consider something to be happening 'at the den'
+#  params$last.day.used: [numeric] last day in the data set to use (this should be the day before the first collar died)
+#verbose: [boolean] whether to print progress updates as the function runs
+#Outputs:
+# together.seqs: data frame containing all the fission-fusion events as rows, with information about each event contained in the columns, including
+#   together.seqs$i: [numeric] index of the first individual in the ff event
+#   together.seqs$j: [numeric] index of the second individual in the ff event
+#   together.seqs$t0: [numeric] time point associated with crossing the R.fusion threshold for the first time in an event (note: this is NOT the beginning of the ff event - for this we need to look back in time to when the individuals crossed the R.fission threshold!)
+#   together.seqs$tf: [numeric] time point associated with crossing the R.fission threshold to end the event
+#   together.seqs$t.start: [numeric] time point associated with the start of the event
+#   together.seqs$t.end: [numeric] time point associated with the end of the event 
+#   together.seqs$start.exact: [boolean] whether the start time of the event is exact (will be FALSE if there were NAs between a time with dist < R.fusion and the earlier time when they crossed > R.fission)
+#   together.seqs$end.exact: [boolean] whether the end time of the event is exact (will be FALSE if there were NAs between a time when dist < R.fusion and the later time when they crossed > R.fission)
+#   together.seqs$closest.app: [numeric] closest approach distance during the event (m)
+#   together.seqs$t.closest: [numeric] time index associated with the closest approach during the event
+#   together.seqs$b1: [numeric] time index associated with the first break point (beginning of the "together phase")
+#   together.seqs$b2: [numeric] time index assocaited with the second break point (end of the "together phase")
+#   together.seqs$y.intercept: [numeric] dyadic distance associated with the together phase (the 'height' of the bottom of the "u" of the canonical ff curve)
 get_ff_events_and_phases <- function(xs, ys, params, verbose = TRUE){
   
   #Get basic parameters
