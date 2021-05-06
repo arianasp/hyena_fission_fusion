@@ -67,29 +67,57 @@ utm.to.latlon <- function(EastNorths,LonsCol1=TRUE,utm.zone = '34',southern_hemi
   }	
 }
 
-### Find parameters defining the 'canonical shape' that best matches data for a fission-fusion event
+### This function outputs the "canonical shape" of a fission-fusion event based on a set of input parameters
+# The canonical shape is a u-shaped function defined by the parameters described below
+# The input parameters include a set of parameters that will be fitted (x, b1, and b2) as well as a 
+# set that remains fixed based on the starting and ending times and distances of the two individuals (fixed.parameters)
+#Inputs:
+# x: [vector] of time points where the function will be evaluated
+# b1: [numeric] time point associated with the first "break point" in the u shape
+# b2: [numeric] time point associated with the second "break point" in the u shape
+# b.y.intercept: [numeric] height of the flat part of the function (from b1 to b2)
+# fixed.parameters: [named list] rest of the parameters that are needed to describe the u-shaped function, but which are held fixed and not fitted
+#  fixed.parameters$x0: initial time point (start of the fission-fusion event)
+#  fixed.parameters$y0: initial distance apart (at the start of the fission-fusion event)
+#  fixed.parameters$xf: final time point (end of the fission-fusion event)
+#  fixed.parameters$yf: final distance apart (at the end of the fission-fusion event)
+#Outputs:
+# val: [vector] of y values, created by applying the function to the vector of time points
 fission_fusion_function <- function(x, b1, b2, b.y.intercept, fixed.parameters){
+  
+  #extract the fixed parameters
   x0 <- fixed.parameters$x0
   y0 <- fixed.parameters$y0
   xf <- fixed.parameters$xf
   yf <- fixed.parameters$yf
   
+  #val will hold the y values of the function
   val <- rep(NA, length(x))
-  ## Aproach
+  
+  ## Aproach segment
   m1 <- (b.y.intercept - y0)/(b1 - x0)
   val[which(x < b1)] <- y0 + m1*(x[which(x < b1)]-x0)
   
-  ## Together
+  ## Together segment (flat part)
   val[which(x < b2 &  x >= b1)] <- b.y.intercept
   
-  ## Depart
+  ## Depart segment
   m2 <- (yf-b.y.intercept)/(xf - b2)
   val[which(x >= b2)] <- b.y.intercept + m2*(x[which(x >= b2)] - b2)
+  
   return(val)
 }
 
 
-### Calculate least squared error for fission_fusion_function. For optimization. 
+### Calculate least squared error for fission_fusion_function. This funciton is used for optimizing the
+# parameters b1, b2, and b.y.intercept in the function fission.fusion.function for a given fission-fusion event
+#Inputs:
+# params: [vector] containing the parameters eventually being fitted (b1, b2, and b.y.intercept)
+# fixed.parameters: [named list] containing the fixed parameters associated with a given event (to be passed in to fission.fusion.function)
+# x: [vector] of time points from the beginning to the end of the fission-fusion event
+# y: [vector] of distances between the two individuals during the fission-fusion event
+#Outputs:
+# error: [numeric] sum of squared error between data (x,y) and model (fission.fusion.function with the specified parameter set)
 ls_error <- function(params, fixed.parameters, x, y){
   y.fit <- fission_fusion_function(x = x, b1 = params[1], b2 = params[2],
                                    b.y.intercept = params[3], fixed.parameters = fixed.parameters)
@@ -98,7 +126,19 @@ ls_error <- function(params, fixed.parameters, x, y){
   return(error)
 }
 
-#Calculate the angle between two vectors using law of cosines
+#Calculate the angle between two vectors (i and j) using law of cosines
+# The vectors are defined by two end points each (1 and 2)
+#Inputs:
+# x1.i: [numeric] x value of the first point (1) of the vector i
+# x2.i: [numeric] x value of the second point (2) of the vector i
+# y1.i: [numeric] y value of the first point (1) of the vector i
+# y2.i: [numeric] y value of the second point (2) of the vector i
+# x1.j: [numeric] x value of the first point (1) of the vector j
+# x2.j: [numeric] x value of the second point (2) of the vector j
+# y1.j: [numeric] y value of the first point (1) of the vector j
+# y2.j: [numeric] y value of the second point (2) of the vector j
+#Outputs:
+# angle: angle between the two vectors (in radians)
 get_angle_between_vectors <- function(x1.i, x2.i, y1.i, y2.i, 
                                       x1.j, x2.j, y1.j, y2.j){
   dx.i <- x2.i - x1.i
@@ -115,7 +155,17 @@ get_angle_between_vectors <- function(x1.i, x2.i, y1.i, y2.i,
   return(angle)
 }
 
-#read in den locations
+#Read in den locations from a file
+#Inputs:
+# den.file.path: [string] full path to the file containing the den locations (as well as other locations)
+# den.names: [vector of strings] the names of the dens to use (defaults to the dens used for the current study, i.e. 2017 pilot field season)
+#Outputs:
+# den.locs: data frame containing information about the dens, including
+#  $name: name of the den
+#  $lat: latitude coordinate of the den
+#  $lon: longitude coordinate of the den
+#  $east: easting coordinate of the den
+#  $north: northing coordinate of the den
 get_dens <- function(den.file.path,
                      den.names = c('DAVE D','RBEND D','RES M D1','DICK D')){
   known.locs <- read.csv(den.file.path,stringsAsFactors=F)
@@ -127,7 +177,22 @@ get_dens <- function(den.file.path,
   return(den.locs)
 }
 
-#Calculate spatially discretized heading over time using sliding window
+#Calculate spatially discretized heading over time for an individual's trajectory
+#The spatially discretized heading of an individual at a given time point is defined as the vector 
+#pointing from its current location to its location after it has moved a fixed distance R
+#Spatially discretized headings are useful to use when individuals often stop moving, 
+#as the headings of stationary individuals (if calculated using a time window) will bounce around randomly with the GPS noise
+#Inputs:
+# x: [vector] x coordinates of an individual trajectory
+# y: [vector] y coordinates of an individual trajectory
+# R: [numeric] spatial radius to use for spatial discretization of the headings
+# t.idxs: [vector] time indices at which to calculate the heading
+# backward: [boolean] whether to calculate the heading at a given time point based on where it was in the past (backward = T)
+#  or where it is heading in the future (backward = F). Defaults to F.
+# fpt.thresh: [numeric] threshold for the first passage time, below which the heading will not be calculated and will be filled in with NA. This is to prevent individuals from getting 'headings' when they are stationary for too long.
+# subsample: [numeric] rate to subsample data at (to save time). Defaults to 1 (use all data, no subsampling)
+#Outputs:
+# spat.heads: [vector] giving the headings (in radians) of the individual over time
 spatial.headings <- function(x,y,R,t.idxs=1:length(x),backward=F, fpt.thresh, subsample = 1){
   
   #initialize
@@ -201,6 +266,12 @@ spatial.headings <- function(x,y,R,t.idxs=1:length(x),backward=F, fpt.thresh, su
   return(spat.heads)
 }
 
+#Count the number of fission-fusion events per dyad
+#Inputs:
+# events: [data frame] containing information about the extracted fission-fusion events
+# symmetrize: [boolean] indicating whether the lower part of the output matrix should be filled in or not
+#Outputs:
+# net: [matrix] of size n.inds x n.inds, where net[i,j] gives the number of ff events involving individuals i and j
 count_events_per_dyad <- function(events, symmetrize = T){
   
   n.inds <- length(unique(c(events$i, events$j)))
