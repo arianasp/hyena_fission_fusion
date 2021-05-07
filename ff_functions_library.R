@@ -848,7 +848,7 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
 ########################## RANDOMIZATION ######################################
 
 #Generate a randomization plan where hyena trajectories from each day will be shuffled
-#If ensure.no.day.matches == T, make sure that the trajectories don't 'align' on any day 
+#If rand.params$ensure.no.day.matches == T, make sure that the trajectories don't 'align' on any day 
 #(i.e. the hyenas are actually randomized to have the same day represented at the same time in the randomized data)
 #Inputs:
 # rand.params: [named list] of parameters associated with the randomization, including
@@ -858,10 +858,9 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
 #   rand.params$ensure.no.day.matches: [boolean] whether to ensure that no pair of individuals is randomized to the same day
 #   rand.params$n.rands: [numeric] how many randomizations to do
 # max.tries: maximum number of tries at generating the randomization plan before giving up and trying again (only relevant if ensure.no.day.matches == T)
-# ensure.no.day.matches: [boolean] whether to ensure that no pair of individuals is randomized to the same day
 #Outputs:
 # rand.plan: [matrix] of dimension n.inds x n.days x n.rands specifying indexes for day swaps. rand.plan[i,j,k] gives the day that should be swapped in for individual i on day j in randomization k
-generate_randomization_plan <- function(rand.params, n.inds, ensure.no.day.matches = F, max.tries = 10000){
+generate_randomization_plan <- function(rand.params, n.inds, max.tries = 10000){
   
   #initialize array to hold randomization plan
   n.rands <- rand.params$n.rands
@@ -903,7 +902,7 @@ generate_randomization_plan <- function(rand.params, n.inds, ensure.no.day.match
     }
     
     converged <- T
-    if(ensure.no.day.matches){
+    if(rand.params$ensure.no.day.matches){
       converged <- F
       tries <- 1
       while(!converged){

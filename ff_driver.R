@@ -244,7 +244,7 @@ runall <- function(
     
     print('Generating randomization plan')
     
-    rand.plan <- generate_randomization_plan(rand.params, n.inds = n.inds, ensure.no.day.matches = rand.params$ensure.no.day.matches)
+    rand.plan <- generate_randomization_plan(rand.params, n.inds = n.inds)
     
     if(execute.day.randomization){
       
