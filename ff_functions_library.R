@@ -589,6 +589,19 @@ get_ff_events_and_phases <- function(xs, ys, params, verbose = TRUE){
 }
 
 #### Extract features from fission fusion events
+#Inputs:
+# xs: [matrix] n.inds x n.times matrix of x coordinates (eastings) for all individuals. xs[i,t] gives the x coordinate of hyena i at time index t
+# ys: [matrix] same as xs, but for y coordinates (northings)
+# together.seqs: [data frame] of fission-fusion events and associated information (output from get_ff_events_and_phases)
+# params: [named list] of parameters for extracting ff events (see above for what it includes)
+# den.names: [vector of strings] the names of the dens to use (defaults to the dens used for the current study, i.e. 2017 pilot field season)
+# vedbaas: [matrix] of vedba values, of same dimensions and structure as xs and ys matrices
+# get.sync.measures: [boolean] whether to calculate the synchrony measures associated with the together phase (this step is computationally intensive)
+# sync.subsample: [numeric] by what factor to downsample the data when computing sync measurse (defaults to 10, 1 means no downsampling)
+#Outputs:
+# together.seqs: [data frame] same as the input, but updated with additional metrics computed including 
+#   displacements during each phase of each individual, duration, phase types and event type, heading correlation, activity synchrony
+#   (column names should be self-explanatory - see how everything is computed inside the function for details)
 get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.names, vedbas = vedbas, get.sync.measures = FALSE, sync.subsample = 10){
   
   empty.vec <- rep(NA, nrow(together.seqs))
@@ -832,109 +845,22 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
   return(together.seqs)
 }
 
-#Compute the datetimes of den attendance at each den by each individual
-#Creates a plot of this if specified
-plot_den_attendance_by_ind <- function(xs, ys, den.file.path, den.names, params, den.blocks = NULL){
-  
-  #get number of inds and times
-  n.inds <- dim(xs)[1]
-  n.times <- dim(xs)[2]
-  n.dens <- length(den.names)
-  
-  #hard coded boundaries
-  if(is.null(den.blocks)){
-    den.blocks <- list()
-    den.blocks[[1]] <- c(12, 22, 30, 33)
-    den.blocks[[2]] <- c(13, 26)
-    den.blocks[[3]] <- c(14, 35)
-    den.blocks[[4]] <- c(15)
-    den.blocks[[5]] <- c(12, 31)
-  }
-  
-  #for now set a single threshold or arrival and leaving (= den.dist.thresh) - consider changing this to two threhsolds for less 'flicker'
-  thresh.arrive <- params$den.dist.thresh
-  thresh.leave <- params$den.dist.thresh
-  
-  #Get data frame with den locations and names
-  den.locs <- get_dens(den.file.path = den.file.path, den.names = den.names)
-  dens <- den.locs[,c('name','lat','lon','east','north')]
-  dens$col <- c('green','magenta','blue','red')
-  
-  #Get distance of each hyena to each den over time
-  dist.dens <- array(NA,dim=c(dim(xs),nrow(den.locs)))
-  for(i in 1:nrow(den.locs)){
-    dist.dens[,,i] <- sqrt((xs - den.locs$east[i])^2 + (ys - den.locs$north[i])^2)
-  }
-  
-  #shift time by 12 hours (or other break.hour time) - shift to the night basically
-  nights.all <- date(timestamps + params$local.time.diff * 60 * 60 + rand.params$break.hour * 60 *60)
-  nights <- unique(nights.all)
-  
-  #for each night compute secs spent at each den
-  den.nights <- array(dim = c(n.inds, length(nights), n.dens))
-  for(i in 1:n.inds){
-    for(j in 1:length(nights)){
-      idxs <- which(nights.all == nights[j])
-      for(k in 1:n.dens){
-        den.nights[i,j,k] <- sum(dist.dens[i,idxs,k] < params$den.dist.thresh, na.rm=T)
-      }
-    }
-  }
-  
-  #find the most used den of that night (or NA if no dens were used for > 1 hr)
-  most.used.dens <- matrix(NA,nrow = n.inds, ncol = length(nights))
-  for(i in 1:n.inds){
-    for(j in 1:length(nights)){
-      if(sum(den.nights[i,j,]) > 60*60){
-        most.used.dens[i,j] <- which.max(den.nights[i,j,])
-      }
-    }
-  }
-  
-  
-  #get days and minutes into day for all ts
-  step <- 60 #subsample to one sample per minute
-  dist.dens.sub <- dist.dens[,seq(1,length(timestamps),step),]
-  ts.sub <- timestamps[seq(1,length(timestamps),step)]
-  days <- as.Date(ts.sub)
-  uniq.days <- unique(days)
-  mins <- minute(ts.sub) + hour(ts.sub)*60
-  
-  dist.dens.thresh <- dist.dens.sub < thresh.arrive
-  #quartz(width=12,height=6)
-  par(mfrow=c(1,5),mar=c(4,4,1,0))
-  cols <- dens$col
-  for(i in 1:n.inds){
-    plot(NULL,xlim=c(0,24),ylim=c(1,length(uniq.days)),main=hyena.ids$name[i],xlab='hour of day',ylab='day')
-    for(d in 1:dim(dist.dens.thresh)[3]){
-      for(day in 1:length(uniq.days)){
-        idxs.curr <- which(days == uniq.days[day])
-        mins.curr <- mins[idxs.curr]
-        den.presence.curr <- which(dist.dens.thresh[i,idxs.curr,d]==TRUE)
-        mins.at.den <- mins.curr[den.presence.curr]
-        points(mins.at.den/60,rep(day,length(mins.at.den)),col=cols[d],pch=19,cex=0.3)
-        
-      }
-    }
-    
-    #plot boundary marks
-    for(j in 1:length(den.blocks[[i]])){
-      b <- den.blocks[[i]][j]
-      lines(c(0,12,12,24),c(b,b,b-1,b-1)+.5, lty = 2)
-    }
-    if(i==4){
-      legend('topright',legend=c('Rbend Den','Dave Den','Res Den','Dick Den'),fill=c('blue','green','red','magenta'))
-    }
-  }
-  
-  
-}
-
 ########################## RANDOMIZATION ######################################
 
 #Generate a randomization plan where hyena trajectories from each day will be shuffled
 #If ensure.no.day.matches == T, make sure that the trajectories don't 'align' on any day 
 #(i.e. the hyenas are actually randomized to have the same day represented at the same time in the randomized data)
+#Inputs:
+# rand.params: [named list] of parameters associated with the randomization, including
+#   rand.params$break.hour: [numeric] which hour to "break" at when randomizing days (0 = midnight, 12 = noon), defaults to 12
+#   rand.params$last.day.used: [numeric] last day to use in the randomizations (and real data)
+#   rand.params$den.blocks: [list of vectors of length n.inds] blocks to keep together for each individual (e.g. to keep den attendance roughly constant)
+#   rand.params$ensure.no.day.matches: [boolean] whether to ensure that no pair of individuals is randomized to the same day
+#   rand.params$n.rands: [numeric] how many randomizations to do
+# max.tries: maximum number of tries at generating the randomization plan before giving up and trying again (only relevant if ensure.no.day.matches == T)
+# ensure.no.day.matches: [boolean] whether to ensure that no pair of individuals is randomized to the same day
+#Outputs:
+# rand.plan: [matrix] of dimension n.inds x n.days x n.rands specifying indexes for day swaps. rand.plan[i,j,k] gives the day that should be swapped in for individual i on day j in randomization k
 generate_randomization_plan <- function(rand.params, n.inds, ensure.no.day.matches = F, max.tries = 10000){
   
   #initialize array to hold randomization plan
@@ -1023,6 +949,10 @@ generate_randomization_plan <- function(rand.params, n.inds, ensure.no.day.match
 ########################## ANALYSIS + PLOTTING #################################
 
 #get distributions of phase types
+#Inputs:
+# together.seqs: [data frame] of information about all ff events (output from get_ff_features)
+#Outputs:
+# out: [vector] number of phases of each type
 get_phase_type_distributions <- function(together.seqs){
   
   fusion.types <- c('fusion.stay.move','fusion.move.move')
@@ -1055,6 +985,10 @@ get_phase_type_distributions <- function(together.seqs){
 }
 
 #get distributions of phase types
+#Inputs:
+# together.seqs: [data frame] of information about all ff events (output from get_ff_features)
+#Outputs:
+# out: [vector] number of events of each type
 get_event_type_distributions <- function(together.seqs){
   
   event.types.all <- c('fusion.stay.move__together.local__fission.stay.move',
@@ -1085,6 +1019,12 @@ get_event_type_distributions <- function(together.seqs){
 }
 
 #remove events around day breaks
+#Inputs:
+# together.seqs: [data frame] of information about all ff events (output from get_ff_features)
+# timestamps: [vector] of timestamps associated with the data in POSIX format
+# rand.params: [named list] of randomization parameters (see above for what it includes)
+#Outputs:
+# together.seqs: [data frame] of information for all ff events, with events spanning day breaks removed
 remove_events_around_day_breaks <- function(together.seqs, timestamps, rand.params){
   
   idx.rem <- c()
@@ -1103,6 +1043,7 @@ remove_events_around_day_breaks <- function(together.seqs, timestamps, rand.para
   
   return(together.seqs)
 }
+
 
 visualize_event_type_distributions <- function(events, events.rand.list, rand.params, timestamps, remove.events.around.day.breaks = T, col){
   
@@ -1205,6 +1146,7 @@ visualize_yvals_vs_event_type <- function(yvals.dat, yvals.rand, ylab){
   
 }
 
+#get ascii plotting symbols for each event type
 get_event_type_symbols <- function(){
   
   event.types.all <- c('fusion.stay.move__together.local__fission.stay.move',
@@ -1534,6 +1476,7 @@ compare_histograms <- function(values.dat, values.rand, randomization.idxs, n.br
   }
 }
 
+#make a visualization of ff event of index r
 plot_events <- function(r, events, xs, ys, cols, ...){
   i <- events$i[r]
   j <- events$j[r]
@@ -1566,6 +1509,7 @@ plot_events <- function(r, events, xs, ys, cols, ...){
     scale_color_manual(values = cols)
 }
 
+#plot the fitted fission-fusion function associated with a given event r
 plot_canonical_shape <- function(r, together.seqs, xs, ys){
   
   y <- sqrt( (xs[together.seqs$i[r],together.seqs$t.start[r]:together.seqs$t.end[r]] - xs[together.seqs$j[r],together.seqs$t.start[r]:together.seqs$t.end[r]])^2 +
@@ -1591,6 +1535,7 @@ plot_canonical_shape <- function(r, together.seqs, xs, ys){
   
 }
 
+#generate all the figures and save output
 generate_figures <- function(data.outdir, plots.outdir, code.directory){
   print('Generating figures')
   source(paste0(code.directory, 'ff_summary_figures.R'), local = TRUE, print.eval = TRUE)
