@@ -290,6 +290,25 @@ count_events_per_dyad <- function(events, symmetrize = T){
   
 }
 
+##### Make table of contiguous runs in a vector v
+# Helper function for extract ff events and phases
+#Inputs:
+# v: [vector] Any type of vector
+# Outputs:
+# runs.table: data frame containing all contiguous runs in vector v with columns values (run value), t0 (first coordinate of run in v) and tf (last coordinate of run in v)
+# (Note: Runs of NA's are not recognized, but returned as multiple one-element runs)
+make_run_table = function(v){
+  runs = rle(v)
+  tf = cumsum(runs$lengths)
+  t0 = tf+1
+  t0 = c(1,t0[1:(length(t0)-1)])
+  if (length(tf)==1){
+    t0=1
+  }
+  runs.table = data.frame(runs$values,t0, tf)
+  return(runs.table)
+} 
+
 #################################### MAIN FUNCTIONS ####################################
 
 ##### Extract ff events and phases
@@ -312,11 +331,11 @@ count_events_per_dyad <- function(events, symmetrize = T){
 #   together.seqs$i: [numeric] index of the first individual in the ff event
 #   together.seqs$j: [numeric] index of the second individual in the ff event
 #   together.seqs$t0: [numeric] time point associated with crossing the R.fusion threshold for the first time in an event (note: this is NOT the beginning of the ff event - for this we need to look back in time to when the individuals crossed the R.fission threshold!)
-#   together.seqs$tf: [numeric] time point associated with crossing the R.fission threshold to end the event
-#   together.seqs$t.start: [numeric] time point associated with the start of the event
-#   together.seqs$t.end: [numeric] time point associated with the end of the event 
-#   together.seqs$start.exact: [boolean] whether the start time of the event is exact (will be FALSE if there were NAs between a time with dist < R.fusion and the earlier time when they crossed > R.fission)
-#   together.seqs$end.exact: [boolean] whether the end time of the event is exact (will be FALSE if there were NAs between a time when dist < R.fusion and the later time when they crossed > R.fission)
+#   together.seqs$tf: [numeric] time point associated with crossing the R.fusion threshold to end the event (note: this is NOT the end of the ff event - for this we need to look to when the individuals cross the R.fission threshold!)
+#   together.seqs$t.start: [numeric] time point associated with the start of the event (R.fission crossed)
+#   together.seqs$t.end: [numeric] time point associated with the end of the event (R.fission crossed)
+#   together.seqs$start.exact: [boolean] whether the start time of the event is exact (will be FALSE if the distance between the pair immediately before t.start is NA)
+#   together.seqs$end.exact: [boolean] whether the end time of the event is exact (will be FALSE if the distance between the pair immediately after t.end is NA)
 #   together.seqs$closest.app: [numeric] closest approach distance during the event (m)
 #   together.seqs$t.closest: [numeric] time index associated with the closest approach during the event
 #   together.seqs$b1: [numeric] time index associated with the first break point (beginning of the "together phase")
@@ -341,132 +360,174 @@ get_ff_events_and_phases <- function(xs, ys, params, verbose = TRUE){
   ################################################################################
   #### Identify together sequences
   
-  if(verbose)
-    print('Identifying fission-fusion events')
+  if(verbose) print('Identifying fission-fusion events')
   
   #Get contiguous sequences of "together" times for each pair and store in data frame
   #data frame has columns:
   # i, j (the two individuals)
   # t0, tf (beginning and ending time of 'bout' of being together)
-  # t0.exact, tf.exact (indicates whether the time step immediately before and after the 'bout' was present (TRUE) or missing/NA (FALSE))
+  
+  #- find t0, tf as start and end points of runs <100m
   together.seqs <- data.frame()
   for(i in 1:(n.inds-1)){
     for(j in (i+1):n.inds){
       dists <- dyad.dists[i,j,]
-      prev.together <- NA
-      for(k in 1:n.times){
-        
-        #get current distance apart
-        curr.dist <- dists[k]
-        
-        #if coming from an NA sequence...
-        if(is.na(prev.together)){
-          #if still NA, pass
-          if(is.na(curr.dist)){
-            next
-            
-            #if not NA...
-          } else{
-            
-            #if within R.fusion, start a together sequence
-            if(curr.dist < params$R.fusion){
-              t0 <- k
-              prev.together <- TRUE
-              next
-              
-              #otherwise, do not start a sequence but set prev.together to FALSE
-            } else{
-              prev.together <- FALSE
-            }
-          }
-        }
-        
-        #if previously not together
-        if(prev.together == FALSE){
-          
-          #if you run into an NA, set prev.together to NA
-          if(is.na(curr.dist)){
-            prev.together <- NA
-            next
-          }
-          
-          #if curr.dist is less than R.fusion, start a sequence
-          if(curr.dist < params$R.fusion){
-            t0 <- k
-            prev.together <- TRUE
-            next
-            
-            #otherwise pass
-          } else{
-            next
-          }
-          
-        }
-        
-        #if previously together...
-        if(prev.together == TRUE){
-          
-          #if you run into an NA, end the sequence, add to table, set prev.together to NA
-          if(is.na(curr.dist)){
-            tf <- k - 1
-            together.seqs <- rbind(together.seqs, data.frame(i = i, j = j, t0 = t0, tf = tf))
-            prev.together <- NA
-            next
-          }
-          
-          #if moved away to > R.fission distance, end sequence, set prev.together to FALSE
-          if(curr.dist > params$R.fission){
-            tf <- k -1
-            together.seqs <- rbind(together.seqs, data.frame(i = i, j = j, t0 = t0, tf = tf))
-            prev.together <- FALSE
-            next
-          }
-        }
-      }
+      below.Rfusion = dists<params$R.fusion
+      runs.table = make_run_table(below.Rfusion)  # Table of all runs and their start and end points
+      true.runs = subset(runs.table, runs.values == TRUE) #  Select only runs of TRUEs (below R.fusion)
+      together.seqs = rbind(together.seqs, data.frame(i=i, j=j, t0=true.runs$t0, tf=true.runs$tf))
     }
   }
-  together.seqs.orig <- together.seqs
   
-  #Aggregate events that are close together in time and separated only by a sequence of NAs of maximum length max.break
-  together.seqs <- together.seqs.orig
-  converged <- F
-  while(!converged){
-    new.seqs <- data.frame()
-    for(i in 1:(n.inds-1)){
-      for(j in (i+1):n.inds){
-        rows <- which(together.seqs$i == i & together.seqs$j == j)
-        k <- 1
-        while(k < length(rows)){
-          break.start <- together.seqs$tf[rows[k]] + 1
-          break.end <- together.seqs$t0[rows[k+1]] - 1
-          
-          #if two together periods are separated only by NAs and less than max.break seconds, aggregate into one event
-          if((break.end - break.start <= params$max.break) & 
-             (sum(!is.na(dyad.dists[i,j,break.start:break.end])) == 0)){
-            new.seqs <- rbind(new.seqs, data.frame(i = i, j = j, t0 = together.seqs$t0[rows[k]], tf = together.seqs$tf[rows[k+1]]))
-            k <- k + 2
-          } else{
-            new.seqs <- rbind(new.seqs, together.seqs[rows[k],])
-            k <- k + 1
-            
-            #add the last row if needed
-            if(k == length(rows)){
-              new.seqs <- rbind(new.seqs, together.seqs[rows[k],])
-            }
+  
+  # Aggregate events that are close together in time and separated only by a sequence of NAs of maximum length max.break
+  together.seqs.orig = together.seqs
+  together.seqs = data.frame()
+  
+  for(i in 1:(n.inds-1)){
+    for(j in (i+1):n.inds){
+      dists = dyad.dists[i,j,]
+      sub.together = together.seqs.orig[(together.seqs.orig$i == i & together.seqs.orig$j == j), ]
+      
+      # identify rows that should be merged (with previous row)
+      for (r in 2:(nrow(sub.together))){
+        end_prev = sub.together[r-1,'tf']
+        start_next = sub.together[r,'t0']
+        time.between = (start_next-end_prev)-1
+        
+        if ((time.between <= params$max.break) & sum(is.na(dists[end_prev:start_next]))==time.between){
+          sub.together[r,'merge.w.prev'] = T} else {sub.together[r,'merge.w.prev']= F
           }
+      }
+      
+      # merge
+      runs.table = make_run_table(sub.together$merge.w.prev)
+      true.runs = subset(runs.table, runs.values == TRUE)
+      
+      if(nrow(true.runs)>0){
+        # replace old end with new end
+        for (l in 1:nrow(true.runs)){
+          sub.together[true.runs[l,'t0']-1, 'tf'] = sub.together[true.runs[l,'tf'], 'tf']
+        }
+        # remove the other rows that have been merged
+        k=1
+        while(k<=nrow(sub.together)){
+          sub.together = sub.together[!((sub.together$t0>sub.together[k,'t0'] & sub.together$t0<=sub.together[k,'tf'])),]
+          k=k+1
         }
       }
+      together.seqs = rbind(together.seqs, sub.together)
+    }
+  }
+  # drop merge column
+  together.seqs = together.seqs[,c("i", "j", "t0", "tf")]
+  
+  if(verbose) print('Identifying the correct start and end times of ff events')
+  
+  #- find t.start and t.end by extending t0 and tf to R.fission threshold (200m)
+  together.seqs$t.start = together.seqs$t0 # default value (no elongation)
+  together.seqs$t.end = together.seqs$tf # default value (no elongation)
+  
+  for(i in 1:nrow(together.seqs)){
+    ind.i <- together.seqs[i,'i']
+    ind.j <- together.seqs[i,'j']
+    t0 <- together.seqs$t0[i]
+    tf <- together.seqs$tf[i]
+    dists =  dyad.dists[ind.i, ind.j,]
+    
+    # Find t.start
+    ## Identify time points
+    prev.dists <- dists[1:t0]
+    far.times <- which(prev.dists > params$R.fission)
+    
+    ## Exclude events that are too early to have prior data where they are apart
+    if(length(far.times) > 0){
+      
+      t.start = max(far.times, na.rm = TRUE)+1
+      
+      # check if the sequence to be added contains any long NA stretches which should break the seq
+      to.add = dists[t.start:t0]
+      runs.table = make_run_table(is.na(to.add))  
+      true.runs = subset(runs.table, runs.values == TRUE)
+      true.runs$len = true.runs$tf-true.runs$t0
+      break.runs = subset(true.runs, len >= params$max.break)
+      
+      # if it does, start after last stretch
+      if (nrow(break.runs)>0){
+        last.break = break.runs[nrow(break.runs), 'tf']
+        t.start = t.start + last.break
+      }
+      together.seqs$t.start[i] = t.start
     }
     
-    #check if aggregation has converged
-    if(nrow(new.seqs) == nrow(together.seqs)){
-      converged <- T
-    } else{
-      converged <- F
+    # Find t.end
+    ## Identify time points
+    following.dists <- dists[tf:length(dists)]
+    far.times <- which(following.dists > params$R.fission)
+    
+    ## Exclude events that are too late to have following data where they are apart
+    if(length(far.times) > 0){
+      
+      t.end = tf+min(far.times, na.rm = TRUE)-2
+      
+      # check if the sequence to be added contains any long NA stretches which should break the seq
+      to.add = dists[(tf+1):t.end]
+      runs.table = make_run_table(is.na(to.add))  
+      true.runs = subset(runs.table, runs.values == TRUE)
+      true.runs$len = true.runs$tf-true.runs$t0
+      break.runs = subset(true.runs, len >= params$max.break)
+      
+      # if it does, end before first stretch
+      if (nrow(break.runs)>0){
+        first.break = break.runs[1, 't0']
+        t.end = tf + first.break
+      }
+      together.seqs$t.end[i] = t.end
+    }
+  }
+  
+  #- remove duplicates
+  together.seqs = together.seqs[!duplicated(together.seqs[,c("i", "j", "t.start", "t.end")]),]
+  
+  
+  # Remove NA's from start and ends of runs
+  for (r in 1:nrow(together.seqs)){
+    between.dists = dyad.dists[together.seqs$i[r], together.seqs$j[r], together.seqs$t.start[r]:together.seqs$t.end[r]]
+    ori.start = together.seqs$t.start[r]
+    ori.end = together.seqs$t.end[r]
+    first.non.na = min(which(!is.na(between.dists)))
+    last.non.na = max(which(!is.na(between.dists)))
+    together.seqs$t.start[r] = ori.start + first.non.na - 1
+    together.seqs$t.end[r] = ori.start + last.non.na - 1
+  }
+  
+  # Set start.exact and end.exact
+  start.exact <- end.exact <- rep(TRUE, nrow(together.seqs))
+  together.seqs$start.exact = start.exact
+  together.seqs$end.exact = end.exact
+  
+  # Get whether start and end are exact by checking whether the point right before and right after are NAs
+  for(r in 1:nrow(together.seqs)){
+    
+    ind.i <- together.seqs[r,'i']
+    ind.j <- together.seqs[r,'j']
+    t.start = together.seqs[r,'t.start']
+    t.end = together.seqs[r,'t.end']
+    
+    if (is.na(dyad.dists[ind.i, ind.j, (t.start-1)])){
+      together.seqs[r, 'start.exact'] = FALSE
     }
     
-    #replace with new sequences
-    together.seqs <- new.seqs
+    if (is.na(dyad.dists[ind.i, ind.j, (t.end+1)])){
+      together.seqs[r, 'end.exact'] = FALSE
+    }
+  }
+  
+  #get closest approach distance
+  together.seqs$closest.app <- NA
+  for(i in 1:nrow(together.seqs)){
+    dists <- dyad.dists[together.seqs$i[i], together.seqs$j[i], together.seqs$t.start[i]:together.seqs$t.end[i]] 
+    together.seqs$closest.app[i] <- min(dists,na.rm=T)
   }
   
   #add column for time until next event
@@ -474,80 +535,12 @@ get_ff_events_and_phases <- function(xs, ys, params, verbose = TRUE){
   for(i in 1:(n.inds-1)){
     for(j in (i+1):n.inds){
       rows <- which(together.seqs$i == i & together.seqs$j == j)
-      dt <- together.seqs$t0[rows[2:length(rows)]] - together.seqs$tf[rows[1:(length(rows)-1)]]
+      dt <- together.seqs$t.start[rows[2:length(rows)]] - together.seqs$t.end[rows[1:(length(rows)-1)]] -1
       together.seqs$dt[rows[1:(length(rows)-1)]] <- dt
     }
   }
   
-  #add columns for whether start and end time are exact (whether there is an NA before or after the event)
-  befores <- afters <- rep(NA, nrow(together.seqs))
-  for(j in 1:nrow(together.seqs)){
-    if(together.seqs$t0[j] > 1){
-      befores[j] <- dyad.dists[together.seqs$i[j], together.seqs$j[j], together.seqs$t0[j]-1]
-    } 
-    if(together.seqs$tf[j] < ncol(xs)){
-      afters[j] <- dyad.dists[together.seqs$i[j], together.seqs$j[j], together.seqs$tf[j]+1]
-    } 
-  }
-  #befores <- dyad.dists[cbind(together.seqs$i, together.seqs$j, together.seqs$t0-1)]
-  #afters <- dyad.dists[cbind(together.seqs$i, together.seqs$j, together.seqs$tf+1)]
-  together.seqs$t0.exact <- !is.na(befores)
-  together.seqs$tf.exact <- !is.na(afters)
-  
-  #get closest approach distance
-  together.seqs$closest.app <- NA
-  for(i in 1:nrow(together.seqs)){
-    dists <- dyad.dists[together.seqs$i[i], together.seqs$j[i], together.seqs$t0[i]:together.seqs$tf[i]]
-    together.seqs$closest.app[i] <- min(dists,na.rm=T)
-  }
-  
-  
-  ################################################################################
-  ##### Extract start, end, and other relevant time points
-  
-  if(verbose)
-    print('Extracting start and end time points')
-  
-  together.seqs[,c('t.start', 't.end',
-                   't.closest', 'start.exact', 'end.exact')] <- NA
-  for(i in 1:nrow(together.seqs)){
-    ind.i <- together.seqs[i,'i']
-    ind.j <- together.seqs[i,'j']
-    t0 <- together.seqs$t0[i]
-    tf <- together.seqs$tf[i]
-    
-    
-    ## Identify time points
-    prev.dists <- dyad.dists[ind.i, ind.j,1:t0]
-    
-    #End
-    together.seqs$t.end[i] <- tf
-    t.end <- tf
-    together.seqs$end.exact[i] <- together.seqs[i,'tf.exact']
-    
-    #Start
-    far.times <- which(prev.dists > params$R.fission)
-    
-    ## Exclude events that are too early to have prior data where they are apart
-    if(!(length(far.times) > 0)){
-      together.seqs$start.exact[i] <- FALSE
-      next
-    }
-    
-    together.seqs$t.start[i] <- max(far.times, na.rm = TRUE)
-    t.start <- together.seqs$t.start[i]
-    together.seqs$start.exact[i] <- !is.na(dyad.dists[ind.i, ind.j, t.start+1])
-    
-    #Closest approach - (first) time at t.end individuals are closest
-    together.seqs$t.closest[i] <- t.start + base::which.min(dyad.dists[ind.i, ind.j, t.start:t.end]) - 1
-  }
-  
-  ### Remove events (only 1) with undefined start and end times
-  together.seqs <- together.seqs[!is.na(together.seqs$t.start) & !is.na(together.seqs$t.end),]
-  
-  ################################################################################
-  ### Loop over all events and extract time points that define phases
-  
+  #Identify phases
   if(verbose)
     print('Identifying phases')
   
@@ -587,6 +580,7 @@ get_ff_events_and_phases <- function(xs, ys, params, verbose = TRUE){
   
   return(together.seqs)
 }
+
 
 #### Extract features from fission fusion events
 #Inputs:
