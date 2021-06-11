@@ -1137,16 +1137,16 @@ get_event_type_symbols <- function(){
 visualize_compare_event_properties <- function(events, events.rand.list, params, rand.params, timestamps, remove.events.around.day.breaks = T, cols){
   
   #concatenate randomized events list of tables into one giant table containing data from all randomizations
-  events.rand.all <- events.rand.list[[1]]
-  events.rand.all$rand <- 1
-  for(i in 2:length(events.rand.list)){
+  events.rand.all <- list()
+  for(i in 1:length(events.rand.list)){
     tmp <- events.rand.list[[i]]
     tmp$rand <- i
     if(remove.events.around.day.breaks){
       tmp <- remove_events_around_day_breaks(tmp, timestamps, rand.params)
     }
-    events.rand.all <- rbind(events.rand.all, tmp)
+    events.rand.all[[i]] <- tmp
   }
+  events.rand.all <- do.call(rbind, events.rand.list)
   
   #remove events around day breaks if needed (also done above for randomized data)
   if(remove.events.around.day.breaks){
