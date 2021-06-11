@@ -117,7 +117,7 @@ for(i in 1:length(dates)){
 
 
 save(file=paste0(processed.data.directory,'hyena_gps_level0.RData'),list=c('xs','ys','lats','lons','timestamps','hyena.ids','hyena.gps','dates','day.start.idxs'))
-save(file=paste0(processed.data.directory,'hyena_xy_level0.Rdata'),list=c('xs','ys'))
+save(file=paste0(processed.data.directory,'hyena_xy_level0.RData'),list=c('xs','ys'))
 save(file=paste0(processed.data.directory,'hyena_timestamps.Rdata'),list=c('timestamps'))
 save(file=paste0(processed.data.directory,'hyena_day_start_idxs.RData'), list = c('day.start.idxs'))
 save(file=paste0(processed.data.directory,'hyena_latlon_level0.RData'),list=c('lats','lons'))
