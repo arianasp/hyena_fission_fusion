@@ -944,41 +944,6 @@ generate_randomization_plan <- function(rand.params, n.inds, max.tries = 10000){
 
 ########################## ANALYSIS + PLOTTING #################################
 
-#get distributions of phase types
-#Inputs:
-# together.seqs: [data frame] of information about all ff events (output from get_ff_features)
-#Outputs:
-# out: [vector] number of phases of each type
-get_phase_type_distributions <- function(together.seqs){
-  
-  fusion.types <- c('fusion.stay.move','fusion.move.move')
-  together.types <- c('together.local','together.travel')
-  fission.types <- c('fission.stay.move','fission.move.move')
-  
-  complete.events <- which(!grepl('NA',together.seqs$event.type))
-  
-  events.fusion <- together.seqs$fusion.type[complete.events]
-  events.fusion[which(events.fusion=='fusion.move.stay')] <- 'fusion.stay.move'
-  events.together <- together.seqs$together.type[complete.events]
-  events.fission <- together.seqs$fission.type[complete.events]
-  events.fission[which(events.fission=='fission.move.stay')] <- 'fission.stay.move'
-  
-  events.all <- c(events.fusion, events.together, events.fission)
-  event.types.all <- c(fusion.types, together.types, fission.types)
-  
-  out <- rep(NA, length(event.types.all))
-  
-  for(i in 1:length(event.types.all)){
-    
-    out[i] <- sum(events.all == event.types.all[i])
-    
-  }
-  
-  names(out) <- event.types.all
-  
-  return(out)
-  
-}
 
 #get distributions of phase types
 #Inputs:
@@ -1118,29 +1083,6 @@ visualize_event_type_distributions <- function(events, events.rand.list, rand.pa
               aes(x = x, y = y, group = group), lty = 3)
 }
 
-#general plotting function for plotting event types on x axis and some value on y axis
-#yvals.dat is a vector of length 10 (n event types)
-#yvals.rand is a matrix of 10 x n.rands containing data from randomizations
-visualize_yvals_vs_event_type <- function(yvals.dat, yvals.rand, ylab){
-  
-  n.rands <- ncol(yvals.rand)
-  event.type.symbols <- get_event_type_symbols()
-  
-  par(mar = c(6,5,1,1))
-  max.freq <- max(max(yvals.rand,na.rm=T), max(yvals.dat,na.rm=T))
-  plot(NULL, xlim = c(.8, 10.2), ylim = c(0, max.freq*1.1), xlab = '', ylab = ylab, xaxt='n', cex.lab=1.5, cex.axis = 1.5)
-  axis(side = 1, at = seq(1,10), labels = event.type.symbols, line = 2.3, tick = F, srt = 180, cex.axis = 1.5)
-  abline(v=5.5, lty = 1)
-  # polygon(c(2.5,2.5,4.5,4.5), c(-max.freq*.03,max.freq*1.1, max.freq*1.1,-max.freq*.03), border='blue', lty = 2)
-  # polygon(c(7.5,7.5,9.5,9.5), c(-max.freq*.03,max.freq*1.1, max.freq*1.1,-max.freq*.03), border='blue', lty = 2)
-  
-  for(i in 1:n.rands){
-    jitter <- rnorm(10, mean=0, sd = .1)
-    points(seq(1,10) + jitter, yvals.rand[,i], col = '#00000044', cex = .8)
-  }
-  points(yvals.dat, col = 'red', cex = 1.5, pch = 8)
-  
-}
 
 #get ascii plotting symbols for each event type
 get_event_type_symbols <- function(){
@@ -1190,97 +1132,6 @@ get_event_type_symbols <- function(){
   event.type.symbols[10] <- paste0(arrow, arrow, '\n', travel, '\n', arrow, arrow)
   
   return(event.type.symbols)
-}
-
-#plot fraction of time each event type occurs at den in beginning or end, compare to randomized
-visualize_den_association_by_event_type <- function(events, events.rand.list, timestamps, rand.params, params, assess.at.start = T, remove.events.around.day.breaks=T){
-  
-  #quartz()
-  
-  n.rands <- length(events.rand.list)
-  event.type.symbols <- get_event_type_symbols()
-  event.types.all <- names(event.type.symbols)
-  den.frac.dat <- rep(NA, length(event.types.all))
-  den.frac.rand <- matrix(NA, nrow = length(event.types.all), ncol = n.rands)
-  
-  if(remove.events.around.day.breaks){
-    events <- remove_events_around_day_breaks(events, timestamps, rand.params)
-  }
-  
-  for(i in 1:length(event.types.all)){
-    if(assess.at.start){
-      den.frac.dat[i] <- mean(events$dist.den.start[which(events$event.type.sym==event.types.all[i])] <= params$den.dist.thresh)
-    } else{
-      den.frac.dat[i] <- mean(events$dist.den.end[which(events$event.type.sym==event.types.all[i])] <= params$den.dist.thresh)
-    }
-    for(j in 1:n.rands){
-      events.rand <- events.rand.list[[j]]
-      #remove events surrounding the 'day break'
-      if(remove.events.around.day.breaks){
-        events.rand <- remove_events_around_day_breaks(events.rand, timestamps, rand.params)
-      }
-      if(assess.at.start){
-        den.frac.rand[i,j] <- mean(events.rand$dist.den.start[which(events.rand$event.type.sym==event.types.all[i])] <= params$den.dist.thresh)
-      } else{
-        den.frac.rand[i,j] <- mean(events.rand$dist.den.end[which(events.rand$event.type.sym==event.types.all[i])] <= params$den.dist.thresh)
-      }
-    }
-  }
-  
-  if(assess.at.start){
-    ylab <- 'Fraction start at den'
-  } else{
-    ylab <- 'Fraction end at den'
-  }
-  visualize_yvals_vs_event_type(den.frac.dat, den.frac.rand, ylab = ylab)
-  
-  
-}
-
-#plot event type frequencies in real data vs permuted data - separate out den vs non-den events
-visualize_event_type_frequency_den_vs_nonden <- function(events, events.rand.list, params, rand.params, timestamps, remove.events.around.day.breaks = T){
-  
-  #quartz()
-  
-  #setup
-  n.rands <- length(events.rand.list)
-  event.type.symbols <- get_event_type_symbols()
-  distribs.rand.den <- distribs.rand.nonden <- matrix(NA, nrow = 10, ncol = n.rands)
-  distribs.dat.den <- distribs.dat.nonden <- rep(NA, 10)
-  
-  #remove events surrounding the 'day break'
-  if(remove.events.around.day.breaks){
-    events <- remove_events_around_day_breaks(events, timestamps, rand.params)
-  }
-  
-  #get indexes to events associated with dens (at either beginning or end) and ones not assoc with dens
-  den.idxs <- which(events$dist.den.start <= params$den.dist.thresh | events$dist.den.end <= params$den.dist.thresh)
-  nonden.idxs <- which(events$dist.den.start > params$den.dist.thresh & events$dist.den.end > params$den.dist.thresh)
-  
-  distribs.dat.den <- get_event_type_distributions(events[den.idxs,])
-  distribs.dat.nonden <- get_event_type_distributions(events[nonden.idxs,])
-  
-  for(i in 1:n.rands){
-    
-    #get events associated with that randomization
-    events.rand <- events.rand.list[[i]]
-    
-    #remove events surrounding the 'day break'
-    if(remove.events.around.day.breaks){
-      events.rand <- remove_events_around_day_breaks(events.rand, timestamps, rand.params)
-    }
-    
-    den.idxs <- which(events.rand$dist.den.start <= params$den.dist.thresh | events.rand$dist.den.end <= params$den.dist.thresh)
-    nonden.idxs <- which(events.rand$dist.den.start > params$den.dist.thresh & events.rand$dist.den.end > params$den.dist.thresh)
-    
-    distribs.rand.den[,i] <- get_event_type_distributions(events.rand[den.idxs,])
-    distribs.rand.nonden[,i] <- get_event_type_distributions(events.rand[nonden.idxs,])
-  }
-  
-  par(mfrow=c(2,1))
-  visualize_yvals_vs_event_type(distribs.dat.den, distribs.rand.den, 'Frequency (at den)')
-  visualize_yvals_vs_event_type(distribs.dat.nonden, distribs.rand.nonden, 'Frequency (not at den)')
-  
 }
 
 visualize_compare_event_properties <- function(events, events.rand.list, params, rand.params, timestamps, remove.events.around.day.breaks = T, cols){
