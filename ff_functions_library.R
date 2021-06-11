@@ -856,6 +856,9 @@ get_ff_features <- function(xs, ys, together.seqs, params, den.file.path, den.na
 # rand.plan: [matrix] of dimension n.inds x n.days x n.rands specifying indexes for day swaps. rand.plan[i,j,k] gives the day that should be swapped in for individual i on day j in randomization k
 generate_randomization_plan <- function(rand.params, n.inds, max.tries = 10000){
   
+  #Set seed for reproducibility
+  set.seed(177823)
+  
   #initialize array to hold randomization plan
   n.rands <- rand.params$n.rands
   rand.plan <- array(NA, dim = c(n.inds, rand.params$last.day.used, n.rands))
