@@ -13,6 +13,7 @@ library(patchwork)
 library(magick)
 library(ggnetwork)
 library(sna)
+library(grid)
 
 
 #-----------FILENAMES---------------
