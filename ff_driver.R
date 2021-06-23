@@ -30,7 +30,7 @@ runall <- function(
   ### input/output directories
   raw.data.directory, # directory of raw data, containing metadata, gps data, acc data, den locations, hyena photograph, satllite map
   processed.data.directory, # directory for output of preprocessing steps
-  results.directory, # directory for results, including subdirectories for each parameter combination and data/ and plots/ for data output
+  results.directory, # directory for results; this will be created if it doesnt yet exist
   code.directory, # directory where code is located 
   
   ### Run options
@@ -88,17 +88,34 @@ runall <- function(
   day_randomization_output_filename <- paste0('hyena_day_randomization_events_features_denblock_avoidmatch', rand.params$ensure.no.day.matches, '.RData')
   
   
-  #adjust subdirectory  where to store extracted data based on parameters - FIX THIS
-  if(R.fusion == 100){
-    data.outdir <- paste0(results.directory, '1_main_output_R100_200/data/')
-    plots.outdir <- paste0(results.directory, '1_main_output_R100_200/plots/')
-  } else if(R.fusion == 50){
-    data.outdir <- paste0(results.directory, '2_stability_check_R50_100/data/')
-    plots.outdir <- paste0(results.directory, '2_stability_check_R50_100/plots/')
-  } else if(R.fusion == 200){
-    data.outdir <- paste0(results.directory, '3_stability_check_R200_300/data/')
-    plots.outdir <- paste0(results.directory, '3_stability_check_R200_300/plots/')
+  # Create results directory if it doesnt exist already
+  if(!dir.exists(results.directory))
+    dir.create(results.directory)
+  
+  # Adjust subdirectory to be where to store extracted data based on parameters. 
+  # Create missing subdirectories
+  if(R.fusion == 100 & R.fission == 200){
+    results.directory.param <- paste0(results.directory, '1_main_output_R100_200/')
+    if(!dir.exists(results.directory.param))
+      dir.create(results.directory.param)
+    data.outdir <- paste0(results.directory.param, 'data/')
+    if(!dir.exists(data.outdir))
+      dir.create(data.outdir)
+    plots.outdir <- paste0(results.directory.param, 'plots/')
+    if(!dir.exists(plots.outdir))
+      dir.create(plots.outdir)
+  } else {
+    results.directory.param <- paste0(results.directory, 'stability_check_R', R.fusion, '_', R.fission, '/')
+    if(!dir.exists(results.directory.param))
+      dir.create(results.directory.param)
+    data.outdir <- paste0(results.directory.param, 'data/')
+    if(!dir.exists(data.outdir))
+      dir.create(data.outdir)
+    plots.outdir <- paste0(results.directory.param, 'plots/')
+    if(!dir.exists(plots.outdir))
+      dir.create(plots.outdir)
   }
+  
   
   ################################# SOURCE FUNCTIONS #######################################
   
