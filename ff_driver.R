@@ -88,33 +88,23 @@ runall <- function(
   day_randomization_output_filename <- paste0('hyena_day_randomization_events_features_denblock_avoidmatch', rand.params$ensure.no.day.matches, '.RData')
   
   
-  # Create results directory if it doesnt exist already
-  if(!dir.exists(results.directory))
-    dir.create(results.directory)
   
   # Adjust subdirectory to be where to store extracted data based on parameters. 
-  # Create missing subdirectories
+
   if(R.fusion == 100 & R.fission == 200){
     results.directory.param <- paste0(results.directory, '1_main_output_R100_200/')
-    if(!dir.exists(results.directory.param))
-      dir.create(results.directory.param)
     data.outdir <- paste0(results.directory.param, 'data/')
-    if(!dir.exists(data.outdir))
-      dir.create(data.outdir)
     plots.outdir <- paste0(results.directory.param, 'plots/')
-    if(!dir.exists(plots.outdir))
-      dir.create(plots.outdir)
   } else {
     results.directory.param <- paste0(results.directory, 'stability_check_R', R.fusion, '_', R.fission, '/')
-    if(!dir.exists(results.directory.param))
-      dir.create(results.directory.param)
     data.outdir <- paste0(results.directory.param, 'data/')
-    if(!dir.exists(data.outdir))
-      dir.create(data.outdir)
     plots.outdir <- paste0(results.directory.param, 'plots/')
-    if(!dir.exists(plots.outdir))
-      dir.create(plots.outdir)
   }
+  
+  # Check if these output directories exist. If not, create them.
+  for (x in list(data.outdir, plots.outdir)){
+    if(!dir.exists(x)) dir.create(x, recursive=T)
+  } 
   
   
   ################################# SOURCE FUNCTIONS #######################################
