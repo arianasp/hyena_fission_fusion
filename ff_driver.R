@@ -114,40 +114,37 @@ runall <- function(
   ################################# PREPROCESS DATA #######################################
   
   if(preprocess){
-    if(verbose){
-      print('Starting data preprocessing')
-      print('Starting step 0...')
-      source(paste0(code.directory, 'hyena_preprocess_0_extract_GPS_csv_to_R.R'), local = T)
-      print('... step 0 finished')
+    scripts = list('0'='hyena_preprocess_0_extract_GPS_csv_to_R.R', 
+                   '1'='hyena_preprocess_1_filter_gps.R',
+                   '2'='hyena_preprocess_2_link_gps_and_vedba.R')
+    
+    if (verbose) print('Starting data preprocessing')
+    for (i in seq_along(scripts)){
+      if (verbose) print(paste0('Starting step ',names(scripts)[i],'...'))
       
-      print('Starting step 1... ')
-      source(paste0(code.directory, 'hyena_preprocess_1_filter_gps.R'), local = T)
-      print('...step 1 finished')
+      source(paste0(code.directory, scripts[[i]]), local = T)
       
-      print('Starting step 2... ')
-      source(paste0(code.directory, 'hyena_preprocess_2_link_gps_and_vedba.R'), local = T)
-      print('...step 2 finished')
-      
-      print('Completed data preprocessing')
-    }else{
-      source(paste0(code.directory, 'hyena_preprocess_0_extract_GPS_csv_to_R.R'), local = T)
-      source(paste0(code.directory, 'hyena_preprocess_1_filter_gps.R'), local = T)
-      source(paste0(code.directory, 'hyena_preprocess_2_link_gps_and_vedba.R'), local = T)
+      if (verbose) print(paste0('... step ',names(scripts)[i],' finished'))
     }
+    if (verbose) print('Completed data preprocessing')
     
     params <- run.params ## params object is overwritten during preprocessing. reset to run parameters
   }
   
+  
   ################################# MAIN #######################################
   
-  if(extract.ff.events){
+  # ********************** CLEAN GPS AND VEDBA DATA ***********************************  
+  # this part removes some data from GPS and vedba  
+  # we need to do this preprocessing if we plan to either extract events, extract features
+  # or execute day randomization
+  
+  if(extract.ff.events | get.ff.features | execute.day.randomization){
     
     #Load data
-    if(verbose){
-      print('Loading xy data')
-    }
-    load(paste0(processed.data.directory,'/hyena_xy_level1.RData'))
-    load(paste0(processed.data.directory, '/hyena_day_start_idxs.RData'))
+    if(verbose) print('Loading xy data')
+    load(paste0(processed.data.directory,'/hyena_xy_level1.RData')) # loads xs, xy
+    load(paste0(processed.data.directory, '/hyena_day_start_idxs.RData')) # loads day.start.idxs
     
     #remove everything after the last day used
     t.idxs.use <- 1:(day.start.idxs[params$last.day.used+1]-1)
@@ -161,64 +158,38 @@ runall <- function(
     ys[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
     
     #since vedba file also has something called params, recover correct params 
-    load(paste0(processed.data.directory, 'hyena_vedba.RData'))
+    load(paste0(processed.data.directory, 'hyena_vedba.RData')) # loads vedba, params
     params <- run.params
     
     #remove everything after the last day used
     vedbas <- vedbas[,t.idxs.use]
-    
-    #extract events
+  }
+  
+  
+  # ********************** EXTRACT FF EVENTS ***********************************
+  # this part extracts ff events ...
+  # creates object saved under events_filename
+  
+  if(extract.ff.events){
+    if(verbose) print('Extracting events')
     events <- get_ff_events_and_phases(xs = xs, 
                                        ys = ys, 
                                        params = params)
     
-    if(extract.ff.events){
-      if(verbose){
-        print(paste0('Saving events to ', data.outdir, events_filename))
-      }
-      save(list = c('events','params'), file = paste0(data.outdir, events_filename))
-    }
-    
-    
+    if(verbose) print(paste0('Saving events to ', data.outdir, events_filename))
+    save(list = c('events','params'), file = paste0(data.outdir, events_filename))
+  }
+  else{
+    load(paste0(data.outdir, events_filename))
   }
   
+  # ********************** GET FF FEATURES ***********************************
+  # this part extracts ff features  ... 
+  # creates object saved under events_features_filename
+  
+  #Run feature extraction
   if(get.ff.features){
-    
-    #Need to load files if you didn't run the first step
-    if(!extract.ff.events){
-      
-      #Load data
-      if(verbose){
-        print('Loading xy data')
-      }
-      load(paste0(processed.data.directory,'hyena_xy_level1.RData'))
-      load(paste0(processed.data.directory, 'hyena_day_start_idxs.RData'))
-      
-      #remove everything after the last day used
-      t.idxs.use <- 1:(day.start.idxs[params$last.day.used+1]-1)
-      xs <- xs[,t.idxs.use]
-      ys <- ys[,t.idxs.use]
-      
-      #Set the first and last 12 hours to NAs (to match with randomizations, which do not include these hours)
-      xs[,1:rand.params$break.hour * 60 * 60] <- NA
-      ys[,1:rand.params$break.hour * 60 * 60] <- NA
-      xs[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
-      ys[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
-      
-      #since vedba file also has something called params, recover the correct params 
-      load(paste0(processed.data.directory, 'hyena_vedba.RData'))
-      params <- run.params
-      
-      vedbas <- vedbas[,t.idxs.use]
-      
-      load(paste0(data.outdir, events_filename))
-      
-    } 
-    
-    #Run feature extraction
-    if(verbose){
-      print('Extracting features')
-    }
+    if(verbose) print('Extracting features')
     events <- get_ff_features(xs = xs, 
                               ys = ys, 
                               together.seqs = events,
@@ -229,75 +200,38 @@ runall <- function(
                               get.sync.measures = get.sync.measures,
                               sync.subsample = 10)
     
-    if(extract.ff.events){
-      
-      if(verbose){
-        print(paste0('Saving events + features to ', data.outdir, events_features_filename))
-      }
-      save(list = c('events','params'), file = paste0(data.outdir, events_features_filename))
-      
-    }
     
+    if(verbose) print(paste0('Saving features to ', data.outdir, events_features_filename))
+    save(list = c('events','params'), file = paste0(data.outdir, events_features_filename))
   }
+  else{
+    load(paste0(data.outdir, events_features_filename))
+  }
+  
+  # ********************** EXECUTE DAY RANDOMIZATION ***********************************
+  # this part creates and then analyzes randomized versions of the original data
   
   if(execute.day.randomization){
     
-    load(paste0(processed.data.directory, 'hyena_ids.RData'))
-    load(paste0(processed.data.directory, 'hyena_day_start_idxs.RData'))
-    
+    load(paste0(processed.data.directory, 'hyena_ids.RData')) # loads hyena.ids
     n.inds <- nrow(hyena.ids)
+    rand.params <- denblock.rand.params 
     
-    rand.params <- denblock.rand.params
+    if (verbose) print('Generating randomization plan') 
     
-    print('Generating randomization plan')
-    
-    rand.plan <- generate_randomization_plan(rand.params, n.inds = n.inds)
-    
-    if(execute.day.randomization){
-      
-      save(file = paste0(data.outdir, day_randomization_plan_filename), list = c('rand.plan','rand.params'))
-      
-    }
-    
-    
-  }
-  
-  if(execute.day.randomization){
+    rand.plan <- generate_randomization_plan(rand.params, n.inds = n.inds, ensure.no.day.matches = rand.params$ensure.no.day.matches)
+    save(file = paste0(data.outdir, day_randomization_plan_filename), list = c('rand.plan','rand.params'))
     
     complete <- F
     
-    if(verbose){
-      print("Executing day randomization plan")
-      print('Loading data')
-    }
+    if(verbose) writeLines("Executing day randomization plan\nLoading data")
     
-    load(paste0(processed.data.directory,'hyena_xy_level1.RData'))
-    load(paste0(processed.data.directory,'hyena_timestamps.RData'))
-    load(paste0(processed.data.directory,'hyena_day_start_idxs.RData'))
-    
-    #since vedba file also has something called params, recover the correct params
-    load(paste0(processed.data.directory, 'hyena_vedba.RData'))
-    params <- run.params
-    
-    #remove everything after the last day used
-    t.idxs.use <- 1:(day.start.idxs[params$last.day.used+1]-1)
-    xs <- xs[,t.idxs.use]
-    ys <- ys[,t.idxs.use]
-    timestamps <- timestamps[t.idxs.use]
-    vedbas <- vedbas[,t.idxs.use]
-    
+    load(paste0(processed.data.directory,'hyena_timestamps.RData')) # loads timestamps
     timestamps.local <- timestamps + params$local.time.diff*60*60
     
-    #Set the first and last 12 hours to NAs (to match with randomizations, which do not include these hours)
-    xs[,1:rand.params$break.hour * 60 * 60] <- NA
-    ys[,1:rand.params$break.hour * 60 * 60] <- NA
-    xs[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
-    ys[,(ncol(xs) - rand.params$break.hour * 60 * 60 + 1):ncol(xs)] <- NA
-    
-    load(paste0(data.outdir, day_randomization_plan_filename))
+    load(paste0(data.outdir, day_randomization_plan_filename)) # loads rand.plan and rand.params
     
     n.inds <- nrow(xs)
-    
     events.rand.list <- list()
     
     for(r in 1:rand.params$n.rands){
@@ -332,9 +266,7 @@ runall <- function(
       }
       
       #get events and extract features
-      if(verbose){
-        print('Extracting events and getting features')
-      }
+      if(verbose) print('Extracting events and getting features')
       events.rand <- get_ff_events_and_phases(xs = xs.rand, ys = ys.rand, params = params)
       events.rand <- get_ff_features(xs = xs.rand, 
                                      ys = ys.rand, 
@@ -347,22 +279,14 @@ runall <- function(
                                      sync.subsample = 10)
       
       events.rand.list[[r]] <- events.rand
+      save(list = c('events.rand.list','params','rand.params','complete'), file = paste0(data.outdir, day_randomization_output_filename))
       
-      if(execute.day.randomization){
-        save(list = c('events.rand.list','params','rand.params','complete'), file = paste0(data.outdir, day_randomization_output_filename))
-      }
-      
-    }
-    
-    complete <- T
-    
-    if(execute.day.randomization){
+      complete <- T
       save(list = c('events.rand.list','params','rand.params','complete'), file = paste0(data.outdir, day_randomization_output_filename))
     }
     
+    invisible(c(data.outdir, plots.outdir))
   }
-  
-  invisible(c(data.outdir, plots.outdir))
 }
 
 
