@@ -146,7 +146,13 @@ if(verbose){
 }
 
 
-#Find and remove unrealistic distances (if they are not surrounded by other similar distances)
+#Find and remove points that are most likely GPS error
+#We do this in two phases, 
+#     1. first looking for some extreme x or y values (determined by max/min.dist.quantile; more extreme than 0.9999 or 0.0001 quantile) 
+#        and checking if the previous and next point are in a similar area (w/in 1km). If not, this extreme point is replaced with NA
+#     2. second we find SUPER extreme x or y values (>mean + 10*sd for each x or y) and remove them no matter what. 
+
+##--------- STEP 1 of removing extreme  points --
 for(i in 1:n.inds){
   print('ind:')
   print(i)
@@ -190,6 +196,7 @@ for(i in 1:n.inds){
   
 }
 
+##--------- STEP 2 of removing extreme  points --
 #Find and remove super unrealistic locations (>mean + 10*sd for each ind in x or y)
 for(i in 1:n.inds){
   xi <- xs[i,]
