@@ -41,6 +41,9 @@ runall <- function(
   execute.day.randomization = T, # Do you want to run the reference model and overwrite output? 
   get.sync.measures = T # Do you want to calculate synchrony measures?
 ){
+  ################################# SOURCE FUNCTIONS #######################################
+  
+  source(paste0(code.directory, 'ff_functions_library.R'))
   
   
   ################################ PARAMETERS ##########################################
@@ -107,10 +110,7 @@ runall <- function(
   } 
   
   
-  ################################# SOURCE FUNCTIONS #######################################
-  
-  source(paste0(code.directory, 'ff_functions_library.R'))
-  
+
   ################################# PREPROCESS DATA #######################################
   
   if(preprocess){
