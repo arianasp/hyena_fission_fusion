@@ -219,7 +219,7 @@ runall <- function(
     
     if (verbose) print('Generating randomization plan') 
     
-    rand.plan <- generate_randomization_plan(rand.params, n.inds = n.inds, ensure.no.day.matches = rand.params$ensure.no.day.matches)
+    rand.plan <- generate_randomization_plan(rand.params, n.inds = n.inds)
     save(file = paste0(data.outdir, day_randomization_plan_filename), list = c('rand.plan','rand.params'))
     
     complete <- F
@@ -294,7 +294,7 @@ runall <- function(
 #-----------------------------------RUN ME-------------------------------------------------
 set.seed(43410)
 print('--------------------------- MAIN RESULTS ---------------------------------')
-output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 100, 
+output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 4, 
                       raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = T,
                       execute.day.randomization = T, extract.ff.events = T, get.sync.measures = T, get.ff.features = T)
 generate_figures(output.dirs[1], output.dirs[2], code.directory)
