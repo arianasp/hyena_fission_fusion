@@ -1,24 +1,6 @@
 #Driver script to run fission-fusion analyses
 
 
-#----------------------------- SET UP DIRECTORIES---------------------------------------
-
-user <- Sys.info()['user']
-if(user == 'strau'){
-  remote.stem <- 'Z:\\'
-  code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
-}else if(user == 'straussed'){
-  raw.data.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/raw_data/'
-  processed.data.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/processed_data/'
-  results.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/results/'
-  code.directory <- '~/Documents/code/hyena_fission_fusion/'
-}else{
-  remote.stem <- '/Volumes/EAS_shared/'
-  code.stem <- '~/Dropbox/code_ari/'
-}
-
-
-
 #-------------------------- MAIN FUNCTION -------------------------------
 runall <- function(
   ### Run parameters
@@ -290,8 +272,27 @@ runall <- function(
 }
 
 
+#----------------------------- SET UP DIRECTORIES---------------------------------------
+
+user <- Sys.info()['user']
+if(user == 'strau'){
+  remote.stem <- 'Z:\\'
+  code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
+}else if(user == 'straussed'){
+  raw.data.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/raw_data/'
+  processed.data.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/processed_data/'
+  results.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/results/'
+  code.directory <- '~/Documents/code/hyena_fission_fusion/'
+}else{
+  remote.stem <- '/Volumes/EAS_shared/'
+  code.stem <- '~/Dropbox/code_ari/'
+}
+
 
 #-----------------------------------RUN ME-------------------------------------------------
+library(renv)
+renv::restore()
+
 set.seed(43410)
 print('--------------------------- MAIN RESULTS ---------------------------------')
 output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 4, 
