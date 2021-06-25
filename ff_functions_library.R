@@ -1146,7 +1146,7 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
     }
     events.rand.all[[i]] <- tmp
   }
-  events.rand.all <- do.call(rbind, events.rand.list)
+  events.rand.all <- do.call(rbind, events.rand.all)
   
   #remove events around day breaks if needed (also done above for randomized data)
   if(remove.events.around.day.breaks){
