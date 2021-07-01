@@ -288,25 +288,25 @@ if(user == 'strau'){
   code.stem <- '~/Dropbox/code_ari/'
 }
 
-
 #-----------------------------------RUN ME-------------------------------------------------
 library(renv)
 renv::restore()
+unloadNamespace('renv') # because renv masks base R's load() function which is used widely in the analysis
 
 set.seed(43410)
 print('--------------------------- MAIN RESULTS ---------------------------------')
-output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 4, 
-                      raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = T,
+output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 100, R.fission = 200, n.rands = 100, 
+                      raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = F,
                       execute.day.randomization = T, extract.ff.events = T, get.sync.measures = T, get.ff.features = T)
-generate_figures(output.dirs[1], output.dirs[2], code.directory)
+generate_figures(data.outdir = output.dirs[1], plots.outdir = output.dirs[2], code.directory)
 
 print('--------------------------- CHECK SMALLER THRESHOLD ---------------------------------')
-output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 50, R.fission = 100, n.rands = 4, 
+output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 50, R.fission = 100, n.rands = 100, 
                       raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = F,
                       execute.day.randomization = T, extract.ff.events = T, get.sync.measures = T, get.ff.features = T)
 generate_figures(output.dirs[1], output.dirs[2], code.directory)
 print('--------------------------- CHECK LARGER THRESHOLD ---------------------------------')
-output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 200, R.fission = 300, n.rands = 4, 
+output.dirs <- runall(ensure.no.day.matches = T, R.fusion = 200, R.fission = 300, n.rands = 100, 
                       raw.data.directory, processed.data.directory, results.directory, code.directory, preprocess = F,
                       execute.day.randomization = T, extract.ff.events = T, get.sync.measures = T, get.ff.features = T)
 generate_figures(output.dirs[1], output.dirs[2], code.directory)
