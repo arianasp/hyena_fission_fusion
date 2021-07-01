@@ -1026,6 +1026,9 @@ visualize_event_type_distributions <- function(events, events.rand.list, rand.pa
     #get events associated with that randomization
     events.rand <- events.rand.list[[i]]
     
+    #limit to only events with exact start and end times
+    events.rand <- events.rand[events.rand$start.exact & events.rand$end.exact,]
+    
     #remove events surrounding the 'day break'
     if(remove.events.around.day.breaks){
       events.rand <- remove_events_around_day_breaks(events.rand, timestamps, rand.params)
@@ -1141,6 +1144,8 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   for(i in 1:length(events.rand.list)){
     tmp <- events.rand.list[[i]]
     tmp$rand <- i
+    #limit to only events with exact start and end times
+    tmp <- tmp[tmp$start.exact & tmp$end.exact,]
     if(remove.events.around.day.breaks){
       tmp <- remove_events_around_day_breaks(tmp, timestamps, rand.params)
     }

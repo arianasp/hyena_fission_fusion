@@ -49,20 +49,21 @@ n.inds <- nrow(hyena.ids)
 #remove events surrounding the 'day break' for comparing with randomizations
 events.data.incl.noon <- events.data # retains all events for descriptive results
 events.data <- remove_events_around_day_breaks(events.data, timestamps, rand.params)
+events.data.exact <- events.data[events.data$start.exact & events.data$end.exact,]
   
-#get total number of events in data (total, den, non-den)
-events.tot.data <- nrow(events.data.incl.noon)
-events.tot.den.data <- sum(events.data.incl.noon$dist.den.start <= params$den.dist.thresh | events.data.incl.noon$dist.den.end <= params$den.dist.thresh)
-events.tot.nonden.data <- sum(events.data.incl.noon$dist.den.start > params$den.dist.thresh & events.data.incl.noon$dist.den.end > params$den.dist.thresh)
+#get total number of events in data (total, den, non-den) -- For FIGURE 3
+events.tot.data <- nrow(events.data.exact)
+events.tot.den.data <- sum(events.data.exact$dist.den.start <= params$den.dist.thresh | events.data.exact$dist.den.end <= params$den.dist.thresh)
+events.tot.nonden.data <- sum(events.data.exact$dist.den.start > params$den.dist.thresh & events.data.exact$dist.den.end > params$den.dist.thresh)
 
 #get number of events per dyad in data
-events.net.data <- count_events_per_dyad(events.data.incl.noon)
+events.net.data <- count_events_per_dyad(events.data.exact)
 
 #get number of events per dyad in data
-den.idxs <- which(events.data.incl.noon$dist.den.start <= params$den.dist.thresh | events.data.incl.noon$dist.den.end <= params$den.dist.thresh)
-nonden.idxs <- which(events.data.incl.noon$dist.den.start > params$den.dist.thresh & events.data.incl.noon$dist.den.end > params$den.dist.thresh)
-events.net.data.den <- count_events_per_dyad(events.data.incl.noon[den.idxs,])
-events.net.data.nonden <- count_events_per_dyad(events.data.incl.noon[nonden.idxs,])
+den.idxs <- which(events.data.exact$dist.den.start <= params$den.dist.thresh | events.data.exact$dist.den.end <= params$den.dist.thresh)
+nonden.idxs <- which(events.data.exact$dist.den.start > params$den.dist.thresh & events.data.exact$dist.den.end > params$den.dist.thresh)
+events.net.data.den <- count_events_per_dyad(events.data.exact[den.idxs,])
+events.net.data.nonden <- count_events_per_dyad(events.data.exact[nonden.idxs,])
 
 #get total number of events in each randomization, and events per dyad
 events.tot.denblock <- rep(NA, n.rands)
@@ -75,6 +76,9 @@ for(r in 1:n.rands){
   
   #get events associated with that randomization\
   events.rand.denblock <- events.rand.list.denblock[[r]]
+  
+  #limit to only events with exact start and end times
+  events.rand.denblock <- events.rand.denblock[events.rand.denblock$start.exact & events.rand.denblock$end.exact,]
   
   #remove events surrounding the 'day break'
   events.rand.denblock <- remove_events_around_day_breaks(events.rand.denblock, timestamps, rand.params)
@@ -195,19 +199,24 @@ den.locs <- get_dens(paste0(raw.data.directory, 'metadata/hyena_isolate_dens.csv
 #Compute some basic stats mentioned in the paper and print the results
 print(paste0('The total number of events is ', nrow(events.data.incl.noon)))
 print(paste0('The total number of events with exact start and end times is ', nrow(events.data.exact.incl.noon)))
+print(paste0('The total number of events with exact start and end times not crossing noon is ', nrow(events.data.exact)))
 
-print(paste0('The number of events with exact start and end times starting at the den is ', sum(events.data.exact.incl.noon$at.den.start)))
-print(paste0('The number of events with exact start and end times ending at the den is ', sum(events.data.exact.incl.noon$at.den.end)))
-print(paste0('The number of events with exact start and end times either starting or ending at a den is ', sum(events.data.exact.incl.noon$at.den.start | events.data.exact.incl.noon$at.den.end)))
+print(paste0('The number of events with exact start and end times including noon starting at the den is ', sum(events.data.exact.incl.noon$at.den.start)))
+print(paste0('The number of events with exact start and end times including noon ending at the den is ', sum(events.data.exact.incl.noon$at.den.end)))
+print(paste0('The number of events with exact start and end times including noon starting or ending at a den is ', sum(events.data.exact.incl.noon$at.den.start | events.data.exact.incl.noon$at.den.end)))
 
-print(paste0('The median and 95% range of predicted number of events in denblock model is ', median(events.tot.denblock), ' (', quantile(events.tot.denblock, 0.025), ' to ', quantile(events.tot.denblock, 0.975), ')'))
-print(paste0('The median and 95% range of predicted number of den events in denblock model is ', median(events.tot.den.denblock), ' (', quantile(events.tot.den.denblock, 0.025), ' to ', quantile(events.tot.den.denblock, 0.975), ')'))
-print(paste0('The median and 95% range of predicted number of nonden events in denblock model is ', median(events.tot.nonden.denblock), ' (', quantile(events.tot.nonden.denblock, 0.025), ' to ', quantile(events.tot.nonden.denblock, 0.975), ')'))
+print(paste0('The number of events with exact start and end times not crossing noon starting at the den is ', sum(events.data.exact$at.den.start)))
+print(paste0('The number of events with exact start and end times not crossing noon ending at the den is ', sum(events.data.exact$at.den.end)))
+print(paste0('The number of events with exact start and end times not crossing noon starting or ending at a den is ', sum(events.data.exact$at.den.start | events.data.exact.incl.noon$at.den.end)))
 
-print(paste0('The number of traveling events (with exact start and end times) during the together phase is ', sum(events.data.exact.incl.noon$together.type=='together.travel', na.rm=T)))
-print(paste0('The number of stationary events (with exact start and end times) during the together phase is ', sum(events.data.exact.incl.noon$together.type=='together.local', na.rm=T)))
-print(paste0('The number of together-traveling events (with exact start and end times) starting at the den is ', sum(events.data.exact.incl.noon$at.den.start & events.data.exact.incl.noon$together.type=='together.travel', na.rm = T)))
-print(paste0('The number of together-traveling events (with exact start and end times) ending at the den is ', sum(events.data.exact.incl.noon$at.den.end & events.data.exact.incl.noon$together.type=='together.travel', na.rm = T)))
+print(paste0('The median and 95% range of predicted number of events with exact start and end times not crossing noon in denblock model is ', median(events.tot.denblock), ' (', quantile(events.tot.denblock, 0.025), ' to ', quantile(events.tot.denblock, 0.975), ')'))
+print(paste0('The median and 95% range of predicted number of den events with exact start and end times not crossing noon in denblock model is ', median(events.tot.den.denblock), ' (', quantile(events.tot.den.denblock, 0.025), ' to ', quantile(events.tot.den.denblock, 0.975), ')'))
+print(paste0('The median and 95% range of predicted number of nonden events with exact start and end times not crossing noon in denblock model is ', median(events.tot.nonden.denblock), ' (', quantile(events.tot.nonden.denblock, 0.025), ' to ', quantile(events.tot.nonden.denblock, 0.975), ')'))
+
+print(paste0('The number of traveling events with exact start and end times including noon during the together phase is ', sum(events.data.exact.incl.noon$together.type=='together.travel', na.rm=T)))
+print(paste0('The number of stationary events with exact start and end times includign noon during the together phase is ', sum(events.data.exact.incl.noon$together.type=='together.local', na.rm=T)))
+print(paste0('The number of together-traveling events with exact start and end times including noon starting at the den is ', sum(events.data.exact.incl.noon$at.den.start & events.data.exact.incl.noon$together.type=='together.travel', na.rm = T)))
+print(paste0('The number of together-traveling events with exact start and end times including noon ending at the den is ', sum(events.data.exact.incl.noon$at.den.end & events.data.exact.incl.noon$together.type=='together.travel', na.rm = T)))
 
 #--------------PLOTS----------------
 
@@ -398,7 +407,7 @@ png(paste0(plots.outdir, 'FIG3.png'), width = 6, height = 4, units = 'in', res =
 layout <- '
 AAABBBB
 '
-p_nevents + visualize_event_type_distributions(events.data, events.rand.list.denblock, 
+p_nevents + visualize_event_type_distributions(events.data.exact, events.rand.list.denblock, 
                                                rand.params, timestamps, 
                                                remove.events.around.day.breaks = T,
                                                col = colors[6])+labs(tag = 'B') +
@@ -412,7 +421,7 @@ dev.off()
 
 #-----------------------------------------FIGURE 4------------------------------
 png(paste0(plots.outdir, 'FIG4.png'), width = 5, height = 7, units = 'in', res = 500)
-visualize_compare_event_properties(events.data, events.rand.list.denblock,
+visualize_compare_event_properties(events.data.exact, events.rand.list.denblock,
                                    params, rand.params, timestamps, cols = colors[1:2])
 dev.off()
 
