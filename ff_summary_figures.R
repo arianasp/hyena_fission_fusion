@@ -46,22 +46,23 @@ hyena <- image_read(path = paste0(raw.data.directory, "collared_hyena.jpg"))
 n.rands <- length(events.rand.list.denblock)
 n.inds <- nrow(hyena.ids)
   
-#remove events surrounding the 'day break'
+#remove events surrounding the 'day break' for comparing with randomizations
+events.data.incl.noon <- events.data # retains all events for descriptive results
 events.data <- remove_events_around_day_breaks(events.data, timestamps, rand.params)
   
 #get total number of events in data (total, den, non-den)
-events.tot.data <- nrow(events.data)
-events.tot.den.data <- sum(events.data$dist.den.start <= params$den.dist.thresh | events.data$dist.den.end <= params$den.dist.thresh)
-events.tot.nonden.data <- sum(events.data$dist.den.start > params$den.dist.thresh & events.data$dist.den.end > params$den.dist.thresh)
+events.tot.data <- nrow(events.data.incl.noon)
+events.tot.den.data <- sum(events.data.incl.noon$dist.den.start <= params$den.dist.thresh | events.data.incl.noon$dist.den.end <= params$den.dist.thresh)
+events.tot.nonden.data <- sum(events.data.incl.noon$dist.den.start > params$den.dist.thresh & events.data.incl.noon$dist.den.end > params$den.dist.thresh)
 
 #get number of events per dyad in data
-events.net.data <- count_events_per_dyad(events.data)
+events.net.data <- count_events_per_dyad(events.data.incl.noon)
 
 #get number of events per dyad in data
-den.idxs <- which(events.data$dist.den.start <= params$den.dist.thresh | events.data$dist.den.end <= params$den.dist.thresh)
-nonden.idxs <- which(events.data$dist.den.start > params$den.dist.thresh & events.data$dist.den.end > params$den.dist.thresh)
-events.net.data.den <- count_events_per_dyad(events.data[den.idxs,])
-events.net.data.nonden <- count_events_per_dyad(events.data[nonden.idxs,])
+den.idxs <- which(events.data.incl.noon$dist.den.start <= params$den.dist.thresh | events.data.incl.noon$dist.den.end <= params$den.dist.thresh)
+nonden.idxs <- which(events.data.incl.noon$dist.den.start > params$den.dist.thresh & events.data.incl.noon$dist.den.end > params$den.dist.thresh)
+events.net.data.den <- count_events_per_dyad(events.data.incl.noon[den.idxs,])
+events.net.data.nonden <- count_events_per_dyad(events.data.incl.noon[nonden.idxs,])
 
 #get total number of events in each randomization, and events per dyad
 events.tot.denblock <- rep(NA, n.rands)
@@ -98,7 +99,7 @@ for(r in 1:n.rands){
   
 }
 
-# Pre-processing for PLOT 1 and FIGURE 3a ------
+# Pre-processing for FIGURE 3a ------
 #prep for ggplot
 plotdat <- data.frame(type = rep('denblock',n.rands), nevents = events.tot.denblock, denevents = events.tot.den.denblock, nondenevents = events.tot.nonden.denblock)
 # plotdat$type <- factor(plotdat$type,
@@ -171,54 +172,53 @@ networkdat$type <- factor(networkdat$type,
                           levels = c('denblock','real'),ordered = TRUE)
 
 #------ Pre-processing for FIGURE 1, FIGURE 2
-good.idxs <- which(events.data$start.exact & events.data$end.exact)
-events.data.exact <- events.data[good.idxs,]
-events.data.exact$x.fusion <- (xs[cbind(events.data.exact$i, events.data.exact$t.start)] + xs[cbind(events.data.exact$j, events.data.exact$t.start)]) / 2
-events.data.exact$y.fusion <- (ys[cbind(events.data.exact$i, events.data.exact$t.start)] + ys[cbind(events.data.exact$j, events.data.exact$t.start)]) / 2
-events.data.exact$x.fission <- (xs[cbind(events.data.exact$i, events.data.exact$t.end)] + xs[cbind(events.data.exact$j, events.data.exact$t.end)]) / 2
-events.data.exact$y.fission <- (ys[cbind(events.data.exact$i, events.data.exact$t.end)] + ys[cbind(events.data.exact$j, events.data.exact$t.end)]) / 2
+good.idxs.incl.noon <- which(events.data.incl.noon$start.exact & events.data.incl.noon$end.exact)
+events.data.exact.incl.noon <- events.data.incl.noon[good.idxs.incl.noon,]
+events.data.exact.incl.noon$x.fusion <- (xs[cbind(events.data.exact.incl.noon$i, events.data.exact.incl.noon$t.start)] + xs[cbind(events.data.exact.incl.noon$j, events.data.exact.incl.noon$t.start)]) / 2
+events.data.exact.incl.noon$y.fusion <- (ys[cbind(events.data.exact.incl.noon$i, events.data.exact.incl.noon$t.start)] + ys[cbind(events.data.exact.incl.noon$j, events.data.exact.incl.noon$t.start)]) / 2
+events.data.exact.incl.noon$x.fission <- (xs[cbind(events.data.exact.incl.noon$i, events.data.exact.incl.noon$t.end)] + xs[cbind(events.data.exact.incl.noon$j, events.data.exact.incl.noon$t.end)]) / 2
+events.data.exact.incl.noon$y.fission <- (ys[cbind(events.data.exact.incl.noon$i, events.data.exact.incl.noon$t.end)] + ys[cbind(events.data.exact.incl.noon$j, events.data.exact.incl.noon$t.end)]) / 2
 
-lonlat.fusion <- utm.to.latlon(cbind(events.data.exact$x.fusion, events.data.exact$y.fusion), southern_hemisphere = T, utm.zone = '36')
-lonlat.fission <- utm.to.latlon(cbind(events.data.exact$x.fission, events.data.exact$y.fission), southern_hemisphere = T, utm.zone = '36')
-events.data.exact$lon.fusion <- lonlat.fusion[,1]
-events.data.exact$lat.fusion <- lonlat.fusion[,2]
-events.data.exact$lon.fission <- lonlat.fission[,1]
-events.data.exact$lat.fission <- lonlat.fission[,2]
-events.data.exact$at.den.start <- events.data.exact$dist.den.start <= params$den.dist.thresh
-events.data.exact$at.end <- events.data.exact$dist.den.end <= params$den.dist.thresh
+lonlat.fusion <- utm.to.latlon(cbind(events.data.exact.incl.noon$x.fusion, events.data.exact.incl.noon$y.fusion), southern_hemisphere = T, utm.zone = '36')
+lonlat.fission <- utm.to.latlon(cbind(events.data.exact.incl.noon$x.fission, events.data.exact.incl.noon$y.fission), southern_hemisphere = T, utm.zone = '36')
+events.data.exact.incl.noon$lon.fusion <- lonlat.fusion[,1]
+events.data.exact.incl.noon$lat.fusion <- lonlat.fusion[,2]
+events.data.exact.incl.noon$lon.fission <- lonlat.fission[,1]
+events.data.exact.incl.noon$lat.fission <- lonlat.fission[,2]
+events.data.exact.incl.noon$at.den.start <- events.data.exact.incl.noon$dist.den.start <= params$den.dist.thresh
+events.data.exact.incl.noon$at.den.end <- events.data.exact.incl.noon$dist.den.end <= params$den.dist.thresh
 
 #get den locations
 den.locs <- get_dens(paste0(raw.data.directory, 'metadata/hyena_isolate_dens.csv'))
 
 #-------------DESCRIPTIVE STATS---------
 #Compute some basic stats mentioned in the paper and print the results
-print(paste0('The total number of events is ', nrow(events.data)))
-print(paste0('The total number of events with exact start and end times is ', sum(events.data$start.exact==T & events.data$end.exact==T)))
+print(paste0('The total number of events is ', nrow(events.data.incl.noon)))
+print(paste0('The total number of events with exact start and end times is ', nrow(events.data.exact.incl.noon)))
 
-print(paste0('The number of events starting at the den is ', sum(events.data$dist.den.start <= params$den.dist.thresh)))
-print(paste0('The number of events ending at the den is ', sum(events.data$dist.den.end <= params$den.dist.thresh)))
-print(paste0('The number of events either starting or ending at a den is ', sum(events.data$dist.den.start <= params$den.dist.thresh | events.data$dist.den.end <= params$den.dist.thresh)))
-
+print(paste0('The number of events with exact start and end times starting at the den is ', sum(events.data.exact.incl.noon$at.den.start)))
+print(paste0('The number of events with exact start and end times ending at the den is ', sum(events.data.exact.incl.noon$at.den.end)))
+print(paste0('The number of events with exact start and end times either starting or ending at a den is ', sum(events.data.exact.incl.noon$at.den.start | events.data.exact.incl.noon$at.den.end)))
 
 print(paste0('The median and 95% range of predicted number of events in denblock model is ', median(events.tot.denblock), ' (', quantile(events.tot.denblock, 0.025), ' to ', quantile(events.tot.denblock, 0.975), ')'))
 print(paste0('The median and 95% range of predicted number of den events in denblock model is ', median(events.tot.den.denblock), ' (', quantile(events.tot.den.denblock, 0.025), ' to ', quantile(events.tot.den.denblock, 0.975), ')'))
 print(paste0('The median and 95% range of predicted number of nonden events in denblock model is ', median(events.tot.nonden.denblock), ' (', quantile(events.tot.nonden.denblock, 0.025), ' to ', quantile(events.tot.nonden.denblock, 0.975), ')'))
 
-print(paste0('The number of traveling events during the together phase is ', sum(events.data$together.type=='together.travel', na.rm=T)))
-print(paste0('The number of stationary events during the together phase is ', sum(events.data$together.type=='together.local', na.rm=T)))
-print(paste0('The number of together-traveling events starting at the den is ', sum(events.data$dist.den.start <= params$den.dist.thresh & events.data$together.type=='together.travel', na.rm = T)))
-print(paste0('The number of together-traveling events ending at the den is ', sum(events.data$dist.den.end <= params$den.dist.thresh & events.data$together.type=='together.travel', na.rm = T)))
+print(paste0('The number of traveling events (with exact start and end times) during the together phase is ', sum(events.data.exact.incl.noon$together.type=='together.travel', na.rm=T)))
+print(paste0('The number of stationary events (with exact start and end times) during the together phase is ', sum(events.data.exact.incl.noon$together.type=='together.local', na.rm=T)))
+print(paste0('The number of together-traveling events (with exact start and end times) starting at the den is ', sum(events.data.exact.incl.noon$at.den.start & events.data.exact.incl.noon$together.type=='together.travel', na.rm = T)))
+print(paste0('The number of together-traveling events (with exact start and end times) ending at the den is ', sum(events.data.exact.incl.noon$at.den.end & events.data.exact.incl.noon$together.type=='together.travel', na.rm = T)))
 
 #--------------PLOTS----------------
 
 colors <- c("#F72585", "#3f37c9", "#21054C", "#4895EF", "#ba0c2f",'gray30')
 
 #-------FIGURE 1b time of fusions ----------
-events.data.exact$hour.start <- hour(timestamps[events.data.exact$t.start] + params$local.time.diff*60*60) 
-events.data.exact$hour.end <- hour(timestamps[events.data.exact$t.end] + params$local.time.diff*60*60)
+events.data.exact.incl.noon$hour.start <- hour(timestamps[events.data.exact.incl.noon$t.start] + params$local.time.diff*60*60) 
+events.data.exact.incl.noon$hour.end <- hour(timestamps[events.data.exact.incl.noon$t.end] + params$local.time.diff*60*60)
 pal <- colorRampPalette(colors = c('#292965','#6696ba','#e2e38b','#e7a553','#7e4b68','#292965'))
 breaks <- seq(0,24,1)
-timeplot <- ggplot(aes(x = hour.start, fill = as.logical(at.den.start-1)), data = events.data.exact) +
+timeplot <- ggplot(aes(x = hour.start, fill = as.logical(at.den.start-1)), data = events.data.exact.incl.noon) +
   geom_bar(position = 'stack', na.rm=T) + 
   theme_classic(base_size = 12) + 
   ylab('Number of fusions') + 
@@ -229,7 +229,6 @@ timeplot <- ggplot(aes(x = hour.start, fill = as.logical(at.den.start-1)), data 
 
 
 ################################################################################
-##### I feel like this belongs in a different script but I'm leaving it for now
 #check amount of time two inds tracked (to make sure this isn't driving time of day pattern - it is not)
 hours.ts <- hour(timestamps + params$local.time.diff*60*60)
 all.hrs <- c()
@@ -247,8 +246,8 @@ hist(all.hrs, main = 'GPS data available by hour', xlab = 'Hour')
 #Where do ff events take place?
 
 #colors
-cols <- rep(alpha(colors[1], 0.5), nrow(events.data.exact))
-cols[which(events.data.exact$dist.den.start <= params$den.dist.thresh)] <- alpha(colors[2], 0.5)
+cols <- rep(alpha(colors[1], 0.5), nrow(events.data.exact.incl.noon))
+cols[which(events.data.exact.incl.noon$dist.den.start <= params$den.dist.thresh)] <- alpha(colors[2], 0.5)
 
 #make background slightly transparent
 map_attr <- attributes(hyena_map13)
@@ -274,7 +273,7 @@ scalebar2 <- data.frame(lon = mean(scale.lons), lat = mean(scale.lats))
 
 #create the plot (for fusions, in this case)
 mapplot <- ggmap(hyena_map_transparent, alpha = 0.5) + 
-  geom_point(aes(x = lon.fusion, y = lat.fusion, color = at.den.start), data = events.data.exact, size = 1, shape = 3, alpha = 0.8) +
+  geom_point(aes(x = lon.fusion, y = lat.fusion, color = at.den.start), data = events.data.exact.incl.noon, size = 1, shape = 3, alpha = 0.8) +
   scale_color_manual(values=c(colors[1], colors[2])) + 
   theme(legend.position="none", axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank()) + 
   geom_point(aes(x = lon, y = lat), data = den.locs, size = 7, shape = 21, color = colors[2], stroke = 1) +
@@ -299,16 +298,16 @@ dev.off()
 #-----------FIGURE 2 example of fission-fusion events + alluvial plot ----------
 
 
-ev <- plot_events(r = 394, events = events.data.exact, xs = xs, ys = ys,
+ev <- plot_events(r = 394, events = events.data.exact.incl.noon, xs = xs, ys = ys,
                   phase.col = FALSE, axes = FALSE, xlab = '', ylab = '', cols = colors[c(3,5)]) +
   labs(tag= 'A')
 
-canonical.shape <- plot_canonical_shape(394, together.seqs = events.data.exact, xs = xs, ys = ys) +
+canonical.shape <- plot_canonical_shape(394, together.seqs = events.data.exact.incl.noon, xs = xs, ys = ys) +
   labs(tag = 'B')
 
 
 # --alluvial plot phase transitions --
-alluv.data <- data.frame(full.type = events.data.exact[,c('event.type.sym')])
+alluv.data <- data.frame(full.type = events.data.exact.incl.noon[,c('event.type.sym')])
 splittypes <- strsplit(as.character(alluv.data$full.type), split = '__')
 alluv.data$fusion.word <- alluv.data$together.word <- alluv.data$fission.word <- alluv.data$Fusion <- alluv.data$Together <- alluv.data$Fission <- NA
 symbols <- get_event_type_symbols()
