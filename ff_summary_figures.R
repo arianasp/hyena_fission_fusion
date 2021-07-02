@@ -191,6 +191,8 @@ events.data.exact.incl.noon$lon.fission <- lonlat.fission[,1]
 events.data.exact.incl.noon$lat.fission <- lonlat.fission[,2]
 events.data.exact.incl.noon$at.den.start <- events.data.exact.incl.noon$dist.den.start <= params$den.dist.thresh
 events.data.exact.incl.noon$at.den.end <- events.data.exact.incl.noon$dist.den.end <= params$den.dist.thresh
+events.data.exact$at.den.start <- events.data.exact$dist.den.start <= params$den.dist.thresh
+events.data.exact$at.den.end <- events.data.exact$dist.den.end <= params$den.dist.thresh
 
 #get den locations
 den.locs <- get_dens(paste0(raw.data.directory, 'metadata/hyena_isolate_dens.csv'))
@@ -207,7 +209,7 @@ print(paste0('The number of events with exact start and end times including noon
 
 print(paste0('The number of events with exact start and end times not crossing noon starting at the den is ', sum(events.data.exact$at.den.start)))
 print(paste0('The number of events with exact start and end times not crossing noon ending at the den is ', sum(events.data.exact$at.den.end)))
-print(paste0('The number of events with exact start and end times not crossing noon starting or ending at a den is ', sum(events.data.exact$at.den.start | events.data.exact.incl.noon$at.den.end)))
+print(paste0('The number of events with exact start and end times not crossing noon starting or ending at a den is ', sum(events.data.exact$at.den.start | events.data.exact$at.den.end)))
 
 print(paste0('The median and 95% range of predicted number of events with exact start and end times not crossing noon in denblock model is ', median(events.tot.denblock), ' (', quantile(events.tot.denblock, 0.025), ' to ', quantile(events.tot.denblock, 0.975), ')'))
 print(paste0('The median and 95% range of predicted number of den events with exact start and end times not crossing noon in denblock model is ', median(events.tot.den.denblock), ' (', quantile(events.tot.den.denblock, 0.025), ' to ', quantile(events.tot.den.denblock, 0.975), ')'))
