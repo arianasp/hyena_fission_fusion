@@ -238,18 +238,18 @@ timeplot <- ggplot(aes(x = hour.start.alt, fill = as.logical(at.den.start-1)), d
                                 bottom = 0, top = 80), inherit.aes = F,
               aes(x = night, ymin = bottom, ymax = top), fill = 'gray80')+
   geom_ribbon(data = data.frame(night = c(7.25, 19.25),
-                                bottom = 80, top = 85), inherit.aes = F,
+                                bottom = 80, top = 87), inherit.aes = F,
               aes(x = night, ymin = bottom, ymax = top), fill = 'gray80', color = 'black')+
   geom_ribbon(data = data.frame(afternoon = c(0, 7.25),
-                                bottom = 80, top = 85), inherit.aes = F,
+                                bottom = 80, top = 87), inherit.aes = F,
               aes(x = afternoon, ymin = bottom, ymax = top), fill = 'white', color = 'black')+
   geom_ribbon(data = data.frame(morning = c(19.25, 24),
-                                bottom = 80, top = 85), inherit.aes = F,
+                                bottom = 80, top = 87), inherit.aes = F,
               aes(x = morning, ymin = bottom, ymax = top), fill = 'white', color = 'black')+
   geom_bar(position = 'stack', na.rm=T) + 
   geom_text(data = data.frame(lab = c('Daylight', 'Night', 'Daylight'), 
             lab.x = c(3.625, 13.4375, 21.625), 
-            lab.y = 82.5), aes(label = lab, x = lab.x, y = lab.y), inherit.aes = F, size = 3)+
+            lab.y = 83.5), aes(label = lab, x = lab.x, y = lab.y), inherit.aes = F, size = 3)+
   theme_classic(base_size = 12) + 
   ylab('Number of fusions') + 
   xlab('')+
