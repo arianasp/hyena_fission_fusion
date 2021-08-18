@@ -427,8 +427,8 @@ p_nevents <- ggplot(data = plotdat.denblock) +
   labs(tag = 'A')
 
 #-FIGURE 3b--
-png(paste0(plots.outdir, 'FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
-#cairo_pdf(paste0(plots.outdir, 'FIG3.pdf'), width = 6, height = 4)
+#png(paste0(plots.outdir, 'FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
+cairo_pdf(paste0(plots.outdir, 'FIG3.pdf'), width = 6, height = 4)
 
 layout <- '
 AAABBBB

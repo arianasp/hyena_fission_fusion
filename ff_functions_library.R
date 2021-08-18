@@ -1074,14 +1074,14 @@ visualize_event_type_distributions <- function(events, events.rand.list, rand.pa
     ylab('Frequency')+
     theme(axis.text = element_text(color = 'black'), axis.title.x = element_blank())+
     scale_x_discrete(labels = sprintf(as.character(plot.df.obs$condition)))+
-    geom_line(data = data.frame(x = c("??????\n..\n.???",
-                                      ".???\n..\n??????",
-                                      "??????\n??????\n.???",
-                                      ".???\n??????\n??????"),
-                                y = filter(plot.df.obs, condition %in% c("??????\n..\n.???",
-                                                                         ".???\n..\n??????",
-                                                                         "??????\n??????\n.???",
-                                                                         ".???\n??????\n??????"))$freq,
+    geom_line(data = data.frame(x = c("↑↑\n••\n•↑",
+                                      "•↑\n••\n↑↑",
+                                      "↑↑\n↑↑\n•↑",
+                                      "•↑\n↑↑\n↑↑"),
+                                y = filter(plot.df.obs, condition %in% c("↑↑\n••\n•↑",
+                                                                         "•↑\n••\n↑↑",
+                                                                         "↑↑\n↑↑\n•↑",
+                                                                         "•↑\n↑↑\n↑↑"))$freq,
                                 group=c(1,1,2,2)),
               aes(x = x, y = y, group = group), lty = 3)
 }
