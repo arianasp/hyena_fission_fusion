@@ -249,12 +249,12 @@ timeplot <- ggplot(aes(x = hour.start.alt, fill = as.logical(at.den.start-1)), d
   geom_bar(position = 'stack', na.rm=T) + 
   geom_text(data = data.frame(lab = c('Daylight', 'Night', 'Daylight'), 
             lab.x = c(3.625, 13.4375, 21.625), 
-            lab.y = 82.5), aes(label = lab, x = lab.x, y = lab.y), inherit.aes = F)+
+            lab.y = 82.5), aes(label = lab, x = lab.x, y = lab.y), inherit.aes = F, size = 3)+
   theme_classic(base_size = 12) + 
   ylab('Number of fusions') + 
   xlab('')+
   scale_fill_manual(values = c(colors[2], colors[1]), labels = c('Den', 'Non-Den'))+
-  theme(legend.position = c(.13,.75), legend.title = element_blank())+
+  theme(legend.position = c(.2,.75), legend.title = element_blank(), legend.background = element_blank(), legend.text = element_text(size = 8))+
   scale_x_discrete(drop = FALSE, breaks = c(12, 18, 0, 6), labels = c('Noon', '6pm', 'Midnight', '6am'))+
   labs(tag='B')+
   theme(axis.title.x = element_blank())
@@ -323,7 +323,7 @@ BBCCCC
 BBCCCC
 "
 
-png(paste0(plots.outdir, 'FIG1.png'), width = 6, height =4, units = 'in', res = 500)
+png(paste0(plots.outdir, 'FIG1.png'), width = 8, height =5, units = 'in', res = 500)
 hyena.plot + timeplot + mapplot + plot_layout(design = layout)
 dev.off()
 
