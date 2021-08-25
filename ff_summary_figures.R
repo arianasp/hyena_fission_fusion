@@ -191,6 +191,8 @@ events.data.exact.incl.noon$lon.fission <- lonlat.fission[,1]
 events.data.exact.incl.noon$lat.fission <- lonlat.fission[,2]
 events.data.exact.incl.noon$at.den.start <- events.data.exact.incl.noon$dist.den.start <= params$den.dist.thresh
 events.data.exact.incl.noon$at.den.end <- events.data.exact.incl.noon$dist.den.end <= params$den.dist.thresh
+events.data.exact$at.den.start <- events.data.exact$dist.den.start <= params$den.dist.thresh
+events.data.exact$at.den.end <- events.data.exact$dist.den.end <= params$den.dist.thresh
 
 #get den locations
 den.locs <- get_dens(paste0(raw.data.directory, 'metadata/hyena_isolate_dens.csv'))
@@ -207,7 +209,7 @@ print(paste0('The number of events with exact start and end times including noon
 
 print(paste0('The number of events with exact start and end times not crossing noon starting at the den is ', sum(events.data.exact$at.den.start)))
 print(paste0('The number of events with exact start and end times not crossing noon ending at the den is ', sum(events.data.exact$at.den.end)))
-print(paste0('The number of events with exact start and end times not crossing noon starting or ending at a den is ', sum(events.data.exact$at.den.start | events.data.exact.incl.noon$at.den.end)))
+print(paste0('The number of events with exact start and end times not crossing noon starting or ending at a den is ', sum(events.data.exact$at.den.start | events.data.exact$at.den.end)))
 
 print(paste0('The median and 95% range of predicted number of events with exact start and end times not crossing noon in denblock model is ', median(events.tot.denblock), ' (', quantile(events.tot.denblock, 0.025), ' to ', quantile(events.tot.denblock, 0.975), ')'))
 print(paste0('The median and 95% range of predicted number of den events with exact start and end times not crossing noon in denblock model is ', median(events.tot.den.denblock), ' (', quantile(events.tot.den.denblock, 0.025), ' to ', quantile(events.tot.den.denblock, 0.975), ')'))
@@ -224,19 +226,41 @@ colors <- c("#F72585", "#3f37c9", "#21054C", "#4895EF", "#ba0c2f",'gray30')
 
 #-------FIGURE 1b time of fusions ----------
 events.data.exact.incl.noon$hour.start <- hour(timestamps[events.data.exact.incl.noon$t.start] + params$local.time.diff*60*60) 
-events.data.exact.incl.noon$hour.end <- hour(timestamps[events.data.exact.incl.noon$t.end] + params$local.time.diff*60*60)
+
+# Option to have plot start not at midnight
+events.data.exact.incl.noon$hour.start.alt <- factor(events.data.exact.incl.noon$hour.start,
+                                                     levels = c(12:23, 0:11))
+
 pal <- colorRampPalette(colors = c('#292965','#6696ba','#e2e38b','#e7a553','#7e4b68','#292965'))
 breaks <- seq(0,24,1)
-timeplot <- ggplot(aes(x = hour.start, fill = as.logical(at.den.start-1)), data = events.data.exact.incl.noon) +
+timeplot <- ggplot(aes(x = hour.start.alt, fill = as.logical(at.den.start-1)), data = events.data.exact.incl.noon) +
+  geom_ribbon(data = data.frame(night = c(7.25, 19.25),
+                                bottom = 0, top = 80), inherit.aes = F,
+              aes(x = night, ymin = bottom, ymax = top), fill = 'gray80')+
+  geom_ribbon(data = data.frame(night = c(7.25, 19.25),
+                                bottom = 80, top = 87), inherit.aes = F,
+              aes(x = night, ymin = bottom, ymax = top), fill = 'gray80', color = 'black')+
+  geom_ribbon(data = data.frame(afternoon = c(0, 7.25),
+                                bottom = 80, top = 87), inherit.aes = F,
+              aes(x = afternoon, ymin = bottom, ymax = top), fill = 'white', color = 'black')+
+  geom_ribbon(data = data.frame(morning = c(19.25, 24),
+                                bottom = 80, top = 87), inherit.aes = F,
+              aes(x = morning, ymin = bottom, ymax = top), fill = 'white', color = 'black')+
   geom_bar(position = 'stack', na.rm=T) + 
+  geom_text(data = data.frame(lab = c('Daylight', 'Night', 'Daylight'), 
+            lab.x = c(3.625, 13.4375, 21.625), 
+            lab.y = 83.5), aes(label = lab, x = lab.x, y = lab.y), inherit.aes = F, size = 3)+
   theme_classic(base_size = 12) + 
   ylab('Number of fusions') + 
-  xlab('Hour of day')+
+  xlab('')+
   scale_fill_manual(values = c(colors[2], colors[1]), labels = c('Den', 'Non-Den'))+
-  theme(legend.position = c(.75,.75), legend.title = element_blank())+
-  labs(tag='B')
+  theme(legend.position = c(.2,.75), legend.title = element_blank(), legend.background = element_blank(), legend.text = element_text(size = 8))+
+  scale_x_discrete(drop = FALSE, breaks = c(12, 18, 0, 6), labels = c('Noon', '6pm', 'Midnight', '6am'))+
+  labs(tag='B')+
+  theme(axis.title.x = element_blank())
 
 
+  
 ################################################################################
 #check amount of time two inds tracked (to make sure this isn't driving time of day pattern - it is not)
 hours.ts <- hour(timestamps + params$local.time.diff*60*60)
@@ -299,7 +323,7 @@ BBCCCC
 BBCCCC
 "
 
-png(paste0(plots.outdir, 'FIG1.png'), width = 6, height =4, units = 'in', res = 500)
+png(paste0(plots.outdir, 'FIG1.png'), width = 8, height =5, units = 'in', res = 500)
 hyena.plot + timeplot + mapplot + plot_layout(design = layout)
 dev.off()
 
@@ -370,6 +394,7 @@ ap.blank <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Toget
 
 
 png(filename = paste0(plots.outdir, 'FIG2.png'), width = 6.5, height = 7.5, units = 'in', res = 300)
+cairo_pdf(file = paste0(plots.outdir, 'FIG2.pdf'), width = 6.5, height = 7.5)
 
 layout <- "
 AABB
@@ -402,7 +427,8 @@ p_nevents <- ggplot(data = plotdat.denblock) +
   labs(tag = 'A')
 
 #-FIGURE 3b--
-png(paste0(plots.outdir, 'FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
+#png(paste0(plots.outdir, 'FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
+cairo_pdf(paste0(plots.outdir, 'FIG3.pdf'), width = 6, height = 4)
 
 layout <- '
 AAABBBB

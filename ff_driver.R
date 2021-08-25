@@ -276,8 +276,10 @@ runall <- function(
 
 user <- Sys.info()['user']
 if(user == 'strau'){
-  remote.stem <- 'Z:\\'
-  code.stem <- '~/../Dropbox/Documents/Research/Partial_projects/'
+  raw.data.directory <- '~/../Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/raw_data/'
+  processed.data.directory <- '~/../Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/processed_data/'
+  results.directory <- '~/../Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/results/'
+  code.directory <- '~/../Documents/code/hyena_fission_fusion/'
 }else if(user == 'straussed'){
   raw.data.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/raw_data/'
   processed.data.directory <- '~/Dropbox/Documents/Research/Full_projects/2021 Fission fusion social hubs/processed_data/'
