@@ -70,6 +70,9 @@ trajectories.movie <-function(lats,lons,start.time,end.time,step=1,tail.time=9,b
     
   }
   #get map boundaries - depending on your scale you may need to adjust the .0005's
+  if(!is.null(map)){
+    bb <- attr(map, 'bb')
+  }
   
   if(is.null(inds)){
     ind.idxs <- seq(1,N)
@@ -86,6 +89,8 @@ trajectories.movie <-function(lats,lons,start.time,end.time,step=1,tail.time=9,b
   if(plot.legend){
     legend.x <- xmin + (xmax-xmin)/100
     legend.y <- ymax - (ymax-ymin)/100
+    legend.x <- bb$ll.lon + (bb$ur.lon - bb$ll.lon) / 10
+    legend.y <- bb$ur.lat - (bb$ur.lat - bb$ll.lat) / 10
   }
   
   #get time colors
@@ -94,16 +99,29 @@ trajectories.movie <-function(lats,lons,start.time,end.time,step=1,tail.time=9,b
   
   #if scale bar needed, source utm to lat lon, and get easts and norths
   if(show.scale.bar){
-    eastsNorths <- latlon.to.utm(cbind(xmax,ymin),southern_hemisphere=southern_hemisphere,utm.zone=utm.zone)
-    lonsLats <- utm.to.latlon(cbind(eastsNorths[,1]-scale.bar.len - 1000 ,eastsNorths[,2]+2000),southern_hemisphere=southern_hemisphere,utm.zone=utm.zone)
+    
+    #get UTM boundaries
+    eastsNorths <- latlon.to.utm(cbind(bb$ll.lon, bb$ll.lat), southern_hemisphere = southern_hemisphere, utm.zone = utm.zone)
+    ll.x <- eastsNorths[,1]
+    ll.y <- eastsNorths[,2]
+    
+    eastsNorths <- latlon.to.utm(cbind(bb$ur.lon, bb$ur.lat), southern_hemisphere = southern_hemisphere, utm.zone = utm.zone)
+    ur.x <- eastsNorths[,1]
+    ur.y <- eastsNorths[,2]
+    
+    #get scale bar values in UTM
+    scalemax.x <- ur.x - (ur.x - ll.x) / 10
+    scalemin.x <- scalemax.x - scale.bar.len
+    scale.y <- ll.y + (ur.y - ll.y) / 10
+    
+    #convert to lat/lon
+    lonsLats <- utm.to.latlon(cbind(scalemin.x, scale.y), southern_hemisphere = southern_hemisphere, utm.zone = utm.zone)
     scale.minlon <- lonsLats[,1]
-    scale.minlat <- ymin
-    lonsLatsMax <- utm.to.latlon(cbind(eastsNorths[,1]-1000, eastsNorths[,2]+2000), southern_hemisphere = southern_hemisphere, utm.zone = utm.zone)
-    scale.maxlat <- ymin
-    scale.maxlon <- lonsLatsMax[,1]
-    text.lon <- (scale.minlon + scale.maxlon)/2
-    text.lat <- scale.minlat + scale.bar.text.offset
-    lonsLats2 <- utm.to.latlon(cbind(eastsNorths[,1]-scale.bar.len/2,eastsNorths[,2]-scale.bar.text.offset),southern_hemisphere=southern_hemisphere,utm.zone=utm.zone)
+    scale.minlat <- lonsLats[,2]
+    lonsLats <- utm.to.latlon(cbind(scalemax.x, scale.y), southern_hemisphere = southern_hemisphere, utm.zone = utm.zone)
+    scale.maxlon <- lonsLats[,1]
+    scale.maxlat <- lonsLats[,2]
+    
   }
   
   #idx<-1
@@ -144,11 +162,11 @@ trajectories.movie <-function(lats,lons,start.time,end.time,step=1,tail.time=9,b
     filename = paste(base.dir,'/seq',start.time,'-',end.time,'/',idx,'.png',sep='')
     png(file=filename,width=8,height=8,units='in',res=300)
     par(mar=c(0,0,0,0))
-    
+
     #initialized plot or map
     if(!is.null(map)){
       plot(map,interpolate=TRUE)
-      par(usr = c(xmin, xmax, ymin, ymax))
+      par(usr = c(bb$ll.lon, bb$ur.lon, bb$ll.lat, bb$ur.lat))
     } else{
       par(bg='black')
       plot(NULL,xlim=c(xmin,xmax),ylim=c(ymin,ymax),xaxt='n',yaxt='n',xlab='',ylab='',bg='black',asp=1)
@@ -198,15 +216,16 @@ trajectories.movie <-function(lats,lons,start.time,end.time,step=1,tail.time=9,b
     #plot the time
     if(!is.null(times)){
       #text(x=xmin,y=ymin,labels=times[i],col=time.cols[hour(times[i])+1],cex=1)
-      text(x=xmin+(xmax-xmin)/8,y=ymin + (ymax - ymin)/15,labels=times[i],col='white',cex=1)
+      #text(x=xmin+(xmax-xmin)/8,y=ymin + (ymax - ymin)/15,labels=times[i],col='white',cex=1)
+      text(x=bb$ll.lon+(bb$ur.lon-bb$ll.lon)/4,y=bb$ll.lat + (bb$ur.lat - bb$ll.lat)/15,labels=times[i],col=time.cols[hour(times[i])+1],cex=2)
     }
     
     #make a scale bar
     if(show.scale.bar){
       #lines(c(scale.minlon,scale.maxlon),c(scale.minlat,scale.maxlat),lwd=2,col='white')
-      lines(c(scale.minlon,scale.maxlon),c(scale.minlat+.006,scale.maxlat+.006),lwd=2,col='white')
+      lines(c(scale.minlon,scale.maxlon),c(scale.minlat,scale.maxlat),lwd=2,col='white')
       #text(x=text.lon,y=text.lat,labels=scale.bar.text,col='white')
-      text(x=text.lon,y=scale.minlat+.009,labels=scale.bar.text,col='white')
+      text(x=(scale.minlon + scale.maxlon)/2,y=scale.minlat + (bb$ur.lat - bb$ll.lat)/50,labels=scale.bar.text,col='white')
     }
     
     #plot current locations
@@ -268,17 +287,17 @@ trajectories.movie <-function(lats,lons,start.time,end.time,step=1,tail.time=9,b
 #--------MAIN------
 
 #Load data
-load('/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/hyena_satellite_map.RData')
-load('/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps/hyena_latlon_level0.RData')
-load('/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps/hyena_ids.RData')
-load('/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps/hyena_timestamps.Rdata')
+#load('/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/hyena_satellite_map.RData')
+#load('/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps/hyena_latlon_level0.RData')
+#load('/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps/hyena_ids.RData')
+#load('/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps/hyena_timestamps.Rdata')
 
 #get dens
-dens <- get_dens(den.file.path = '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv')
-dens$name <- c('DAVE','DICK','RBEND','RESM')
-dens$color <- rep('white',nrow(dens))
-dens$cex <- 3
-dens$pch <- 1
+#dens <- get_dens(den.file.path = '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv')
+#dens$name <- c('DAVE','DICK','RBEND','RESM')
+#dens$color <- rep('white',nrow(dens))
+#dens$cex <- 3
+#dens$pch <- 1
 
-hyena.ids$color <- c('red','blue','yellow','magenta','orange')
-trajectories.movie(lats = lats, lons = lons, start.time = 1, end.time = ncol(lats), step = 60, tail.time = 3600, base.dir = '/Users/Ari/Desktop/hyena_traj_movie', colors = hyena.ids$color, map = hyena_map13, ind.names = hyena.ids$name, plot.legend = TRUE, times = timestamps, show.all.past = FALSE, show.scale.bar = TRUE, scale.bar.len = 1000, utm.zone = '36', southern_hemisphere = T, scale.bar.text = '1 km', places = dens, scale.bar.text.offset = 1000)
+#hyena.ids$color <- c('red','blue','yellow','magenta','orange')
+trajectories.movie(lats = lats, lons = lons, start.time = 1, end.time = ncol(lats), step = 60, tail.time = 3600, base.dir = '/Users/Ari/Desktop/hyena_traj_movie', colors = hyena.ids$color, map = hyena_map13, ind.names = hyena.ids$name, plot.legend = TRUE, times = timestamps + 3*60*60, show.all.past = FALSE, show.scale.bar = TRUE, scale.bar.len = 1000, utm.zone = '36', southern_hemisphere = T, scale.bar.text = '1 km', places = dens, scale.bar.text.offset = 1000)
