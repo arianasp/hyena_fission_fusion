@@ -287,17 +287,25 @@ trajectories.movie <-function(lats,lons,start.time,end.time,step=1,tail.time=9,b
 #--------MAIN------
 
 #Load data
-#load('/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/hyena_satellite_map.RData')
-#load('/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps/hyena_latlon_level0.RData')
-#load('/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps/hyena_ids.RData')
-#load('/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps/hyena_timestamps.Rdata')
+load('/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/hyena_satellite_map.RData')
+load('/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps/hyena_xy_level1.RData')
+load('/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps/hyena_ids.RData')
+load('/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/processed/gps/hyena_timestamps.Rdata')
+
+#convert to lat/lon
+lons <- lats <- matrix(NA, nrow = nrow(xs), ncol = ncol(xs))
+for(i in 1:nrow(xs)){
+  tmp <- utm.to.latlon(cbind(xs[i,], ys[i,]), utm.zone = '36', southern_hemisphere = T)
+  lons[i,] <- tmp[,1]
+  lats[i,] <- tmp[,2]
+}
 
 #get dens
-#dens <- get_dens(den.file.path = '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv')
-#dens$name <- c('DAVE','DICK','RBEND','RESM')
-#dens$color <- rep('white',nrow(dens))
-#dens$cex <- 3
-#dens$pch <- 1
+dens <- get_dens(den.file.path = '/Volumes/EAS_shared/hyena/archive/hyena_pilot_2017/rawdata/metadata/hyena_isolate_dens.csv')
+dens$name <- c('DAVE','DICK','RBEND','RESM')
+dens$color <- rep('white',nrow(dens))
+dens$cex <- 3
+dens$pch <- 1
 
-#hyena.ids$color <- c('red','blue','yellow','magenta','orange')
-trajectories.movie(lats = lats, lons = lons, start.time = 1, end.time = ncol(lats), step = 60, tail.time = 3600, base.dir = '/Users/Ari/Desktop/hyena_traj_movie', colors = hyena.ids$color, map = hyena_map13, ind.names = hyena.ids$name, plot.legend = TRUE, times = timestamps + 3*60*60, show.all.past = FALSE, show.scale.bar = TRUE, scale.bar.len = 1000, utm.zone = '36', southern_hemisphere = T, scale.bar.text = '1 km', places = dens, scale.bar.text.offset = 1000)
+hyena.ids$color <- c('red','blue','yellow','magenta','orange')
+trajectories.movie(lats = lats, lons = lons, start.time = 1, end.time = ncol(lats), step = 60*4, tail.time = 3600, base.dir = '/Users/Ari/Desktop/hyena_traj_movie', colors = hyena.ids$color, map = hyena_map13, ind.names = hyena.ids$name, plot.legend = TRUE, times = timestamps + 3*60*60, show.all.past = FALSE, show.scale.bar = TRUE, scale.bar.len = 1000, utm.zone = '36', southern_hemisphere = T, scale.bar.text = '1 km', places = dens, scale.bar.text.offset = 1000)
