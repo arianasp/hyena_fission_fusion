@@ -1049,7 +1049,7 @@ visualize_event_type_distributions <- function(events, events.rand.list, rand.pa
                                                             'fusion.stay.move__together.travel__fission.move.move',
                                                             'fusion.move.move__together.travel__fission.stay.move',
                                                             'fusion.move.move__together.travel__fission.move.move'),
-                              labels = get_event_type_symbols())
+                              labels = event.type.symbols)
   
   
   plot.df.obs <- data.frame(condition = names(distribs.dat), freq = distribs.dat)
@@ -1063,27 +1063,28 @@ visualize_event_type_distributions <- function(events, events.rand.list, rand.pa
                                                                     'fusion.stay.move__together.travel__fission.move.move',
                                                                     'fusion.move.move__together.travel__fission.stay.move',
                                                                     'fusion.move.move__together.travel__fission.move.move'),
-                                  labels = get_event_type_symbols())
+                                  labels = event.type.symbols)
   
   
   ggplot(data = plot.df, aes(x = condition, y = freq))+
     geom_violin(scale = 'width', fill = col, col = col)+
-    geom_point(data = plot.df.obs, shape = '_', size = 7)+
+    geom_point(data = plot.df.obs, shape = '|', size = 7)+
     theme_classic(base_size = 12)+
     geom_vline(aes(xintercept = 5.5))+
     ylab('Frequency')+
-    theme(axis.text = element_text(color = 'black'), axis.title.x = element_blank())+
-    scale_x_discrete(labels = sprintf(as.character(plot.df.obs$condition)))+
-    geom_line(data = data.frame(x = c("↑↑\n••\n•↑",
-                                      "•↑\n••\n↑↑",
-                                      "↑↑\n↑↑\n•↑",
-                                      "•↑\n↑↑\n↑↑"),
-                                y = filter(plot.df.obs, condition %in% c("↑↑\n••\n•↑",
-                                                                         "•↑\n••\n↑↑",
-                                                                         "↑↑\n↑↑\n•↑",
-                                                                         "•↑\n↑↑\n↑↑"))$freq,
+    theme(axis.text = element_text(color = 'black'), axis.title.y = element_blank())+
+    scale_x_discrete(limits = levels(plot.df$condition)[c(6:10, 1:5)])+
+    geom_line(data = data.frame(x = c("↑↑ - •• - •↑",
+                                      "•↑ - •• - ↑↑",
+                                      "↑↑ - ↑↑ - •↑",
+                                      "•↑ - ↑↑ - ↑↑"),
+                                y = filter(plot.df.obs, condition %in% c("↑↑ - •• - •↑",
+                                                                         "•↑ - •• - ↑↑",
+                                                                         "↑↑ - ↑↑ - •↑",
+                                                                         "•↑ - ↑↑ - ↑↑"))$freq,
                                 group=c(1,1,2,2)),
-              aes(x = x, y = y, group = group), lty = 3)
+              aes(x = x, y = y, group = group), lty = 3)+
+    coord_flip()
 }
 
 
@@ -1123,16 +1124,16 @@ get_event_type_symbols <- function(){
   
   event.type.symbols <- rep('', length(event.types.all))
   names(event.type.symbols) <- event.types.all
-  event.type.symbols[1] <- paste0(dot, arrow, '\n', local, '\n', dot, arrow)
-  event.type.symbols[2] <- paste0(arrow, dot, '\n', local, '\n', dot, arrow)
-  event.type.symbols[3] <- paste0(arrow, arrow, '\n', local, '\n', dot, arrow)
-  event.type.symbols[4] <- paste0(dot, arrow, '\n', local, '\n', arrow, arrow)
-  event.type.symbols[5] <- paste0(arrow, arrow, '\n', local, '\n', arrow, arrow)
-  event.type.symbols[6] <- paste0(dot, arrow, '\n', travel, '\n', dot, arrow)
-  event.type.symbols[7] <- paste0(arrow, dot, '\n', travel, '\n', dot, arrow)
-  event.type.symbols[8] <- paste0(arrow, arrow, '\n', travel, '\n', dot, arrow)
-  event.type.symbols[9] <- paste0(dot, arrow, '\n', travel, '\n', arrow, arrow)
-  event.type.symbols[10] <- paste0(arrow, arrow, '\n', travel, '\n', arrow, arrow)
+  event.type.symbols[1] <- paste0(dot, arrow, ' - ', local, ' - ', dot, arrow)
+  event.type.symbols[2] <- paste0(arrow, dot, ' - ', local, ' - ', dot, arrow)
+  event.type.symbols[3] <- paste0(arrow, arrow, ' - ', local, ' - ', dot, arrow)
+  event.type.symbols[4] <- paste0(dot, arrow, ' - ', local, ' - ', arrow, arrow)
+  event.type.symbols[5] <- paste0(arrow, arrow, ' - ', local, ' - ', arrow, arrow)
+  event.type.symbols[6] <- paste0(dot, arrow, ' - ', travel, ' - ', dot, arrow)
+  event.type.symbols[7] <- paste0(arrow, dot, ' - ', travel, ' - ', dot, arrow)
+  event.type.symbols[8] <- paste0(arrow, arrow, ' - ', travel, ' - ', dot, arrow)
+  event.type.symbols[9] <- paste0(dot, arrow, ' - ', travel, ' - ', arrow, arrow)
+  event.type.symbols[10] <- paste0(arrow, arrow, ' - ', travel, ' - ', arrow, arrow)
   
   return(event.type.symbols)
 }
