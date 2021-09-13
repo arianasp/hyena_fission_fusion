@@ -309,7 +309,7 @@ mapplot <- ggmap(hyena_map_transparent, alpha = 0.5) +
   geom_point(aes(x = lon.fusion, y = lat.fusion, color = at.den.start), data = events.data.exact.incl.noon, size = 1, shape = 3, alpha = 0.8) +
   scale_color_manual(values=c(colors[1], colors[2])) + 
   theme(legend.position="none", axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank()) + 
-  geom_point(aes(x = lon, y = lat), data = den.locs, size = 7, shape = 21, color = colors[2], stroke = 1) +
+  geom_point(aes(x = lon, y = lat), data = den.locs, size = 6, shape = 21, color = 'white', stroke = 0.5) +
   geom_line(aes(x = lon, y = lat), data = scalebar, color = 'black') +
   geom_text(aes(x = lon, y = lat), data = scalebar2, label = '1 km', nudge_y = .003)+
   labs(tag = 'C')
