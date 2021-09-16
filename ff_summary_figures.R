@@ -393,8 +393,7 @@ ap.blank <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Toget
 
 
 
-svg(filename = paste0(plots.outdir, 'FIG2.svg'), width = 6.5, height = 7.5)
-cairo_pdf(file = paste0(plots.outdir, 'FIG2.pdf'), width = 6.5, height = 7.5, symbolfamily = 's')
+cairo_pdf(file = paste0(plots.outdir, 'FIG2.pdf'), width = 6.5, height = 7.5)
 
 layout <- "
 AABB
@@ -428,8 +427,7 @@ p_nevents <- ggplot(data = plotdat.denblock) +
   labs(tag = 'A')
 
 #-FIGURE 3b--
-svg(paste0(plots.outdir, 'FIG3.svg'), width = 6, height = 4)
-#cairo_pdf(paste0(plots.outdir, 'FIG3.pdf'), width = 6, height = 4)
+cairo_pdf(paste0(plots.outdir, 'FIG3.pdf'), width = 6, height = 4)
 
 layout <- '
 AAABBBB
@@ -440,11 +438,6 @@ p_nevents + visualize_event_type_distributions(events.data.exact, events.rand.li
                                                col = colors[6])+labs(tag = 'B') +
   plot_layout(design = layout)
 dev.off()
-
-# visualize_symmetrical_event_type_comparison(events.data, events.rand.list.denblock, 
-#                                             rand.params, timestamps, 
-#                                             remove.events.around.day.breaks = T,
-#                                             col = colors[6])+labs(tag = 'C')
 
 #-----------------------------------------FIGURE 4------------------------------
 png(paste0(plots.outdir, 'FIG4.png'), width = 5, height = 7, units = 'in', res = 500)

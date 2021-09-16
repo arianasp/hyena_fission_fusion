@@ -1074,14 +1074,14 @@ visualize_event_type_distributions <- function(events, events.rand.list, rand.pa
     ylab('Frequency')+
     theme(axis.text = element_text(color = 'black'), axis.title.y = element_blank())+
     scale_x_discrete(limits = levels(plot.df$condition)[c(6:10, 1:5)])+
-    geom_line(data = data.frame(x = c("\u2191\u2191 - \u2022\u2022 - \u2022\u2191",
-                                      "\u2022\u2191 - \u2022\u2022 - \u2191\u2191",
-                                      "\u2191\u2191 - \u2191\u2191 - \u2022\u2191",
-                                      "\u2022\u2191 - \u2191\u2191 - \u2191\u2191"),
-                                y = filter(plot.df.obs, condition %in% c("\u2191\u2191 - \u2022\u2022 - \u2022\u2191",
-                                                                         "\u2022\u2191 - \u2022\u2022 - \u2191\u2191",
-                                                                         "\u2191\u2191 - \u2191\u2191 - \u2022\u2191",
-                                                                         "\u2022\u2191 - \u2191\u2191 - \u2191\u2191"))$freq,
+    geom_line(data = data.frame(x = c("\u2191\u2191 - \u2295 - \u2022\u2191",
+                                      "\u2022\u2191 - \u2295 - \u2191\u2191",
+                                      "\u2191\u2191 - \u21D1 - \u2022\u2191",
+                                      "\u2022\u2191 - \u21D1 - \u2191\u2191"),
+                                y = filter(plot.df.obs, condition %in% c("\u2191\u2191 - \u2295 - \u2022\u2191",
+                                                                         "\u2022\u2191 - \u2295 - \u2191\u2191",
+                                                                         "\u2191\u2191 - \u21D1 - \u2022\u2191",
+                                                                         "\u2022\u2191 - \u21D1 - \u2191\u2191"))$freq,
                                 group=c(1,1,2,2)),
               aes(x = x, y = y, group = group), lty = 3)+
     coord_flip()
