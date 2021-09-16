@@ -346,7 +346,7 @@ alluv.data$fusion.word <- alluv.data$together.word <- alluv.data$fission.word <-
 symbols <- get_event_type_symbols()
 for(i in 1:nrow(alluv.data)){
   sym <- symbols[match(alluv.data$full.type[i], names(symbols))]
-  symsplit <- strsplit(sym, split = '\n')
+  symsplit <- strsplit(sym, split = ' - ')
   alluv.data$fusion.word[i] <- splittypes[[i]][1]
   alluv.data$together.word[i] <- splittypes[[i]][2]
   alluv.data$fission.word[i] <- splittypes[[i]][3]
@@ -393,10 +393,11 @@ ap.blank <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Toget
 
 
 
-png(filename = paste0(plots.outdir, 'FIG2.png'), width = 6.5, height = 7.5, units = 'in', res = 300)
-cairo_pdf(file = paste0(plots.outdir, 'FIG2.pdf'), width = 6.5, height = 7.5)
+svg(filename = paste0(plots.outdir, 'FIG2.svg'), width = 6.5, height = 7.5)
+cairo_pdf(file = paste0(plots.outdir, 'FIG2.pdf'), width = 6.5, height = 7.5, symbolfamily = 's')
 
 layout <- "
+AABB
 AABB
 CCCC
 CCCC
@@ -427,8 +428,8 @@ p_nevents <- ggplot(data = plotdat.denblock) +
   labs(tag = 'A')
 
 #-FIGURE 3b--
-#png(paste0(plots.outdir, 'FIG3.png'), width = 6, height = 4, units = 'in', res = 500)
-cairo_pdf(paste0(plots.outdir, 'FIG3.pdf'), width = 6, height = 4)
+svg(paste0(plots.outdir, 'FIG3.svg'), width = 6, height = 4)
+#cairo_pdf(paste0(plots.outdir, 'FIG3.pdf'), width = 6, height = 4)
 
 layout <- '
 AAABBBB

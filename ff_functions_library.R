@@ -1074,14 +1074,14 @@ visualize_event_type_distributions <- function(events, events.rand.list, rand.pa
     ylab('Frequency')+
     theme(axis.text = element_text(color = 'black'), axis.title.y = element_blank())+
     scale_x_discrete(limits = levels(plot.df$condition)[c(6:10, 1:5)])+
-    geom_line(data = data.frame(x = c("↑↑ - •• - •↑",
-                                      "•↑ - •• - ↑↑",
-                                      "↑↑ - ↑↑ - •↑",
-                                      "•↑ - ↑↑ - ↑↑"),
-                                y = filter(plot.df.obs, condition %in% c("↑↑ - •• - •↑",
-                                                                         "•↑ - •• - ↑↑",
-                                                                         "↑↑ - ↑↑ - •↑",
-                                                                         "•↑ - ↑↑ - ↑↑"))$freq,
+    geom_line(data = data.frame(x = c("\u2191\u2191 - \u2022\u2022 - \u2022\u2191",
+                                      "\u2022\u2191 - \u2022\u2022 - \u2191\u2191",
+                                      "\u2191\u2191 - \u2191\u2191 - \u2022\u2191",
+                                      "\u2022\u2191 - \u2191\u2191 - \u2191\u2191"),
+                                y = filter(plot.df.obs, condition %in% c("\u2191\u2191 - \u2022\u2022 - \u2022\u2191",
+                                                                         "\u2022\u2191 - \u2022\u2022 - \u2191\u2191",
+                                                                         "\u2191\u2191 - \u2191\u2191 - \u2022\u2191",
+                                                                         "\u2022\u2191 - \u2191\u2191 - \u2191\u2191"))$freq,
                                 group=c(1,1,2,2)),
               aes(x = x, y = y, group = group), lty = 3)+
     coord_flip()
@@ -1102,14 +1102,19 @@ get_event_type_symbols <- function(){
                        'fusion.move.move__together.travel__fission.stay.move',
                        'fusion.move.move__together.travel__fission.move.move')
   
-  arrow <- intToUtf8(0x2191)
-  dot <- intToUtf8(0x2022) 
+  # arrow <- intToUtf8(0x2191)
+  # dot <- intToUtf8(0x2022) 
+  
   # travel <- intToUtf8(0x27F9)
   # travel <- intToUtf8(0x21CA)
-  travel <- paste0(arrow, arrow)
+  #travel <- paste0(arrow, arrow)
   #travel <-intToUtf8(0x21D1)
   #local <- intToUtf8(0x235F)
-  local <- paste0(dot, dot)
+  
+  arrow <- '\u2191'
+  dot <- '\u2022'
+  local <- '\u2295'
+  travel <- '\u21D1'
   
   
   # travel <- paste0(intToUtf8(8593),intToUtf8(8593))
@@ -1370,16 +1375,17 @@ plot_events <- function(r, events, xs, ys, cols, ...){
     geom_path(size = 1)+
     geom_line(aes(x = x, y= y, group = time), inherit.aes = F, lty = 1, size = 0.5,
               data = plot.df[plot.df$phase == 'together',], alpha = 0.2, col = 'gray30')+
-    geom_point(data = plot.df[plot.df$time == 1,], shape = 'S', size = 2)+
-    geom_point(data = plot.df[plot.df$time == max(plot.df$time),], shape = 'E', size = 2, position = position_dodge(width = 1))+
     geom_line(data = scalebar, aes(x = x, y = y), inherit.aes = F)+
     geom_line(arrow = arrow(type = 'closed', length = unit(0.01, units = 'npc')), data = arrow.df, aes(x = x, y = y), inherit.aes = F)+
     geom_text(data = arrow.label, aes(x = x, y = y, label = label), inherit.aes = F, size = 3)+
     geom_text(data = scalebar.label, aes(x = x, y = y, label = label), inherit.aes = F, size = 3)+
+    geom_point(data = plot.df[plot.df$time == 1,], shape = 'S', size = 2)+
+    geom_point(data = plot.df[plot.df$time == max(plot.df$time),], shape = 'E', size = 2)+
     theme_classic()+
     theme(legend.position = 'none', axis.title = element_blank(), aspect.ratio = 1,
           axis.line = element_blank(), panel.border = element_rect(fill = NA, color = 'black', size = 2),
-          axis.ticks = element_blank(), axis.text = element_blank())+
+          axis.ticks = element_blank(), axis.text = element_blank(),
+          plot.margin=grid::unit(c(0,0,0,0), "mm"))+
     geom_line(data = data.frame(x.bar = max(plot.df$x) - 100,  max(plot.df$x),
                                 y.bar = rep(min(plot.df$y) + 10, 2)),
               aes(x = x.bar, y = y.bar), inherit.aes = FALSE)+
