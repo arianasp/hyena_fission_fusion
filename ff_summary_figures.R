@@ -201,6 +201,7 @@ den.locs <- get_dens(paste0(raw.data.directory, 'metadata/hyena_isolate_dens.csv
 #Compute some basic stats mentioned in the paper and print the results
 print(paste0('The total number of events is ', nrow(events.data.incl.noon)))
 print(paste0('The total number of events with exact start and end times is ', nrow(events.data.exact.incl.noon)))
+print(paste0('The 25% | 50% | 75% quantiles of the duration of events with exact start and end times is ', paste(quantile(events.data.exact.incl.noon$duration.together, c(.25, .50, .75))/ 60, collapse = ' | '), ' minutes'))
 print(paste0('The total number of events with exact start and end times not crossing noon is ', nrow(events.data.exact)))
 
 print(paste0('The number of events with exact start and end times including noon starting at the den is ', sum(events.data.exact.incl.noon$at.den.start)))
