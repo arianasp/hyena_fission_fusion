@@ -1,7 +1,5 @@
 ## Driver for updating plots only
 
-
-
 #----------------------------- SET UP DIRECTORIES---------------------------------------
 
 user <- Sys.info()['user']

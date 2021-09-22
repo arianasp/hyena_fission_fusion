@@ -352,9 +352,9 @@ for(i in 1:nrow(alluv.data)){
   alluv.data$together.word[i] <- splittypes[[i]][2]
   alluv.data$fission.word[i] <- splittypes[[i]][3]
   
-  alluv.data$Fusion[i] <- symsplit[[1]][3] #note: this is because the symbols are listed backwards to read from bottom to top
+  alluv.data$Fusion[i] <- symsplit[[1]][1] #note: this is because the symbols are listed backwards to read from bottom to top
   alluv.data$Together[i] <- symsplit[[1]][2]
-  alluv.data$Fission[i] <- symsplit[[1]][1]
+  alluv.data$Fission[i] <- symsplit[[1]][3]
   
 }
 alluv.data <- na.omit(alluv.data)
@@ -414,18 +414,16 @@ plotdat.denblock$lab.nonden <- 'Non-Den'
 p_nevents <- ggplot(data = plotdat.denblock) + 
   geom_violin(mapping = aes(x = lab.all, y = nevents), fill = 'gray30', color = 'gray30') + 
   geom_point(x = 1, y = events.tot.data, shape = '_', size = 7)+
-  #geom_line(aes(x = x, y = y), data = data.frame(x = c(0.5,1.5), y = rep(events.tot.data, 2)), col = 'gray', size = 2) +
   geom_violin(mapping = aes(x = lab.den, y = denevents), fill = colors[2], color = colors[2]) + 
   geom_point(x = 2, y = events.tot.den.data, shape = '_', size = 7)+
-  #geom_line(aes(x = x, y = y), data = data.frame(x = c(1.5,2.5), y = rep(events.tot.den.data, 2)), col = 'blue', size = 2) +
   geom_violin(mapping = aes(x = lab.nonden, y = nondenevents), fill = colors[1], color = colors[1]) + 
-  #geom_line(aes(x = x, y = y), data = data.frame(x = c(2.5,3.5), y = rep(events.tot.nonden.data, 2)), col = 'magenta', size = 2) +
   geom_point(x = 3, y = events.tot.nonden.data, shape = '_', size = 7)+
   labs(title="",x="", y = "Number of fission-fusion events") +
   ylim(0, events.tot.data) + 
   theme_classic(base_size = 12) + 
   theme(legend.position="none")+
-  labs(tag = 'A')
+  labs(tag = 'A')+
+  coord_flip()
 
 #-FIGURE 3b--
 cairo_pdf(paste0(plots.outdir, 'FIG3.pdf'), width = 6, height = 4)
