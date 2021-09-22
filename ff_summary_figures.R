@@ -413,11 +413,11 @@ plotdat.denblock$lab.den <- 'Den'
 plotdat.denblock$lab.nonden <- 'Non-Den'
 p_nevents <- ggplot(data = plotdat.denblock) + 
   geom_violin(mapping = aes(x = lab.all, y = nevents), fill = 'gray30', color = 'gray30') + 
-  geom_point(x = 1, y = events.tot.data, shape = '_', size = 7)+
+  geom_point(x = 1, y = events.tot.data, shape = '|', size = 7)+
   geom_violin(mapping = aes(x = lab.den, y = denevents), fill = colors[2], color = colors[2]) + 
-  geom_point(x = 2, y = events.tot.den.data, shape = '_', size = 7)+
+  geom_point(x = 2, y = events.tot.den.data, shape = '|', size = 7)+
   geom_violin(mapping = aes(x = lab.nonden, y = nondenevents), fill = colors[1], color = colors[1]) + 
-  geom_point(x = 3, y = events.tot.nonden.data, shape = '_', size = 7)+
+  geom_point(x = 3, y = events.tot.nonden.data, shape = '|', size = 7)+
   labs(title="",x="", y = "Number of fission-fusion events") +
   ylim(0, events.tot.data) + 
   theme_classic(base_size = 12) + 
@@ -426,7 +426,7 @@ p_nevents <- ggplot(data = plotdat.denblock) +
   coord_flip()
 
 #-FIGURE 3b--
-cairo_pdf(paste0(plots.outdir, 'FIG3.pdf'), width = 6, height = 4)
+cairo_pdf(paste0(plots.outdir, 'FIG3.pdf'), width = 8, height = 4)
 
 layout <- '
 AAABBBB
