@@ -14,6 +14,7 @@ library(magick)
 library(ggnetwork)
 library(sna)
 library(grid)
+library(gganimate)
 
 
 #-----------FILENAMES---------------
@@ -516,3 +517,22 @@ psri + obs.plot + rand.plot.1 + rand.plot.2 + rand.plot.3 + plot_layout(design =
 grid.rect(x = 0.655, y = 0.835, width = 0.64, height = 0.2, gp = gpar(lwd = 1, col = 'black', fill = NA, lty = 2))
 grid.rect(x = 0.2055, y = 0.835, width = 0.19, height = 0.2, gp = gpar(lwd = 1, col = 'black', fill = NA))
 dev.off()
+
+
+#----------------------------EXAMPLE ANIMATIONS---------------------------------
+if(R.fusion == 100 & R.fission == 200){
+sv2 <- animate_events(r = 4, events = events.data.exact.incl.noon, xs = xs, ys = ys,
+               phase.col = FALSE, axes = FALSE, xlab = '', ylab = '', cols = colors[c(3,5)])
+sv2 <- animate(sv2, height = 4, width = 4, units = 'in', res = 300, type = 'cairo')
+anim_save('SV2.gif', sv2, path = plots.outdir)
+
+sv3 <- animate_events(r = 23, events = events.data.exact.incl.noon, xs = xs, ys = ys,
+                      phase.col = FALSE, axes = FALSE, xlab = '', ylab = '', cols = colors[c(3,5)])
+sv3 <- animate(sv3, height = 4, width = 4, units = 'in', res = 300, type = 'cairo', nframes = 200)
+anim_save('SV3.gif', sv3, path = plots.outdir)
+
+sv4 <- animate_events(r = 40, events = events.data.exact.incl.noon, xs = xs, ys = ys,
+                      phase.col = FALSE, axes = FALSE, xlab = '', ylab = '', cols = colors[c(3,5)])
+sv4 <- animate(sv4, height = 4, width = 4, units = 'in', res = 300, type = 'cairo')
+anim_save('SV4.gif', sv4, path = plots.outdir)
+}

@@ -1395,6 +1395,69 @@ plot_events <- function(r, events, xs, ys, cols, ...){
     ylim(-max.range/2, max.range/2)
 }
 
+animate_events <- function(r, events, xs, ys, cols, ...){
+  i <- events$i[r]
+  j <- events$j[r]
+  x.i <- xs[events$i[r], events$t.start[r]:events$t.end[r]]
+  x.i <- x.i - mean(range(x.i, na.rm = TRUE))
+  y.i <- ys[events$i[r], events$t.start[r]:events$t.end[r]]
+  y.i <- y.i - mean(range(y.i, na.rm = TRUE))
+  x.j <- xs[events$j[r], events$t.start[r]:events$t.end[r]]
+  x.j <- x.j - mean(range(x.j, na.rm = TRUE))
+  y.j <- ys[events$j[r], events$t.start[r]:events$t.end[r]]
+  y.j <- y.j - mean(range(y.j, na.rm = TRUE))
+  
+  b1.idx <- events$b1[r] - events$t.start[r] + 1
+  b2.idx <- events$b2[r] - events$t.start[r] + 1
+  
+  plot.df <- data.frame(x = c(x.i, x.j), y = c(y.i, y.j), id = factor(c(rep(i, length(x.i)), rep(j, length(x.j)))), time = rep(1:length(x.i), 2), 
+                        phase = NA)
+  plot.df[plot.df$time < b1.idx,'phase'] <- 'fusion'
+  plot.df[plot.df$time >= b1.idx & plot.df$time <= b2.idx,'phase'] <- 'together'
+  plot.df[plot.df$time > b2.idx,'phase'] <- 'fission'
+  
+  x.range = max(plot.df$x, na.rm = TRUE) - min(plot.df$x, na.rm = TRUE)
+  y.range = max(plot.df$y, na.rm = TRUE) - min(plot.df$y, na.rm = TRUE)
+  x.most.extreme = range(plot.df$x, na.rm  = TRUE)[which.max(abs(range(plot.df$x, na.rm = TRUE)))]
+  y.most.extreme = range(plot.df$y, na.rm  = TRUE)[which.max(abs(range(plot.df$y, na.rm = TRUE)))]
+  max.range = ceiling(max(x.range, y.range) / 50) * 50
+  scalebar = data.frame(x = c(max.range/2, max.range/2 - R.fusion),
+                        y = rep(max.range/2 - 0.1*max.range/2, 2))
+  scalebar.label = data.frame(x = mean(scalebar$x), y = mean(scalebar$y) + 0.07 * mean(scalebar$y),
+                              label = paste0(R.fusion, 'm'))
+  arrow.df = data.frame(x = c(-max.range/2 + 0.1*max.range/2, -max.range/2 + 0.1*max.range/2),
+                        y = c(max.range/2 - 0.2*max.range/2, max.range/2- 0.07*max.range/2))
+  arrow.label = data.frame(x = -max.range/2 + 0.1*max.range/2,
+                           y = max.range/2- 0.1*max.range/2 + 0.07 * max.range/2,
+                           label = 'N')
+  
+  ggplot(plot.df, aes(x =x ,y=y, col = id))+
+    geom_point(size = 3, alpha = 0.5)+
+    geom_point(size = 2, alpha = 0.5, data = filter(plot.df, phase == 'together'))+
+    # geom_line(aes(x = x, y= y, group = time), inherit.aes = F, lty = 1, size = 0.5,
+    #           data = plot.df[plot.df$phase == 'together',], alpha = 0.2, col = 'gray30')+
+    geom_line(data = scalebar, aes(x = x, y = y), inherit.aes = F)+
+    geom_line(arrow = arrow(type = 'closed', length = unit(0.01, units = 'npc')), data = arrow.df, aes(x = x, y = y), inherit.aes = F)+
+    geom_text(data = arrow.label, aes(x = x, y = y, label = label), inherit.aes = F, size = 3)+
+    geom_text(data = scalebar.label, aes(x = x, y = y, label = label), inherit.aes = F, size = 3)+
+    #geom_point(data = plot.df[plot.df$time == 1,], shape = 'S', size = 2)+
+    #geom_point(data = plot.df[plot.df$time == max(plot.df$time),], shape = 'E', size = 2)+
+    theme_classic()+
+    theme(legend.position = 'none', axis.title = element_blank(), aspect.ratio = 1,
+          axis.line = element_blank(), panel.border = element_rect(fill = NA, color = 'black', size = 2),
+          axis.ticks = element_blank(), axis.text = element_blank(),
+          plot.margin=grid::unit(c(0,0,0,0), "mm"), plot.title = element_text(size = 11, hjust = 0.5, vjust = -0.01))+
+    # geom_line(data = data.frame(x.bar = max(plot.df$x) - 100,  max(plot.df$x),
+    #                             y.bar = rep(min(plot.df$y) + 10, 2)),
+    #           aes(x = x.bar, y = y.bar), inherit.aes = FALSE)+
+    scale_color_manual(values = cols)+
+    xlim(-max.range/2, max.range/2)+
+    ylim(-max.range/2, max.range/2)+
+    transition_components(time)+
+    shadow_wake(wake = 0.3, exclude_layer = 1)+
+    ggtitle(gsub(x = gsub(x = events$event.type.sym[r], '__', ' | ', fixed = TRUE), '.', ' ', fixed = TRUE))
+}
+
 #plot the fitted fission-fusion function associated with a given event r
 plot_canonical_shape <- function(r, together.seqs, xs, ys){
   
