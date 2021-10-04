@@ -325,7 +325,7 @@ BBCCCC
 BBCCCC
 "
 
-png(paste0(plots.outdir, 'FIG1.png'), width = 8, height =5, units = 'in', res = 500)
+pdf(paste0(plots.outdir, 'FIG1.pdf'), width = 8, height =5)
 hyena.plot + timeplot + mapplot + plot_layout(design = layout)
 dev.off()
 
@@ -531,7 +531,7 @@ sv3 <- animate_events(r = 23, events = events.data.exact.incl.noon, xs = xs, ys 
 sv3 <- animate(sv3, height = 4, width = 4, units = 'in', res = 300, type = 'cairo', nframes = 200)
 anim_save('SV3.gif', sv3, path = plots.outdir)
 
-sv4 <- animate_events(r = 40, events = events.data.exact.incl.noon, xs = xs, ys = ys,
+sv4 <- animate_events(r = 26, events = events.data.exact.incl.noon, xs = xs, ys = ys,
                       phase.col = FALSE, axes = FALSE, xlab = '', ylab = '', cols = colors[c(3,5)])
 sv4 <- animate(sv4, height = 4, width = 4, units = 'in', res = 300, type = 'cairo')
 anim_save('SV4.gif', sv4, path = plots.outdir)
