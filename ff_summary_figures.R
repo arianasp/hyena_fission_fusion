@@ -445,6 +445,69 @@ visualize_compare_event_properties(events.data.exact, events.rand.list.denblock,
                                    params, rand.params, timestamps, cols = colors[1:2])
 dev.off()
 
+#Some associated stats from Figure 4 for the text
+
+#get den and non-den indexes (same as above)
+den.idxs <- which(events.data.exact$dist.den.start <= params$den.dist.thresh | events.data.exact$dist.den.end <= params$den.dist.thresh)
+nonden.idxs <- which(events.data.exact$dist.den.start > params$den.dist.thresh & events.data.exact$dist.den.end > params$den.dist.thresh)
+
+#durations
+dur.den <- events.data.exact$t.end[den.idxs] - events.data.exact$t.start[den.idxs]
+dur.nonden <- events.data.exact$t.end[nonden.idxs] - events.data.exact$t.start[nonden.idxs]
+print('quantiles for duration, den (min):')
+print(quantile(dur.den, c(0, 0.025, 0.25, 0.5,0.75, 0.975, 1))/60)
+print('quantiles for duration, nonden (min):')
+print(quantile(dur.nonden, c(0, 0.025, 0.25, 0.5, 0.75, 0.975, 1))/60)
+
+#closest approach
+close.app.den <- events.data.exact$closest.app[den.idxs]
+close.app.nonden <- events.data.exact$closest.app[nonden.idxs]
+print('quantiles for closest approach, den:')
+print(quantile(close.app.den, c(0, 0.025, 0.25, 0.5,0.75, 0.975, 1)))
+print('quantiles for closest approach, nonden:')
+print(quantile(close.app.nonden, c(0, 0.025, 0.25, 0.5,0.75, 0.975, 1)))
+print('% approach within 3 m, den:')
+print(mean(close.app.den <= 3, na.rm=T)*100)
+print('% approach within 3 m, nonden:')
+print(mean(close.app.nonden <= 3, na.rm=T)*100)
+
+#displacement together - defined as the minimum of i and j's displacement during together phase
+events.data.exact$disp.together <- apply(cbind(events.data.exact$disp.together.i, events.data.exact$disp.together.j), 1, min, na.rm=T)
+disp.den <- events.data.exact$disp.together[den.idxs]
+disp.nonden <- events.data.exact$disp.together[nonden.idxs]
+print('quantiles for displacement together, den:')
+print(quantile(disp.den, c(0, 0.025, 0.25, 0.5,0.75, 0.975, 1)))
+print('quantiles for displacement together, nonden:')
+print(quantile(disp.nonden, c(0, 0.025, 0.25, 0.5,0.75, 0.975, 1)))
+print('% > 200 m, den:')
+print(mean(disp.den >= 100, na.rm=T)*100)
+print('% > 200 m, den:')
+print(mean(disp.nonden >= 100, na.rm=T)*100)
+
+#heading similarity
+headsim.den <- events.data.exact$together.heading.similarity[den.idxs]
+headsim.nonden <- events.data.exact$together.heading.similarity[nonden.idxs]
+print('% heading similarity > 0, den:')
+print(mean(headsim.den >= 0, na.rm=T)*100)
+print('% heading similarity > 0, nonden:')
+print(mean(headsim.nonden >= 0, na.rm=T)*100)
+print('% heading similarity > 0.5, den:')
+print(mean(headsim.den >= 0.5, na.rm=T)*100)
+print('% heading similarity > 0.5, nonden:')
+print(mean(headsim.nonden >= 0.5, na.rm=T)*100)
+
+#activity similarity
+actsim.den <- events.data.exact$vedba.similarity[den.idxs]
+actsim.nonden <- events.data.exact$vedba.similarity[nonden.idxs]
+print('% activity similarity > 0, den:')
+print(mean(actsim.den >= 0, na.rm=T)*100)
+print('% activity similarity > 0, nonden:')
+print(mean(actsim.nonden >= 0, na.rm=T)*100)
+print('% activity similarity > 0.5, den:')
+print(mean(actsim.den >= 0.5, na.rm=T)*100)
+print('% activity similarity > 0.5, nonden:')
+print(mean(actsim.nonden >= 0.5, na.rm=T)*100)
+
 #---------------------------------FIGURE 5--------------------------------------
 netplotdat <- networkdat
 
