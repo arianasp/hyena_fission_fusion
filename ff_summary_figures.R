@@ -405,7 +405,43 @@ CCCC
 "
 ev + canonical.shape + ap + plot_layout(design = layout)
 dev.off()
-                    
+
+#some stats related to figure 2
+trans.dat <- events.data.exact.incl.noon[which(!is.na(events.data.exact.incl.noon$fusion.type) & !is.na(events.data.exact.incl.noon$fission.type) & !is.na(events.data.exact.incl.noon$together.type)),]
+fus_stay_mov_idxs <- which(trans.dat$fusion.type %in% c('fusion.stay.move', 'fusion.move.stay'))
+fus_mov_mov_idxs <- which(trans.dat$fusion.type %in% c('fusion.move.move'))
+travel_idxs <- which(trans.dat$together.type == 'together.travel')
+local_idxs <- which(trans.dat$together.type == 'together.local')
+#highly coordinated events
+coord_idxs <- which(trans.dat$together.heading.similarity > 0.5 & trans.dat$vedba.similarity > 0.5)
+#den start idxs, den end idxs
+den_start_idxs <- which(trans.dat$at.den.start)
+den_end_idxs <- which(trans.dat$at.den.end)
+#non den start idxs, non den end idxs
+nonden_start_idxs <- which(!trans.dat$at.den.end)
+nonden_end_idxs <- which(!trans.dat$at.den.end)
+
+#give you start as stay/mov, probability of going to travel
+print('P(travel | mov/stay)')
+length(intersect(fus_stay_mov_idxs, travel_idxs)) / length(fus_stay_mov_idxs) * 100
+
+print('P(travel | mov/mov)')
+length(intersect(fus_mov_mov_idxs, travel_idxs)) / length(fus_mov_mov_idxs) * 100
+
+print('P(stay/mov | travel)')
+length(intersect(fus_stay_mov_idxs, travel_idxs)) / length(travel_idxs)
+
+print('P(mov/mov | travel)')
+length(intersect(fus_mov_mov_idxs, travel_idxs)) / length(travel_idxs)
+
+
+print('P(travel | meet at den)')
+print(length(intersect(travel_idxs, den_start_idxs)) / length(den_start_idxs))
+print('P(travel | meet not at den)')
+print(length(intersect(travel_idxs, nonden_start_idxs)) / length(nonden_start_idxs))
+print('P(met at den | travel)')
+print(length(intersect(travel_idxs, den_start_idxs)) / length(travel_idxs))
+
 #----------------------------------FIGURE 3-------------------------------------
 #--FIGURE 3a--
 plotdat.denblock <- plotdat[which(plotdat$type=='denblock'),]
