@@ -1,8 +1,8 @@
 #This script explores how many of the fission-fusion events we observe are actually polyadic
 
 #----DIRECTORIES---
-indir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/data/main_output/'
-plotdir <- '/Volumes/EAS_shared/hyena/working/hyena_fission_fusion/results'
+indir <- '~/Dropbox/hyenas/hyena_fission_fusion/results/1_main_output_R100_200/data/'
+plotdir <- '~/Dropbox/hyenas/hyena_fission_fusion/results/1_main_output_R100_200/plots/'
 codedir <- '~/Dropbox/code_ari/hyena_fission_fusion/'
 
 #-----LIBRARIES----
