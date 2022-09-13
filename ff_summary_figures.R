@@ -420,6 +420,8 @@ den_end_idxs <- which(trans.dat$at.den.end)
 #non den start idxs, non den end idxs
 nonden_start_idxs <- which(!trans.dat$at.den.end)
 nonden_end_idxs <- which(!trans.dat$at.den.end)
+#events that don't involve a den at all
+nonden_idxs <- which(!trans.dat$at.den.start & !trans.dat$at.den.end)
 
 #give you start as stay/mov, probability of going to travel
 print('P(travel | mov/stay)')
@@ -441,6 +443,9 @@ print('P(travel | meet not at den)')
 print(length(intersect(travel_idxs, nonden_start_idxs)) / length(nonden_start_idxs))
 print('P(met at den | travel)')
 print(length(intersect(travel_idxs, den_start_idxs)) / length(travel_idxs))
+
+print('P(not at den start or end | travel)')
+print(length(intersect(travel_idxs, nonden_idxs))/length(travel_idxs))
 
 #----------------------------------FIGURE 3-------------------------------------
 #--FIGURE 3a--
