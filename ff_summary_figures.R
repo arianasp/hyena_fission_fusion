@@ -453,7 +453,7 @@ print(length(intersect(travel_idxs, nonden_idxs))/length(travel_idxs))
 
 #----------------------------------FIGURE 3-------------------------------------
 #--FIGURE 3a--
-plotdat.denblock <- potdat[which(plotdat$type=='denblock'),]
+plotdat.denblock <- plotdat[which(plotdat$type=='denblock'),]
 plotdat.denblock$lab.all <- 'All'
 plotdat.denblock$lab.den <- 'Den'
 plotdat.denblock$lab.nonden <- 'Non-Den'
