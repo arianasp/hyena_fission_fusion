@@ -1168,8 +1168,9 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   good.idxs.data <- which(events$start.exact & events$end.exact)
   good.idxs.rand <- which(events.rand.all$start.exact & events.rand.all$end.exact)
   
-  den.cat.data <- events$dist.den.start <= params$den.dist.thresh | events$dist.den.end <= params$den.dist.thresh
-  den.cat.rand <- events.rand.all$dist.den.start <= params$den.dist.thresh | events.rand.all$dist.den.end <= params$den.dist.thresh
+  ## Den events based on distance to den during fusion only (change during revision)
+  den.cat.data <- events$dist.den.start <= params$den.dist.thresh # | events$dist.den.end <= params$den.dist.thresh
+  den.cat.rand <- events.rand.all$dist.den.start <= params$den.dist.thresh # | events.rand.all$dist.den.end <= params$den.dist.thresh
   
   #quartz(height = 12, width = 10)
   par(mfrow = c(4,2), mar = c(4,4,1,1), oma = c(0,0,2,0))
