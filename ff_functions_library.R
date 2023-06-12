@@ -1196,13 +1196,6 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   compare_histograms(events$closest.app[good.idxs.data], events.rand.all$closest.app[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Closest approach (m)', logaxes = 'x', cumulative=T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
   mtext(text = 'C', side = 3, line = 0, adj = 0, font = 2)
   
-  #whether at the den or not
-  events$dist.den.min <- suppressWarnings(apply(cbind(events$dist.den.start, events$dist.den.end), FUN = function(x){return(min(x,na.rm=T))}, 1))
-  events$dist.den.min[which(is.infinite(events$dist.den.min))] <- NA
-  events.rand.all$dist.den.min <- suppressWarnings(apply(cbind(events.rand.all$dist.den.start, events.rand.all$dist.den.end), FUN = function(x){return(min(x,na.rm=T))}, 1))
-  events.rand.all$dist.den.min[which(is.infinite(events.rand.all$dist.den.min))] <- NA
-  #compare_histograms(events$dist.den.min[good.idxs.data], events.rand.all$dist.den.min[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 100, xlab = 'Distance from den (m)', logaxes='x', cumulative = T, categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand])
-  
   #time of day (use midpoint of event)
   events$hour <- hour(timestamps[(events$t.start + events$t.end)/2] + params$local.time.diff)
   events.rand.all$hour <- hour(timestamps[(events.rand.all$t.start + events.rand.all$t.end)/2] + params$local.time.diff)
