@@ -447,6 +447,8 @@ print('P(travel | meet not at den)')
 print(length(intersect(travel_idxs, nonden_start_idxs)) / length(nonden_start_idxs))
 print('P(met at den | travel)')
 print(length(intersect(travel_idxs, den_start_idxs)) / length(travel_idxs))
+print('P(end at den | travel)')
+print(length(intersect(travel_idxs, den_end_idxs)) / length(travel_idxs))
 
 print('P(not at den start or end | travel)')
 print(length(intersect(travel_idxs, nonden_idxs))/length(travel_idxs))
