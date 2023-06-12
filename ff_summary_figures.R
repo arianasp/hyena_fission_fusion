@@ -429,10 +429,10 @@ nonden_idxs <- which(!trans.dat$at.den.start & !trans.dat$at.den.end)
 
 #given you start as stay/mov, probability of going to travel
 print('P(travel | mov/stay)')
-length(intersect(fus_stay_mov_idxs, travel_idxs)) / length(fus_stay_mov_idxs) * 100
+length(intersect(fus_stay_mov_idxs, travel_idxs)) / length(fus_stay_mov_idxs)
 
 print('P(travel | mov/mov)')
-length(intersect(fus_mov_mov_idxs, travel_idxs)) / length(fus_mov_mov_idxs) * 100
+length(intersect(fus_mov_mov_idxs, travel_idxs)) / length(fus_mov_mov_idxs)
 
 print('P(stay/mov | travel)')
 length(intersect(fus_stay_mov_idxs, travel_idxs)) / length(travel_idxs)
