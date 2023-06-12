@@ -53,16 +53,18 @@ events.data <- remove_events_around_day_breaks(events.data, timestamps, rand.par
 events.data.exact <- events.data[events.data$start.exact & events.data$end.exact,]
   
 #get total number of events in data (total, den, non-den) -- For FIGURE 3
+### During revision, change categorization to be based only on fusions (not both fusion and fission)
 events.tot.data <- nrow(events.data.exact)
-events.tot.den.data <- sum(events.data.exact$dist.den.start <= params$den.dist.thresh | events.data.exact$dist.den.end <= params$den.dist.thresh)
-events.tot.nonden.data <- sum(events.data.exact$dist.den.start > params$den.dist.thresh & events.data.exact$dist.den.end > params$den.dist.thresh)
+events.tot.den.data <- sum(events.data.exact$dist.den.start <= params$den.dist.thresh) #| events.data.exact$dist.den.end <= params$den.dist.thresh)
+events.tot.nonden.data <- sum(events.data.exact$dist.den.start > params$den.dist.thresh) # & events.data.exact$dist.den.end > params$den.dist.thresh)
 
 #get number of events per dyad in data
 events.net.data <- count_events_per_dyad(events.data.exact)
 
 #get number of events per dyad in data
-den.idxs <- which(events.data.exact$dist.den.start <= params$den.dist.thresh | events.data.exact$dist.den.end <= params$den.dist.thresh)
-nonden.idxs <- which(events.data.exact$dist.den.start > params$den.dist.thresh & events.data.exact$dist.den.end > params$den.dist.thresh)
+### During revision, change categorization to be based only on fusions (not both fusion and fission)
+den.idxs <- which(events.data.exact$dist.den.start <= params$den.dist.thresh) # | events.data.exact$dist.den.end <= params$den.dist.thresh)
+nonden.idxs <- which(events.data.exact$dist.den.start > params$den.dist.thresh) # & events.data.exact$dist.den.end > params$den.dist.thresh)
 events.net.data.den <- count_events_per_dyad(events.data.exact[den.idxs,])
 events.net.data.nonden <- count_events_per_dyad(events.data.exact[nonden.idxs,])
 
@@ -87,13 +89,15 @@ for(r in 1:n.rands){
   #total number of events
   events.tot.denblock[r] <- nrow(events.rand.denblock)
   
-  #den vs nonden 
-  events.tot.den.denblock[r] <- sum(events.rand.denblock$dist.den.start <= params$den.dist.thresh | events.rand.denblock$dist.den.end <= params$den.dist.thresh)
-  events.tot.nonden.denblock[r] <- sum(events.rand.denblock$dist.den.start > params$den.dist.thresh & events.rand.denblock$dist.den.end > params$den.dist.thresh)
+  #den vs nonden
+  ### During revision, change categorization to be based only on fusions (not both fusion and fission)
+  events.tot.den.denblock[r] <- sum(events.rand.denblock$dist.den.start <= params$den.dist.thresh) # | events.rand.denblock$dist.den.end <= params$den.dist.thresh)
+  events.tot.nonden.denblock[r] <- sum(events.rand.denblock$dist.den.start > params$den.dist.thresh) # & events.rand.denblock$dist.den.end > params$den.dist.thresh)
   
   #den indexes
-  denblock.den.idxs <- which(events.rand.denblock$dist.den.start <= params$den.dist.thresh | events.rand.denblock$dist.den.end <= params$den.dist.thresh)
-  denblock.nonden.idxs <- which(events.rand.denblock$dist.den.start > params$den.dist.thresh & events.rand.denblock$dist.den.end > params$den.dist.thresh)
+  ### During revision, change categorization to be based only on fusions (not both fusion and fission)
+  denblock.den.idxs <- which(events.rand.denblock$dist.den.start <= params$den.dist.thresh) # | events.rand.denblock$dist.den.end <= params$den.dist.thresh)
+  denblock.nonden.idxs <- which(events.rand.denblock$dist.den.start > params$den.dist.thresh) # & events.rand.denblock$dist.den.end > params$den.dist.thresh)
   
   #networks - all
   events.net.denblock[,,r] <- count_events_per_dyad(events.rand.denblock)
@@ -418,12 +422,12 @@ coord_idxs <- which(trans.dat$together.heading.similarity > 0.5 & trans.dat$vedb
 den_start_idxs <- which(trans.dat$at.den.start)
 den_end_idxs <- which(trans.dat$at.den.end)
 #non den start idxs, non den end idxs
-nonden_start_idxs <- which(!trans.dat$at.den.end)
+nonden_start_idxs <- which(!trans.dat$at.den.start)
 nonden_end_idxs <- which(!trans.dat$at.den.end)
 #events that don't involve a den at all
 nonden_idxs <- which(!trans.dat$at.den.start & !trans.dat$at.den.end)
 
-#give you start as stay/mov, probability of going to travel
+#given you start as stay/mov, probability of going to travel
 print('P(travel | mov/stay)')
 length(intersect(fus_stay_mov_idxs, travel_idxs)) / length(fus_stay_mov_idxs) * 100
 
@@ -449,7 +453,7 @@ print(length(intersect(travel_idxs, nonden_idxs))/length(travel_idxs))
 
 #----------------------------------FIGURE 3-------------------------------------
 #--FIGURE 3a--
-plotdat.denblock <- plotdat[which(plotdat$type=='denblock'),]
+plotdat.denblock <- potdat[which(plotdat$type=='denblock'),]
 plotdat.denblock$lab.all <- 'All'
 plotdat.denblock$lab.den <- 'Den'
 plotdat.denblock$lab.nonden <- 'Non-Den'
@@ -489,8 +493,9 @@ dev.off()
 #Some associated stats from Figure 4 for the text
 
 #get den and non-den indexes (same as above)
-den.idxs <- which(events.data.exact$dist.den.start <= params$den.dist.thresh | events.data.exact$dist.den.end <= params$den.dist.thresh)
-nonden.idxs <- which(events.data.exact$dist.den.start > params$den.dist.thresh & events.data.exact$dist.den.end > params$den.dist.thresh)
+### During revision, change categorization to be based only on fusions (not both fusion and fission)
+den.idxs <- which(events.data.exact$dist.den.start <= params$den.dist.thresh) # | events.data.exact$dist.den.end <= params$den.dist.thresh)
+nonden.idxs <- which(events.data.exact$dist.den.start > params$den.dist.thresh) # & events.data.exact$dist.den.end > params$den.dist.thresh)
 
 #durations
 dur.den <- events.data.exact$t.end[den.idxs] - events.data.exact$t.start[den.idxs]
