@@ -424,6 +424,8 @@ den_end_idxs <- which(trans.dat$at.den.end)
 #non den start idxs, non den end idxs
 nonden_start_idxs <- which(!trans.dat$at.den.start)
 nonden_end_idxs <- which(!trans.dat$at.den.end)
+#events that either start or end at den but not both
+halfden_idxs <- union(setdiff(den_start_idxs, den_end_idxs), setdiff(den_end_idxs, den_start_idxs))
 #events that don't involve a den at all
 nonden_idxs <- which(!trans.dat$at.den.start & !trans.dat$at.den.end)
 
@@ -452,6 +454,14 @@ print(length(intersect(travel_idxs, den_end_idxs)) / length(travel_idxs))
 
 print('P(not at den start or end | travel)')
 print(length(intersect(travel_idxs, nonden_idxs))/length(travel_idxs))
+
+print('Number of events either starting or ending at the den but not both')
+length(halfden_idxs)
+print('P(start at den | start or end at den but not both)')
+print(length(intersect(den_start_idxs, halfden_idxs))/length(halfden_idxs))
+print('P(end at den | start or end at den but not both)')
+print(length(intersect(den_end_idxs, halfden_idxs))/length(halfden_idxs))
+
 
 #----------------------------------FIGURE 3-------------------------------------
 #--FIGURE 3a--
