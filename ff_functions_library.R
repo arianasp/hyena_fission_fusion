@@ -1200,7 +1200,7 @@ visualize_compare_event_properties <- function(events, events.rand.list, params,
   events$hour <- hour(timestamps[(events$t.start + events$t.end)/2] + params$local.time.diff)
   events.rand.all$hour <- hour(timestamps[(events.rand.all$t.start + events.rand.all$t.end)/2] + params$local.time.diff)
   compare_histograms(events$hour[good.idxs.data], events.rand.all$hour[good.idxs.rand], events.rand.all$rand[good.idxs.rand], n.breaks = 23, xlab = 'Hour of day', logaxes='', custom.breaks = seq(0,23,1), categories.data = den.cat.data[good.idxs.data], categories.rand = den.cat.rand[good.idxs.rand], cols = cols)
-  legend('topright',legend = c('Den','Non-Den'), col = c('blue','magenta'), lwd = c(1.5,1.5), lty = c(1,1),cex = 1, bty='n')
+  legend('topright',legend = c('Den','Non-Den'), col = c('blue','#F72585'), lwd = c(1.5,1.5), lty = c(1,1),cex = 1, bty='n')
   mtext(text = 'D', side = 3, line = 0, adj = 0, font = 2)
   
   #heading similarity
