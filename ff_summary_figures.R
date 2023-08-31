@@ -124,6 +124,7 @@ for(i in 1:(n.inds-1)){
 }
 colnames(dyads) <- c('i','j')
 
+
 #data frame of dyads + permutation type
 networkdat <- data.frame()
 for(r in 1:n.rands){
@@ -180,6 +181,16 @@ networkdat$dyad <- paste(networkdat$iname, '/', networkdat$jname)
 networkdat$type <- factor(networkdat$type,
                           levels = c('denblock','real'),ordered = TRUE)
 
+
+dyads.time <- dyads
+dyads.time$simulobstime <- NA
+dyads.time$events <- left_join(dyads.time, filter(networkdat, type == 'real'),
+                          by = c('i', 'j'))$count
+
+for(d in 1:nrow(dyads.time)){
+  dyads.time$simulobstime[d] <- sum(!is.na(lats[dyads.time$i[d],]) & !is.na(lats[dyads.time$j[d],]))/(60*60*24)
+}
+
 #------ Pre-processing for FIGURE 1, FIGURE 2
 good.idxs.incl.noon <- which(events.data.incl.noon$start.exact & events.data.incl.noon$end.exact)
 events.data.exact.incl.noon <- events.data.incl.noon[good.idxs.incl.noon,]
@@ -225,6 +236,9 @@ print(paste0('The number of traveling events with exact start and end times incl
 print(paste0('The number of stationary events with exact start and end times includign noon during the together phase is ', sum(events.data.exact.incl.noon$together.type=='together.local', na.rm=T)))
 print(paste0('The number of together-traveling events with exact start and end times including noon starting at the den is ', sum(events.data.exact.incl.noon$at.den.start & events.data.exact.incl.noon$together.type=='together.travel', na.rm = T)))
 print(paste0('The number of together-traveling events with exact start and end times including noon ending at the den is ', sum(events.data.exact.incl.noon$at.den.end & events.data.exact.incl.noon$together.type=='together.travel', na.rm = T)))
+
+print(paste0('The mean number of fission-fusion events per day of simultaneous observation time for each dyad is ', mean(dyads.time$events/dyads.time$simulobstime)))
+print(paste0('The range of number of fission-fusion events per day of simultaneous observation time for each dyad is ', range(dyads.time$events/dyads.time$simulobstime)))
 
 #--------------PLOTS----------------
 
