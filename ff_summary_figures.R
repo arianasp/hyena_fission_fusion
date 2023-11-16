@@ -398,7 +398,7 @@ ap <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Together, a
   geom_text(stat='stratum', aes(label = after_stat(stratum)), reverse = FALSE)+
   scale_fill_manual(values = colors[c(6,4)])+
   #scale_fill_manual(values = plasma(10))+
-  labs(tag = 'C')
+  labs(tag = 'C') 
 
 ap.blank <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Together, axis3 = Fission))+
   scale_x_continuous(breaks = c(1,2,3), labels = c('Fusion', 'Together', 'Fission'), expand = c(0.01,0.01))+
