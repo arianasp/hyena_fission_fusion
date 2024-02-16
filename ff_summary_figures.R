@@ -271,7 +271,6 @@ timeplot <- ggplot(aes(x = hour.start.alt, fill = as.logical(at.den.start-1)), d
             lab.x = c(3.625, 13.4375, 21.625), 
             lab.y = 83.5), aes(label = lab, x = lab.x, y = lab.y), inherit.aes = F, size = 3)+
   theme_classic(base_size = 12) + 
-  ylab('Number of fusions') + 
   xlab('')+
   scale_fill_manual(values = c(colors[2], colors[1]), labels = c('Den', 'Non-Den'))+
   theme(legend.position = c(.2,.75), legend.title = element_blank(), legend.background = element_blank(), legend.text = element_text(size = 8))+
