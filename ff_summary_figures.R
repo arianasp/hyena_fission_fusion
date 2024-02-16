@@ -490,7 +490,7 @@ p_nevents <- ggplot(data = plotdat.denblock) +
   geom_point(x = 2, y = events.tot.den.data, shape = '|', size = 6)+
   geom_violin(mapping = aes(x = lab.nonden, y = nondenevents), fill = colors[1], color = colors[1]) + 
   geom_point(x = 3, y = events.tot.nonden.data, shape = '|', size = 6)+
-  labs(title="",x="", y = "Number of fission-fusion events") +
+  labs(title="",x="", y = "Number of merge-split events") +
   ylim(0, events.tot.data) + 
   theme_classic(base_size = 12) + 
   theme(legend.position="none")+
