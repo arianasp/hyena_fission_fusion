@@ -388,7 +388,7 @@ fusion.symbols <- unique(alluv.plot.data$Fusion)
 
 alluv.plot.data$Event_Type = letters[1:nrow(alluv.plot.data)]
 ap <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Together, axis3 = Fission))+
-  scale_x_continuous(breaks = c(1,2,3), labels = c('Fusion', 'Together', 'Fission'), expand = c(0.01,0.01))+
+  scale_x_continuous(breaks = c(1,2,3), labels = c('Merge', 'Together', 'Split'), expand = c(0.01,0.01))+
   scale_y_continuous(expand = c(0,0))+
   theme(axis.text.y = element_blank(), axis.line = element_blank(), rect = element_blank(), axis.ticks = element_blank(),
         axis.title = element_blank(), legend.position = 'none', axis.text.x = element_text(size = 12))+
@@ -401,7 +401,7 @@ ap <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Together, a
   labs(tag = 'C') 
 
 ap.blank <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Together, axis3 = Fission))+
-  scale_x_continuous(breaks = c(1,2,3), labels = c('Fusion', 'Together', 'Fission'), expand = c(0.01,0.01))+
+  scale_x_continuous(breaks = c(1,2,3), labels = c('Merge', 'Together', 'Split'), expand = c(0.01,0.01))+
   scale_y_continuous(expand = c(0,0))+
   theme(axis.text.y = element_blank(), axis.line = element_blank(), rect = element_blank(), axis.ticks = element_blank(),
         axis.title = element_blank(), legend.position = 'none', axis.text.x = element_text(size = 12))+
