@@ -387,6 +387,8 @@ fusion.symbols <- unique(alluv.plot.data$Fusion)
 #alluvp <- alluvial(alluv.plot.data[,c('Fusion','Together','Fission')], freq = alluv.plot.data$count, col = ifelse(alluv.plot.data$Fusion == fusion.symbols[1], colors[7], colors[5]), blocks = T)
 
 alluv.plot.data$Event_Type = letters[1:nrow(alluv.plot.data)]
+alluv.plot.data$Fusion <- factor(alluv.plot.data$Fusion, levels = c('↑↑', '•↑'), labels = c('↑↑', '•↑'))
+alluv.plot.data$Fission <- factor(alluv.plot.data$Fission, levels = c('↑↑', '•↑', '↑•'), labels = c('↑↑', '•↑', '↑•'))
 ap <- ggplot(alluv.plot.data, aes(y = count, axis1 = Fusion, axis2 = Together, axis3 = Fission))+
   scale_x_continuous(breaks = c(1,2,3), labels = c('Merge', 'Together', 'Split'), expand = c(0.01,0.01))+
   scale_y_continuous(expand = c(0,0))+
