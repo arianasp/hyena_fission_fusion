@@ -237,8 +237,8 @@ print(paste0('The number of stationary events with exact start and end times inc
 print(paste0('The number of together-traveling events with exact start and end times including noon starting at the den is ', sum(events.data.exact.incl.noon$at.den.start & events.data.exact.incl.noon$together.type=='together.travel', na.rm = T)))
 print(paste0('The number of together-traveling events with exact start and end times including noon ending at the den is ', sum(events.data.exact.incl.noon$at.den.end & events.data.exact.incl.noon$together.type=='together.travel', na.rm = T)))
 
-print(paste0('The mean number of fission-fusion events per day of simultaneous observation time for each dyad is ', mean(dyads.time$events/dyads.time$simulobstime)))
-print(paste0('The range of number of fission-fusion events per day of simultaneous observation time for each dyad is ', range(dyads.time$events/dyads.time$simulobstime)))
+print(paste0('The mean number of fission-fusion events per day of simultaneous observation time for each dyad is ', mean(round(dyads.time$events/dyads.time$simulobstime, 4))))
+print(paste0('The range of number of fission-fusion events per day of simultaneous observation time for each dyad is ', paste(round(range(dyads.time$events/dyads.time$simulobstime),4), collapse = '-')))
 
 #--------------PLOTS----------------
 
