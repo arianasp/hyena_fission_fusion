@@ -1449,7 +1449,13 @@ animate_events <- function(r, events, xs, ys, cols, ...){
     ylim(-max.range/2, max.range/2)+
     transition_components(time)+
     shadow_wake(wake = 0.3, exclude_layer = 1)+
-    ggtitle(gsub(x = gsub(x = events$event.type.sym[r], '__', ' | ', fixed = TRUE), '.', ' ', fixed = TRUE))
+    ggtitle(gsub(
+      x = gsub(
+        x = gsub(
+          x = gsub(x = events$event.type.sym[r], '__', ' | ', fixed = TRUE),
+          '.', ' ', fixed = TRUE),
+        'fusion', 'merge', fixed = TRUE),
+      'fission', 'split', fixed = TRUE))
 }
 
 #plot the fitted fission-fusion function associated with a given event r
